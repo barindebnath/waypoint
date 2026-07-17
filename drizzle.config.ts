@@ -5,6 +5,8 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    // Prefer the direct (unpooled) connection for DDL — Neon's Vercel
+    // integration provides DATABASE_URL_UNPOOLED alongside the pooled URL.
+    url: process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL!,
   },
 });

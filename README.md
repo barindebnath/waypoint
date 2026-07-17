@@ -38,23 +38,22 @@ Pipeline definitions seed themselves into the DB on first use (source:
 
 1. **Neon** — create a free project (region: Singapore or nearest you), copy
    the **pooled** connection string.
-2. **Migrate** — locally, run the schema against it once:
-   ```bash
-   DATABASE_URL="<neon-pooled-url>" npx drizzle-kit migrate
-   ```
-3. **Vercel** — *New Project* → import this GitHub repo. Add environment
+2. **Vercel** — *New Project* → import this GitHub repo. Add environment
    variables:
    | Name | Value |
    | :-- | :-- |
    | `DATABASE_URL` | the Neon pooled connection string |
+   | `DATABASE_URL_UNPOOLED` | (optional) Neon's direct connection string — used for migrations; added automatically if you use the Neon↔Vercel integration |
    | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
    | `BETTER_AUTH_URL` | your Vercel URL, e.g. `https://waypoint-xyz.vercel.app` |
-4. **Deploy.** Sign up at your URL, then in **Settings**: set your timezone,
-   Jira base URL, GitHub org URL, and create a `read,write` token for your AI.
-5. Point your AI at `https://<your-url>/llms.txt` and give it the token.
+3. **Deploy.** Migrations run automatically during the Vercel build
+   (`vercel-build` runs `drizzle-kit migrate` first). Sign up at your URL,
+   then in **Settings**: set your timezone, Jira base URL, GitHub org URL,
+   and create a `read,write` token for your AI.
+4. Point your AI at `https://<your-url>/llms.txt` and give it the token.
 
-After changing the schema later: `npx drizzle-kit generate`, commit the new
-migration, and re-run step 2 against Neon before pushing.
+After changing the schema later: `npm run db:generate`, commit the new
+migration file, push — the next deploy applies it.
 
 ## API
 
