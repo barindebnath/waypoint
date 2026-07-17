@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { ThemeToggle } from "./theme-toggle";
 
 const tabs = [
   { href: "/dashboard", label: "Dashboard" },
@@ -13,37 +14,48 @@ const tabs = [
 export function AppNav({ email }: { email: string }) {
   const pathname = usePathname();
   const router = useRouter();
+  const today = new Date().toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
-    <header className="sticky top-0 z-40 border-b border-edge bg-bg/95 backdrop-blur">
-      <div className="mx-auto flex h-12 max-w-6xl items-center gap-6 px-4">
-        <Link href="/dashboard" className="flex items-center gap-1.5 text-sm font-semibold tracking-tight">
-          <span className="text-live">◆</span> Waypoint
+    <header className="sticky top-0 z-40 border-b-[3px] border-double border-edge-strong bg-surface shadow-card">
+      <div className="mx-auto flex max-w-[1100px] items-baseline gap-6 px-7 pb-[11px] pt-[13px]">
+        <Link href="/dashboard" className="flex items-baseline gap-2 !text-ink hover:!text-ink">
+          <span className="text-[15px] !text-accent">◆</span>
+          <span className="font-serif text-[21px] font-semibold tracking-tight">Waypoint</span>
         </Link>
-        <nav className="flex gap-1 text-sm">
+        <nav className="flex gap-[22px]">
           {tabs.map((t) => (
             <Link
               key={t.href}
               href={t.href}
-              className={`rounded px-2.5 py-1 ${
+              className={`border-b-2 pb-1.5 pt-0.5 text-[11.5px] uppercase tracking-[0.14em] hover:!text-ink ${
                 pathname === t.href
-                  ? "bg-surface-2 text-ink"
-                  : "text-ink-muted hover:bg-surface hover:text-ink"
+                  ? "border-accent !text-ink"
+                  : "border-transparent !text-ink-muted"
               }`}
             >
               {t.label}
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-3 text-xs text-ink-muted">
-          <span className="hidden font-mono sm:inline">{email}</span>
+        <div className="ml-auto flex items-baseline gap-4">
+          <span suppressHydrationWarning className="hidden text-[11px] uppercase tracking-[0.1em] text-ink-faint md:inline">
+            {today.replace(",", " ·")}
+          </span>
+          <ThemeToggle />
+          <span className="hidden font-mono text-[11px] text-ink-muted sm:inline">{email}</span>
           <button
             onClick={async () => {
               await authClient.signOut();
               router.push("/login");
               router.refresh();
             }}
-            className="rounded border border-edge px-2 py-1 hover:bg-surface-2"
+            className="rounded-md border border-edge px-2.5 py-1 text-[11px] text-ink-muted hover:border-edge-strong"
           >
             Sign out
           </button>

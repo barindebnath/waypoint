@@ -51,7 +51,7 @@ function Note({ tone, title, children }: { tone: "info" | "good" | "warn" | "dan
 
 function H2({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <h2 id={id} className="mb-3 mt-14 scroll-mt-20 text-2xl font-semibold tracking-tight first:mt-0">
+    <h2 id={id} className="mb-3 mt-14 scroll-mt-20 font-serif text-2xl font-medium tracking-tight first:mt-0">
       {children}
     </h2>
   );
@@ -59,7 +59,7 @@ function H2({ id, children }: { id: string; children: React.ReactNode }) {
 
 function Code({ children }: { children: React.ReactNode }) {
   return (
-    <pre className="my-4 max-w-3xl overflow-x-auto rounded-xl border border-edge bg-[#080b12] p-4 font-mono text-[13px] leading-relaxed text-ink-muted">
+    <pre className="my-4 max-w-3xl overflow-x-auto rounded-xl border border-edge bg-surface-2 p-4 font-mono text-[13px] leading-relaxed text-ink">
       {children}
     </pre>
   );
@@ -130,8 +130,9 @@ export default function DocsPage() {
     <div className="min-h-screen">
       <div className="sticky top-0 z-40 border-b border-edge bg-bg/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
-          <Link href="/" className="flex items-center gap-1.5 text-base font-semibold tracking-tight">
-            <span className="text-live">◆</span> Waypoint
+          <Link href="/" className="flex items-baseline gap-2 !text-ink">
+            <span className="text-[15px] !text-accent">◆</span>
+            <span className="font-serif text-lg font-semibold">Waypoint</span>
           </Link>
           <span className="rounded border border-edge px-2.5 py-1 font-mono text-[10px] text-ink-muted">API v1</span>
         </div>
@@ -142,7 +143,7 @@ export default function DocsPage() {
 
         <main className="min-w-0 flex-1 pb-28 pt-10">
           <p className="mb-3 font-mono text-xs uppercase tracking-[0.22em] text-live">Integration guide</p>
-          <h1 className="text-4xl font-semibold tracking-tight">Automate your tracker with any AI.</h1>
+          <h1 className="font-serif text-4xl font-medium tracking-tight">Automate your tracker with any AI.</h1>
           <p className="mt-4 max-w-2xl text-lg text-ink-muted">
             Everything the Waypoint dashboard does is a small REST API — the dashboard itself is just
             another client. Give an agent a token and it can create rows, tick sub-tasks, regress a

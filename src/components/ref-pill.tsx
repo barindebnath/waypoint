@@ -13,22 +13,28 @@ export function RefPill({
 }) {
   const toneClass =
     tone === "identity-support"
-      ? "border-support/50 text-support"
+      ? "border-support text-support font-medium text-[11.5px]"
       : tone === "identity-product"
-        ? "border-product/50 text-product"
-        : "border-edge text-ink-muted";
+        ? "border-product text-product font-medium text-[11.5px]"
+        : "border-edge text-ink-muted text-[11px]";
 
   const inner = (
-    <span className={`inline-flex items-center gap-1 rounded-full border bg-surface-2 px-2 py-0.5 font-mono text-xs ${toneClass}`}>
+    <span
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border bg-surface-2 px-2.5 py-[3px] font-mono ${toneClass}`}
+    >
       {refText}
-      {url && <span aria-hidden className="text-[9px] opacity-70">↗</span>}
+      {url && (
+        <span aria-hidden className="text-[9px] opacity-70">
+          ↗
+        </span>
+      )}
     </span>
   );
 
   return (
     <span className="group/pill inline-flex items-center">
       {url ? (
-        <a href={url} target="_blank" rel="noreferrer noopener" className="hover:opacity-80" title={url}>
+        <a href={url} target="_blank" rel="noreferrer noopener" className="hover:opacity-75" title={url}>
           {inner}
         </a>
       ) : (

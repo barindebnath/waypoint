@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type EnrichedRowView } from "@/lib/client-api";
 import { inRange, type InspectRange } from "@/lib/inspect";
@@ -46,27 +46,27 @@ export function RowCard({
   const deleteMut = useMutation({ mutationFn: () => api.deleteRow(row.identityRef), onSettled: invalidate });
 
   const doneCount = row.milestones.filter((m) => m.complete).length;
+  const originColor = row.origin === "support" ? "text-support" : "text-product";
   const identityTone = row.origin === "support" ? "identity-support" : "identity-product";
+  const current = row.milestones.find((m) => m.isCurrent);
+  const plLabel = `${row.pipelineLabel}${row.subType ? ` · ${row.subType}` : ""}`;
 
   return (
     <div
-      className={`rounded-lg border border-edge bg-surface transition-colors ${
-        row.isComplete && !row.hasLooseEnds ? "opacity-60" : ""
+      className={`rounded-xl border border-edge bg-surface shadow-card transition-opacity ${
+        row.isComplete && !row.hasLooseEnds ? "opacity-55" : ""
       }`}
     >
       {/* Collapsed line */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-surface-2/50"
+        className="flex w-full items-center gap-3.5 px-4 py-[13px] text-left"
       >
         <span
-          className={`w-24 shrink-0 truncate text-[10px] uppercase tracking-wider ${
-            row.origin === "support" ? "text-support" : "text-product"
-          }`}
-          title={`${row.pipelineLabel}${row.subType ? ` · ${row.subType}` : ""}`}
+          className={`w-[104px] shrink-0 truncate text-[10px] uppercase tracking-[0.13em] ${originColor}`}
+          title={plLabel}
         >
-          {row.pipelineLabel}
-          {row.subType ? ` · ${row.subType}` : ""}
+          {plLabel}
         </span>
 
         <span className="flex min-w-0 shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -76,59 +76,76 @@ export function RowCard({
           ))}
         </span>
 
-        {/* Milestone bar */}
-        <span className="flex h-2.5 flex-1 items-center gap-0.5" aria-label={`${doneCount}/${row.milestones.length} milestones`}>
-          {row.milestones.map((m) => {
+        {/* Diamond milestone bar */}
+        <span
+          className="flex min-w-[120px] flex-1 items-center"
+          aria-label={`${doneCount}/${row.milestones.length} milestones`}
+        >
+          {row.milestones.map((m, i) => {
             const grayed = inspect && !inRange(m.updatedAt, inspect);
+            const nodeColor = m.complete ? "text-done" : m.isCurrent ? "text-accent" : "text-ink-faint";
             return (
-              <span
-                key={m.key}
-                title={`${m.label} — ${m.complete ? "complete" : m.isCurrent ? "current" : "pending"} · ${fmt(m.updatedAt)}`}
-                className={`h-full flex-1 rounded-sm ${
-                  m.complete ? "bg-done" : m.isCurrent ? "bg-live/40 animate-live" : "bg-surface-3"
-                } ${grayed ? "opacity-25" : ""}`}
-              />
+              <Fragment key={m.key}>
+                <span
+                  title={`${m.label} — ${m.complete ? "complete" : m.isCurrent ? "current" : "pending"} · ${fmt(m.updatedAt)}`}
+                  className={`text-[13px] leading-none ${nodeColor} ${m.isCurrent ? "animate-live" : ""} ${grayed ? "opacity-30" : ""}`}
+                >
+                  {m.complete || m.isCurrent ? "◆" : "◇"}
+                </span>
+                {i < row.milestones.length - 1 && (
+                  <span
+                    className={`mx-[3px] h-[1.5px] flex-1 ${m.complete ? "bg-done" : "bg-edge-strong"} ${grayed ? "opacity-30" : ""}`}
+                  />
+                )}
+              </Fragment>
             );
           })}
         </span>
 
-        <span className="w-40 shrink-0 truncate text-right text-xs text-ink-muted">
-          {row.isComplete ? (
-            <span className="text-done">✓ complete</span>
-          ) : (
-            row.milestones.find((m) => m.isCurrent)?.label
-          )}
+        <span
+          className={`w-[150px] shrink-0 truncate text-right font-serif text-sm italic ${
+            row.isComplete ? "text-done" : "text-accent"
+          }`}
+        >
+          {row.isComplete ? "✓ complete" : current?.label}
         </span>
         {row.hasLooseEnds && (
           <span
-            className="shrink-0 rounded-full border border-warn/50 px-1.5 py-0.5 text-[10px] text-warn"
+            className="shrink-0 rounded-full border border-warn px-2 py-0.5 font-serif text-[10px] italic tracking-[0.06em] text-warn"
             title="Complete, but has unchecked sub-tasks"
           >
             loose ends
           </span>
         )}
-        <span className={`shrink-0 text-ink-faint transition-transform ${open ? "rotate-90" : ""}`}>›</span>
+        <span className={`shrink-0 text-[13px] text-ink-faint transition-transform ${open ? "rotate-90" : ""}`}>
+          ›
+        </span>
       </button>
 
       {/* Expanded milestones */}
       {open && (
-        <div className="border-t border-edge px-3 py-3">
-          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${row.milestones.length}, minmax(0, 1fr))` }}>
+        <div className="border-t border-edge p-4">
+          <div
+            className="grid gap-3"
+            style={{ gridTemplateColumns: `repeat(${row.milestones.length}, minmax(0, 1fr))` }}
+          >
             {row.milestones.map((m) => {
               const grayed = inspect && !inRange(m.updatedAt, inspect);
+              const nodeColor = m.complete ? "text-done" : m.isCurrent ? "text-accent" : "text-ink-faint";
               return (
-                <div key={m.key} className={`rounded border border-edge bg-surface-2/60 p-2 ${grayed ? "opacity-30" : ""}`}>
-                  <div className="mb-2 flex items-center gap-1.5 border-b border-edge pb-1.5">
-                    <input
-                      type="checkbox"
-                      checked={m.complete}
+                <div
+                  key={m.key}
+                  className={`rounded-[9px] border border-edge bg-surface-2 px-3 py-[11px] ${grayed ? "opacity-30" : ""}`}
+                >
+                  <div className="mb-2 flex items-center gap-[7px] border-b border-edge pb-2">
+                    <button
                       disabled={readOnly || !m.complete}
                       title={
                         m.complete
                           ? "Uncheck to regress: clears this milestone and everything after it"
                           : "Completes automatically when all sub-tasks are checked"
                       }
-                      onChange={() => {
+                      onClick={() => {
                         if (!m.complete) return;
                         if (
                           window.confirm(
@@ -138,22 +155,26 @@ export function RowCard({
                           regressMut.mutate(m.key);
                         }
                       }}
-                      className="accent-done"
-                    />
+                      className={`text-[13px] leading-none ${nodeColor} ${m.complete && !readOnly ? "cursor-pointer" : "cursor-default"}`}
+                    >
+                      {m.complete || m.isCurrent ? "◆" : "◇"}
+                    </button>
                     <span
-                      className={`truncate text-xs font-medium ${m.isCurrent ? "text-live" : m.complete ? "text-done" : "text-ink-muted"}`}
-                      title={`Updated ${fmt(m.updatedAt)}`}
+                      className={`truncate text-xs font-semibold ${
+                        m.isCurrent ? "text-accent" : m.complete ? "text-done" : "text-ink-muted"
+                      }`}
+                      title={`${m.label} · updated ${fmt(m.updatedAt)}`}
                     >
                       {m.label}
                     </span>
                   </div>
-                  <ul className="space-y-1">
+                  <ul className="flex flex-col gap-[7px]">
                     {m.subtasks.map((s) => {
                       const sGrayed = inspect && !inRange(s.updatedAt, inspect);
                       return (
                         <li key={s.key} className={sGrayed ? "opacity-30" : ""}>
                           <label
-                            className={`flex cursor-pointer items-start gap-1.5 text-xs ${s.checked ? "text-ink-muted" : "text-ink"}`}
+                            className={`flex cursor-pointer items-start gap-[7px] text-xs ${s.checked ? "text-ink-muted" : "text-ink"}`}
                             title={`Updated ${fmt(s.updatedAt)}${s.humanUsual ? " · usually done by you" : ""}`}
                           >
                             <input
@@ -163,11 +184,18 @@ export function RowCard({
                               onChange={(e) =>
                                 subtaskMut.mutate({ milestone: m.key, subtask: s.key, checked: e.target.checked })
                               }
-                              className="mt-0.5 accent-done"
+                              className="mt-px accent-done"
                             />
-                            <span className={s.checked ? "line-through decoration-ink-faint" : ""}>
+                            <span className={s.checked ? "line-through" : ""}>
                               {s.label}
-                              {s.humanUsual && <span className="ml-1 rounded bg-surface-3 px-1 text-[9px] text-ink-faint" title="Usually done by you, not the AI">you</span>}
+                              {s.humanUsual && (
+                                <span
+                                  className="ml-1 rounded border border-edge px-1 font-mono text-[9px] text-ink-faint"
+                                  title="Usually done by you, not the AI"
+                                >
+                                  you
+                                </span>
+                              )}
                             </span>
                           </label>
                         </li>
@@ -181,7 +209,7 @@ export function RowCard({
 
           {/* Row actions */}
           {!readOnly && (
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-3.5 flex items-center gap-2.5">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -189,15 +217,18 @@ export function RowCard({
                   refsMut.mutate({ action: "add", ref: newRef.trim() });
                   setNewRef("");
                 }}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1.5"
               >
                 <input
                   value={newRef}
                   onChange={(e) => setNewRef(e.target.value)}
                   placeholder="Add ref (PES-123, repo#45)"
-                  className="w-52 rounded border border-edge bg-surface-2 px-2 py-1 font-mono text-xs outline-none focus:border-live"
+                  className="w-[200px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 font-mono text-[11.5px] outline-none focus:border-accent"
                 />
-                <button type="submit" className="rounded border border-edge px-2 py-1 text-xs text-ink-muted hover:bg-surface-2">
+                <button
+                  type="submit"
+                  className="rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-muted hover:border-edge-strong"
+                >
                   + ref
                 </button>
               </form>
@@ -220,7 +251,7 @@ export function RowCard({
                     deleteMut.mutate();
                   }
                 }}
-                className="ml-auto rounded border border-edge px-2 py-1 text-xs text-ink-faint hover:border-danger/50 hover:text-danger"
+                className="ml-auto rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-faint hover:border-danger hover:text-danger"
               >
                 Delete row
               </button>

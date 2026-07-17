@@ -5,10 +5,10 @@ export const metadata = { title: "Privacy — Waypoint" };
 export default function PrivacyPage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
-      <h1 className="mb-1 text-xl font-semibold tracking-tight">
-        <span className="text-live">◆</span> Waypoint — Privacy
+      <h1 className="mb-1 font-serif text-3xl font-medium tracking-tight">
+        <span className="text-accent">◆</span> Waypoint — Privacy
       </h1>
-      <p className="mb-8 text-sm text-ink-muted">Deliberately boring, by design.</p>
+      <p className="mb-8 font-serif text-sm italic text-ink-muted">Deliberately boring, by design.</p>
 
       <div className="space-y-6 text-sm leading-relaxed text-ink">
         <section>
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
       </div>
 
       <p className="mt-10 text-sm">
-        <Link href="/" className="text-live hover:underline">
+        <Link href="/" className="hover:underline">
           ← Back to Waypoint
         </Link>
       </p>

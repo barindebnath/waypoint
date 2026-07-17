@@ -29,18 +29,21 @@ export default function DashboardPage() {
   });
 
   const active = rows.filter((r) => !r.isComplete).length;
-  const looseEnds = rows.filter((r) => r.hasLooseEnds).length;
+  const loose = rows.filter((r) => r.hasLooseEnds).length;
+  const statsLine =
+    `${active} in flight` +
+    (loose > 0 ? ` · ${loose} loose end${loose > 1 ? "s" : ""}` : "") +
+    ` · ${rows.length - active} complete`;
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-4">
-      <div className="flex flex-wrap items-center gap-3 py-3">
-        <NewRowForm />
-        <div className="ml-auto flex items-center gap-3 text-xs text-ink-muted">
-          <span>
-            {active} in flight{looseEnds > 0 && <span className="text-warn"> · {looseEnds} loose ends</span>}
-          </span>
+    <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-7 pb-5 pt-[26px]">
+      <div className="mb-[18px] flex flex-wrap items-baseline gap-4">
+        <h1 className="font-serif text-[32px] font-medium tracking-tight">Ticket rows</h1>
+        <span className="font-serif text-[15px] italic text-ink-muted">{statsLine}</span>
+
+        <div className="ml-auto flex flex-wrap items-center gap-4">
           <label
-            className={`flex items-center gap-1.5 ${inspect ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+            className={`flex items-center gap-[7px] text-xs text-ink-muted ${inspect ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
             title={inspect ? "Forced on while inspecting a date range" : "Show rows whose final milestone is complete"}
           >
             <input
@@ -48,22 +51,21 @@ export default function DashboardPage() {
               checked={effectiveShowCompleted}
               disabled={readOnly}
               onChange={(e) => setShowCompleted(e.target.checked)}
-              className="accent-live"
+              className="accent-accent"
             />
             Show completed
           </label>
 
-          {/* Date-range inspection controls */}
           {inspect ? (
-            <span className="flex items-center gap-2 rounded border border-live/40 bg-live/10 px-2 py-1 text-live">
+            <span className="flex items-center gap-2 rounded-[7px] border border-accent bg-surface-2 px-2.5 py-1 font-serif text-xs italic text-accent">
               Inspecting {inspect.from} → {inspect.to} · read-only
-              <button onClick={() => setInspect(null)} className="font-semibold hover:underline">
+              <button onClick={() => setInspect(null)} className="not-italic font-sans font-semibold hover:underline">
                 Dismiss
               </button>
             </span>
           ) : (
             <form
-              className="flex items-center gap-1"
+              className="flex items-center gap-1.5"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (draftFrom && draftTo && draftFrom <= draftTo) {
@@ -75,7 +77,7 @@ export default function DashboardPage() {
                 type="date"
                 value={draftFrom}
                 onChange={(e) => setDraftFrom(e.target.value)}
-                className="rounded border border-edge bg-surface-2 px-1.5 py-1 text-xs"
+                className="rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink-muted"
                 aria-label="Inspect from"
               />
               <span className="text-ink-faint">→</span>
@@ -83,13 +85,13 @@ export default function DashboardPage() {
                 type="date"
                 value={draftTo}
                 onChange={(e) => setDraftTo(e.target.value)}
-                className="rounded border border-edge bg-surface-2 px-1.5 py-1 text-xs"
+                className="rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink-muted"
                 aria-label="Inspect to"
               />
               <button
                 type="submit"
                 disabled={!draftFrom || !draftTo || draftFrom > draftTo}
-                className="rounded border border-edge px-2 py-1 text-xs hover:bg-surface-2 disabled:opacity-40"
+                className="rounded-[7px] border border-edge px-2.5 py-1 text-xs text-ink-muted hover:border-edge-strong disabled:opacity-40"
               >
                 Inspect
               </button>
@@ -98,10 +100,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="flex-1 space-y-1.5">
-        {isLoading && <p className="py-8 text-center text-sm text-ink-faint">Loading…</p>}
+      <NewRowForm />
+
+      <div className="flex flex-1 flex-col gap-2.5">
+        {isLoading && (
+          <p className="py-8 text-center font-serif text-base italic text-ink-faint">Loading…</p>
+        )}
         {!isLoading && visibleRows.length === 0 && (
-          <div className="rounded-lg border border-dashed border-edge py-12 text-center text-sm text-ink-faint">
+          <div className="rounded-xl border border-dashed border-edge-strong p-12 text-center font-serif text-base italic text-ink-faint">
             {rows.length === 0
               ? "No rows yet. Add the card you just picked up — or let your AI do it via the API."
               : inspect

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { authClient } from "@/lib/auth-client";
+import { getThemePref, setThemePref, subscribeTheme, type ThemePref } from "@/lib/theme";
 
 type ApiKeyRow = {
   id: string;
@@ -14,10 +15,76 @@ type ApiKeyRow = {
   metadata?: unknown;
 };
 
+function scopesOf(metadata: unknown): string {
+  try {
+    const obj = typeof metadata === "string" ? JSON.parse(metadata) : metadata;
+    const scopes = (obj as { scopes?: unknown })?.scopes;
+    if (Array.isArray(scopes)) return scopes.join(",");
+  } catch {
+    // fall through
+  }
+  return "read";
+}
+
+/* Swatch data straight from the design's themeOptions. */
+const THEME_CARDS: {
+  key: ThemePref;
+  label: string;
+  glyph: string;
+  desc: string;
+  swBg: string;
+  swInk: string;
+  swAccent: string;
+  swMuted: string;
+}[] = [
+  { key: "light", label: "Light", glyph: "☀", desc: "Warm paper, always.", swBg: "#f5efe3", swInk: "#241d10", swAccent: "#b4501e", swMuted: "#c8bb9a" },
+  { key: "dark", label: "Dark", glyph: "☾", desc: "Lamplight, always.", swBg: "#151109", swInk: "#ede4cd", swAccent: "#e08a4e", swMuted: "#4d442a" },
+  { key: "system", label: "System", glyph: "◐", desc: "Follows your OS setting.", swBg: "linear-gradient(105deg,#f5efe3 50%,#151109 50%)", swInk: "linear-gradient(105deg,#241d10 60%,#ede4cd 60%)", swAccent: "#b4501e", swMuted: "linear-gradient(105deg,#c8bb9a 70%,#4d442a 70%)" },
+];
+
+function AppearanceSection() {
+  const pref = useSyncExternalStore(subscribeTheme, getThemePref, () => "system" as const);
+  return (
+    <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+      <h2 className="mb-1 text-sm font-semibold">Appearance</h2>
+      <p className="mb-3.5 text-xs text-ink-muted">Theme applies instantly and is remembered on this device.</p>
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3" suppressHydrationWarning>
+        {THEME_CARDS.map((t) => {
+          const on = pref === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setThemePref(t.key)}
+              className={`flex flex-col gap-2 rounded-[10px] border-[1.5px] bg-surface-2 p-2.5 text-left ${
+                on ? "border-accent" : "border-edge hover:border-edge-strong"
+              }`}
+            >
+              <span
+                className="relative block h-11 overflow-hidden rounded-md border border-edge"
+                style={{ background: t.swBg }}
+              >
+                <span className="absolute left-2 top-2 h-[5px] w-11 rounded" style={{ background: t.swInk }} />
+                <span className="absolute left-2 top-[18px] h-[5px] w-7 rounded" style={{ background: t.swAccent }} />
+                <span className="absolute left-2 top-7 h-[5px] w-14 rounded" style={{ background: t.swMuted }} />
+              </span>
+              <span className={`flex items-center gap-1.5 text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"}`}>
+                {t.glyph} {t.label}
+              </span>
+              <span className="text-[11px] text-ink-faint">{t.desc}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
   if (!me) {
-    return <main className="flex-1 py-16 text-center text-sm text-ink-faint">Loading…</main>;
+    return (
+      <main className="flex-1 py-16 text-center font-serif text-base italic text-ink-faint">Loading…</main>
+    );
   }
   return <SettingsForm key={me.userId} me={me} />;
 }
@@ -87,29 +154,30 @@ function SettingsForm({
   // falls back to the first option and a save would overwrite the setting.
   if (timezone && !timezones.includes(timezone)) timezones.unshift(timezone);
 
-  return (
-    <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 px-4 py-4 pb-12">
-      <h1 className="text-base font-semibold">Settings</h1>
+  const inputCls =
+    "w-full rounded-[7px] border border-edge bg-surface-2 px-2.5 py-2 outline-none focus:border-accent";
 
-      {/* Profile / link templates */}
-      <section className="rounded-lg border border-edge bg-surface p-4">
-        <h2 className="mb-3 text-sm font-medium">Timezone & link templates</h2>
+  return (
+    <main className="mx-auto flex w-full max-w-[680px] flex-1 flex-col gap-4 px-7 pb-16 pt-[26px]">
+      <h1 className="font-serif text-[32px] font-medium tracking-tight">Settings</h1>
+
+      <AppearanceSection />
+
+      {/* Timezone & link templates */}
+      <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+        <h2 className="mb-3.5 text-sm font-semibold">Timezone &amp; link templates</h2>
         <form
           onSubmit={(e) => {
             e.preventDefault();
             saveMut.mutate();
           }}
-          className="space-y-3 text-sm"
+          className="flex flex-col gap-3.5 text-[13px]"
         >
           <label className="block">
-            <span className="mb-1 block text-xs text-ink-muted">
+            <span className="mb-1.5 block text-xs text-ink-muted">
               Timezone (day/week/month bucketing happens here)
             </span>
-            <select
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="w-full rounded border border-edge bg-surface-2 px-2 py-1.5"
-            >
+            <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputCls}>
               {timezones.map((tz) => (
                 <option key={tz} value={tz}>
                   {tz}
@@ -118,90 +186,103 @@ function SettingsForm({
             </select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs text-ink-muted">
-              Jira base URL — makes every Jira ref a one-click link (e.g.{" "}
-              <span className="font-mono">https://yourorg.atlassian.net</span>)
+            <span className="mb-1.5 block text-xs text-ink-muted">
+              Jira base URL — makes every Jira ref a one-click link
             </span>
             <input
               type="url"
               value={jira}
               onChange={(e) => setJira(e.target.value)}
-              placeholder="https://…"
-              className="w-full rounded border border-edge bg-surface-2 px-2 py-1.5 font-mono text-xs"
+              placeholder="https://yourorg.atlassian.net"
+              className={`${inputCls} font-mono text-xs`}
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs text-ink-muted">
-              GitHub org URL — makes PR refs like <span className="font-mono">repo#123</span>{" "}
-              clickable (e.g. <span className="font-mono">https://github.com/yourorg</span>)
+            <span className="mb-1.5 block text-xs text-ink-muted">
+              GitHub org URL — makes PR refs like <span className="font-mono">repo#123</span> clickable
             </span>
             <input
               type="url"
               value={github}
               onChange={(e) => setGithub(e.target.value)}
-              placeholder="https://github.com/…"
-              className="w-full rounded border border-edge bg-surface-2 px-2 py-1.5 font-mono text-xs"
+              placeholder="https://github.com/yourorg"
+              className={`${inputCls} font-mono text-xs`}
             />
           </label>
-          <button
-            type="submit"
-            disabled={saveMut.isPending}
-            className="rounded bg-live/90 px-3 py-1.5 text-sm font-medium text-bg hover:bg-live disabled:opacity-50"
-          >
-            {saved ? "Saved ✓" : "Save"}
-          </button>
+          <div>
+            <button
+              type="submit"
+              disabled={saveMut.isPending}
+              className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50"
+            >
+              {saved ? "Saved ✓" : "Save"}
+            </button>
+          </div>
         </form>
       </section>
 
       {/* PATs */}
-      <section className="rounded-lg border border-edge bg-surface p-4">
-        <h2 className="mb-1 text-sm font-medium">Personal access tokens</h2>
-        <p className="mb-3 text-xs text-ink-muted">
+      <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+        <h2 className="mb-1 text-sm font-semibold">Personal access tokens</h2>
+        <p className="mb-3.5 text-xs text-ink-muted">
           For AI agents and scripts. Shown once, hashed at rest, revocable. Point your agent at{" "}
-          <a href="/llms.txt" target="_blank" className="font-mono text-live hover:underline">
+          <a href="/llms.txt" target="_blank" className="font-mono">
             /llms.txt
           </a>{" "}
           for usage instructions.
         </p>
 
         {freshToken && (
-          <div className="mb-3 rounded border border-warn/40 bg-warn/10 p-2 text-xs">
-            <p className="mb-1 text-warn">Copy this token now — it won&apos;t be shown again:</p>
-            <code className="block select-all break-all rounded bg-surface-2 p-2 font-mono">{freshToken}</code>
-            <button onClick={() => setFreshToken(null)} className="mt-1 text-ink-muted hover:underline">
+          <div className="mb-3.5 rounded-[9px] border border-warn bg-[var(--accent-soft)] px-[13px] py-[11px] text-xs">
+            <p className="mb-[7px] font-semibold text-warn">
+              Copy this token now — it won&apos;t be shown again:
+            </p>
+            <code className="block select-all break-all rounded-md bg-surface-2 p-[9px] font-mono text-[11.5px]">
+              {freshToken}
+            </code>
+            <button
+              onClick={() => setFreshToken(null)}
+              className="mt-[7px] text-[11.5px] text-ink-muted underline"
+            >
               Done, hide it
             </button>
           </div>
         )}
 
-        <form onSubmit={createToken} className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+        <form onSubmit={createToken} className="mb-3.5 flex flex-wrap gap-2">
           <input
             value={tokenName}
             onChange={(e) => setTokenName(e.target.value)}
             placeholder="Token name (e.g. claude-code)"
-            className="w-48 rounded border border-edge bg-surface-2 px-2 py-1.5 text-xs"
+            className="w-[190px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-[7px] text-xs outline-none focus:border-accent"
           />
           <select
             value={tokenScope}
             onChange={(e) => setTokenScope(e.target.value as "read" | "read,write")}
-            className="rounded border border-edge bg-surface-2 px-2 py-1.5 text-xs"
+            className="rounded-[7px] border border-edge bg-surface-2 px-2 py-[7px] text-xs"
           >
             <option value="read,write">read + write</option>
             <option value="read">read only</option>
           </select>
-          <button type="submit" className="rounded border border-edge px-3 py-1.5 text-xs hover:bg-surface-2">
+          <button
+            type="submit"
+            className="rounded-[7px] border border-edge px-3.5 py-[7px] text-xs text-ink-muted hover:border-edge-strong"
+          >
             Create token
           </button>
           {tokenError && <span className="text-xs text-danger">{tokenError}</span>}
         </form>
 
-        <ul className="divide-y divide-edge text-xs">
+        <ul className="text-xs">
           {(keys ?? []).map((k) => (
-            <li key={k.id} className="flex items-center gap-3 py-2">
-              <span className="font-medium">{k.name ?? "unnamed"}</span>
+            <li key={k.id} className="flex items-center gap-3 border-t border-edge py-[9px]">
+              <span className="font-semibold">{k.name ?? "unnamed"}</span>
               <span className="font-mono text-ink-faint">{k.start}…</span>
               <span className="text-ink-faint">
                 {k.lastRequest ? `last used ${new Date(k.lastRequest).toLocaleDateString()}` : "never used"}
+              </span>
+              <span className="rounded border border-edge px-1.5 py-px font-mono text-[10px] text-ink-muted">
+                {scopesOf(k.metadata)}
               </span>
               <button
                 onClick={async () => {
@@ -210,31 +291,30 @@ function SettingsForm({
                     refetchKeys();
                   }
                 }}
-                className="ml-auto rounded border border-edge px-2 py-0.5 text-ink-faint hover:border-danger/50 hover:text-danger"
+                className="ml-auto rounded-md border border-edge px-2.5 py-[3px] text-[11px] text-ink-faint hover:border-danger hover:text-danger"
               >
                 Revoke
               </button>
             </li>
           ))}
-          {(keys ?? []).length === 0 && <li className="py-2 text-ink-faint">No tokens yet.</li>}
+          {(keys ?? []).length === 0 && (
+            <li className="border-t border-edge py-[9px] font-serif italic text-ink-faint">No tokens yet.</li>
+          )}
         </ul>
       </section>
 
       {/* Data rights */}
-      <section className="rounded-lg border border-edge bg-surface p-4">
-        <h2 className="mb-1 text-sm font-medium">Your data</h2>
-        <p className="mb-3 text-xs text-ink-muted">
+      <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+        <h2 className="mb-1 text-sm font-semibold">Your data</h2>
+        <p className="mb-3.5 text-xs text-ink-muted">
           Export everything as JSON, or permanently delete the account and all its data. See{" "}
-          <a href="/privacy" className="text-live hover:underline">
-            privacy
-          </a>
-          .
+          <a href="/privacy">privacy</a>.
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2.5">
           <a
             href="/api/v1/export"
             download
-            className="rounded border border-edge px-3 py-1.5 text-xs hover:bg-surface-2"
+            className="rounded-[7px] border border-edge px-4 py-2 text-xs !text-ink-muted no-underline hover:border-edge-strong"
           >
             Export JSON
           </a>
@@ -248,7 +328,7 @@ function SettingsForm({
                 window.location.href = "/signup";
               }
             }}
-            className="rounded border border-danger/40 px-3 py-1.5 text-xs text-danger hover:bg-danger/10"
+            className="rounded-[7px] border border-danger px-4 py-2 text-xs text-danger hover:bg-[var(--accent-soft)]"
           >
             Delete account…
           </button>
