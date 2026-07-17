@@ -77,8 +77,15 @@ function SettingsForm({
     refetchKeys();
   }
 
-  const timezones =
-    typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : ["Asia/Kolkata", "UTC"];
+  const timezones = [
+    ...(typeof Intl.supportedValuesOf === "function"
+      ? Intl.supportedValuesOf("timeZone")
+      : ["Asia/Kolkata", "UTC"]),
+  ];
+  // Browsers may list a different canonical alias (e.g. Asia/Calcutta) than the
+  // stored IANA id; keep the stored value selectable or the select silently
+  // falls back to the first option and a save would overwrite the setting.
+  if (timezone && !timezones.includes(timezone)) timezones.unshift(timezone);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 px-4 py-4 pb-12">

@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ◆ Waypoint
 
-## Getting Started
+A personal status tracker that acts as **external memory** for a developer who
+ships more because AI does much of the doing. One row = one unit of work,
+identified by its card (`ZT-4821`, `OFF-5678`), moving through a fixed
+milestone pipeline with mandatory sub-task checklists — plus a weekly Tempo
+attestation strip and an analytics view that tells you whether you sped up.
 
-First, run the development server:
+Your AI updates it through the same API you click through, using a personal
+access token and the instructions served at **`/llms.txt`** (canonical copy:
+[AGENTS.md](AGENTS.md)). Waypoint stores card *references only* — never card
+contents, and there are deliberately no free-text fields.
+
+Domain language: [CONTEXT.md](CONTEXT.md) · Spec: [spec-v2.md](spec-v2.md) ·
+Decisions: [docs/adr/](docs/adr/)
+
+## Stack
+
+Next.js (App Router) · PostgreSQL (Neon) + Drizzle · Better Auth (+ API-key
+plugin for PATs) · Tailwind · TanStack Query · Zod · Luxon. See
+[ADR-0001](docs/adr/0001-nextjs-on-vercel.md).
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Prereqs: Node 20, local PostgreSQL
+createdb waypoint_dev
+cp .env.example .env         # set DATABASE_URL, generate BETTER_AUTH_SECRET
+npm install
+npx drizzle-kit migrate
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Pipeline definitions seed themselves into the DB on first use (source:
+`src/lib/pipelines.ts`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy (Neon + Vercel, ~5 minutes)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Neon** — create a free project (region: Singapore or nearest you), copy
+   the **pooled** connection string.
+2. **Migrate** — locally, run the schema against it once:
+   ```bash
+   DATABASE_URL="<neon-pooled-url>" npx drizzle-kit migrate
+   ```
+3. **Vercel** — *New Project* → import this GitHub repo. Add environment
+   variables:
+   | Name | Value |
+   | :-- | :-- |
+   | `DATABASE_URL` | the Neon pooled connection string |
+   | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
+   | `BETTER_AUTH_URL` | your Vercel URL, e.g. `https://waypoint-xyz.vercel.app` |
+4. **Deploy.** Sign up at your URL, then in **Settings**: set your timezone,
+   Jira base URL, GitHub org URL, and create a `read,write` token for your AI.
+5. Point your AI at `https://<your-url>/llms.txt` and give it the token.
 
-## Learn More
+After changing the schema later: `npx drizzle-kit generate`, commit the new
+migration, and re-run step 2 against Neon before pushing.
 
-To learn more about Next.js, take a look at the following resources:
+## API
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Everything the dashboard does is available under `/api/v1` with
+`Authorization: Bearer wp_…`. Full agent-oriented docs: [AGENTS.md](AGENTS.md)
+(served at `/llms.txt`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Privacy
 
-## Deploy on Vercel
+Email + password hash + timezone only; no name field, no trackers, no
+third-party cookies. Self-serve JSON export and hard account deletion in
+Settings. Details: `/privacy`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[MIT](LICENSE)

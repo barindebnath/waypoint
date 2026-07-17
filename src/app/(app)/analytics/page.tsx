@@ -15,9 +15,12 @@ const SERIES = {
 const BAR_COLOR = "#3987e5";
 
 function isoDaysAgo(days: number): string {
+  // Local calendar date, NOT toISOString (UTC) — an IST evening is already
+  // "tomorrow" in UTC terms and would silently exclude today's completions.
   const d = new Date();
   d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 export default function AnalyticsPage() {
