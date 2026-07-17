@@ -10,8 +10,9 @@ import { EngineError } from "./engine";
  * its Friday falls in, computed in the user's timezone.
  */
 
-export const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri"] as const;
-export type DayKey = (typeof DAY_KEYS)[number];
+import { DAY_KEYS, type DayKey } from "./timesheet-shared";
+
+export { DAY_KEYS, type DayKey };
 
 const emptyDays = (): TimesheetDays => ({
   mon: { checked: false, updatedAt: null },
