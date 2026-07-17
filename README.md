@@ -59,8 +59,9 @@ migration, and re-run step 2 against Neon before pushing.
 ## API
 
 Everything the dashboard does is available under `/api/v1` with
-`Authorization: Bearer wp_…`. Full agent-oriented docs: [AGENTS.md](AGENTS.md)
-(served at `/llms.txt`).
+`Authorization: Bearer wp_…`. Human-readable reference lives at **`/docs`** on
+the deployed app; agent-oriented instructions: [AGENTS.md](AGENTS.md) (served
+at `/llms.txt`). The public landing page is at `/`.
 
 ## Privacy
 

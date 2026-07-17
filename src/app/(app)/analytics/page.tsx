@@ -116,7 +116,7 @@ export default function AnalyticsPage() {
                 {data.looseEnds.refs.map((r) => (
                   <li key={r}>
                     <Link
-                      href="/"
+                      href="/dashboard"
                       className="rounded-full border border-warn/40 px-2 py-0.5 font-mono text-xs text-warn hover:bg-surface-2"
                       title="Open dashboard"
                     >
