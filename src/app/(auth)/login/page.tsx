@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { Logo } from "@/components/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,10 +17,10 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } = await authClient.signIn.email({ email, password });
+    const { error: err } = await authClient.signIn.email({ email, password });
     setBusy(false);
-    if (error) {
-      setError(error.message ?? "Sign-in failed");
+    if (err) {
+      setError(err.message ?? "Authentication failed");
       return;
     }
     router.push("/dashboard");
@@ -32,8 +33,8 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen flex-1 items-center justify-center px-5 py-10">
       <div className="w-[360px]">
-        <Link href="/" className="mx-auto mb-[22px] flex items-baseline justify-center gap-2 !text-ink">
-          <span className="text-[15px] !text-accent">●</span>
+        <Link href="/" className="mx-auto mb-[22px] flex items-center justify-center gap-2.5 !text-ink">
+          <Logo className="h-6 w-6 -mt-0.5" />
           <span className="font-serif text-[22px] font-semibold">Waypoint</span>
         </Link>
         <div className="rounded-[14px] border border-edge bg-surface p-[26px] shadow-card">

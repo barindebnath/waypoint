@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { Logo } from "@/components/logo";
 
 export const metadata = {
   title: "Waypoint — external memory for a developer who ships",
@@ -19,8 +20,8 @@ export default async function LandingPage() {
       {/* Header */}
       <header className="border-b-[3px] border-double border-edge-strong">
         <div className="mx-auto flex max-w-[1000px] items-baseline px-7 py-[18px]">
-          <span className="flex items-baseline gap-2">
-            <span className="text-[15px] text-accent">●</span>
+          <span className="flex items-center gap-2.5">
+            <Logo className="h-6 w-6 -mt-0.5" />
             <span className="font-serif text-[21px] font-semibold">Waypoint</span>
           </span>
           <div className="ml-auto flex items-baseline gap-2.5">
@@ -99,7 +100,10 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="mt-auto border-t border-edge">
         <div className="mx-auto flex max-w-[1000px] flex-wrap gap-4 px-7 py-4 text-xs text-ink-faint">
-          <span>● Waypoint</span>
+          <span className="flex items-center gap-2">
+            <Logo className="h-5 w-5 opacity-70" />
+            <span>Waypoint</span>
+          </span>
           <span className="ml-auto flex flex-wrap items-baseline gap-4">
             <span>API-first</span>
             <a href="/llms.txt" className="!text-ink-faint hover:!text-ink">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { Logo } from "@/components/logo";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -17,14 +18,14 @@ export default function SignupPage() {
     setBusy(true);
     setError(null);
     // Data minimization: display name is derived from the email prefix — never collected.
-    const { error } = await authClient.signUp.email({
+    const { error: err } = await authClient.signUp.email({
       email,
       password,
       name: email.split("@")[0] || "user",
     });
     setBusy(false);
-    if (error) {
-      setError(error.message ?? "Sign-up failed");
+    if (err) {
+      setError(err.message ?? "Registration failed");
       return;
     }
     router.push("/dashboard");
@@ -37,8 +38,8 @@ export default function SignupPage() {
   return (
     <main className="flex min-h-screen flex-1 items-center justify-center px-5 py-10">
       <div className="w-[360px]">
-        <Link href="/" className="mx-auto mb-[22px] flex items-baseline justify-center gap-2 !text-ink">
-          <span className="text-[15px] !text-accent">●</span>
+        <Link href="/" className="mx-auto mb-[22px] flex items-center justify-center gap-2.5 !text-ink">
+          <Logo className="h-6 w-6 -mt-0.5" />
           <span className="font-serif text-[22px] font-semibold">Waypoint</span>
         </Link>
         <div className="rounded-[14px] border border-edge bg-surface p-[26px] shadow-card">

@@ -125,13 +125,15 @@ const NAV = [
   },
 ];
 
+import { Logo } from "@/components/logo";
+
 export default function DocsPage() {
   return (
     <div className="min-h-screen">
       <div className="sticky top-0 z-40 border-b border-edge bg-bg/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
-          <Link href="/" className="flex items-baseline gap-2 !text-ink">
-            <span className="text-[15px] !text-accent">●</span>
+          <Link href="/" className="flex items-center gap-2.5 !text-ink">
+            <Logo className="h-6 w-6 -mt-0.5" />
             <span className="font-serif text-lg font-semibold">Waypoint</span>
           </Link>
           <span className="rounded border border-edge px-2.5 py-1 font-mono text-[10px] text-ink-muted">API v1</span>

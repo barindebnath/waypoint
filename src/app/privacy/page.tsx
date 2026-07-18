@@ -1,12 +1,15 @@
 import Link from "next/link";
 
+import { Logo } from "@/components/logo";
+
 export const metadata = { title: "Privacy — Waypoint" };
 
 export default function PrivacyPage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
-      <h1 className="mb-1 font-serif text-3xl font-medium tracking-tight">
-        <span className="text-accent">●</span> Waypoint — Privacy
+      <h1 className="mb-1 flex items-center gap-3 font-serif text-3xl font-medium tracking-tight">
+        <Logo className="h-8 w-8 -mt-0.5" />
+        <span>Waypoint — Privacy</span>
       </h1>
       <p className="mb-8 font-serif text-sm italic text-ink-muted">Deliberately boring, by design.</p>
 
