@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { DocsSidebar } from "@/components/docs-sidebar";
+import { auth } from "@/lib/auth";
 
 export const metadata = {
   title: "Waypoint API — docs",
@@ -127,7 +130,13 @@ const NAV = [
 
 import { Logo } from "@/components/logo";
 
-export default function DocsPage() {
+export default async function DocsPage() {
+  // API documentation is part of the authenticated product, not public
+  // marketing material. Keep this guard here because this route intentionally
+  // has its own documentation-focused layout rather than the app layout.
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect("/login");
+
   return (
     <div className="min-h-screen">
       <div className="sticky top-0 z-40 border-b border-edge bg-bg/90 backdrop-blur">

@@ -57,12 +57,6 @@ export default async function LandingPage() {
           >
             Start tracking
           </Link>
-          <Link
-            href="/docs"
-            className="rounded-lg border border-edge-strong px-6 py-3 text-sm !text-ink-muted hover:!text-ink"
-          >
-            Read the docs
-          </Link>
         </div>
 
         {/* Sample row */}
@@ -106,12 +100,6 @@ export default async function LandingPage() {
           </span>
           <span className="ml-auto flex flex-wrap items-baseline gap-4">
             <span>API-first</span>
-            <a href="/llms.txt" className="!text-ink-faint hover:!text-ink">
-              /llms.txt
-            </a>
-            <Link href="/docs" className="!text-ink-faint hover:!text-ink">
-              Docs
-            </Link>
             <Link href="/privacy" className="!text-ink-faint hover:!text-ink">
               Privacy: references only, no trackers
             </Link>

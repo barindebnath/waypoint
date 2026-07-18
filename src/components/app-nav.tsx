@@ -10,6 +10,7 @@ import { Logo } from "./logo";
 const tabs = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/analytics", label: "Analytics" },
+  { href: "/docs", label: "API docs" },
   { href: "/settings", label: "Settings" },
 ];
 
