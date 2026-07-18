@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@better-auth/api-key": "^1.6.23",
+    "@better-auth/infra": "^1.6.23",
     "@tanstack/react-query": "^5.101.2",
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.45.2",
