@@ -78,6 +78,7 @@ export const api = {
       githubBaseUrl: string | null;
       colorTheme: string;
       fontTheme: string;
+      showTimesheet: boolean;
     }>("/api/v1/me"),
   updateMe: (patch: {
     timezone?: string;
@@ -85,6 +86,7 @@ export const api = {
     githubBaseUrl?: string | null;
     colorTheme?: string;
     fontTheme?: string;
+    showTimesheet?: boolean;
   }) => request<{ ok: true }>("/api/v1/me", { method: "PATCH", body: JSON.stringify(patch) }),
   analytics: (from: string, to: string) =>
     request<{

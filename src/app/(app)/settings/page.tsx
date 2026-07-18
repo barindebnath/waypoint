@@ -231,12 +231,13 @@ export default function SettingsPage() {
 function SettingsForm({
   me,
 }: {
-  me: { userId: string; timezone: string; jiraBaseUrl: string | null; githubBaseUrl: string | null; colorTheme: string; fontTheme: string };
+  me: { userId: string; timezone: string; jiraBaseUrl: string | null; githubBaseUrl: string | null; colorTheme: string; fontTheme: string; showTimesheet: boolean };
 }) {
   const qc = useQueryClient();
   const [timezone, setTimezone] = useState(me.timezone);
   const [jira, setJira] = useState(me.jiraBaseUrl ?? "");
   const [github, setGithub] = useState(me.githubBaseUrl ?? "");
+  const [showTimesheet, setShowTimesheet] = useState(me.showTimesheet);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -263,6 +264,7 @@ function SettingsForm({
         timezone,
         jiraBaseUrl: jira.trim() || null,
         githubBaseUrl: github.trim() || null,
+        showTimesheet,
       }),
     onSuccess: () => {
       setSaved(true);
@@ -374,6 +376,17 @@ function SettingsForm({
               placeholder="https://github.com/yourorg"
               className={`${inputCls} font-mono text-xs`}
             />
+          </label>
+          <label className="flex items-center gap-[7px] cursor-pointer py-1">
+            <input
+              type="checkbox"
+              checked={showTimesheet}
+              onChange={(e) => setShowTimesheet(e.target.checked)}
+              className="accent-accent"
+            />
+            <span className="text-xs text-ink-muted select-none">
+              Enable timesheet panel on dashboard
+            </span>
           </label>
            <div>
             <button

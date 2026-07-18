@@ -12,6 +12,7 @@ export type AuthedUser = {
   githubBaseUrl: string | null;
   colorTheme: string;
   fontTheme: string;
+  showTimesheet: boolean;
 };
 
 export class ApiError extends Error {
@@ -74,6 +75,7 @@ export async function requireUser(opts: { write?: boolean } = {}): Promise<Authe
     githubBaseUrl: settings.githubBaseUrl,
     colorTheme: settings.colorTheme,
     fontTheme: settings.fontTheme,
+    showTimesheet: settings.showTimesheet,
   };
 }
 

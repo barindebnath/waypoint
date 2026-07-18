@@ -17,6 +17,7 @@ export async function GET() {
       githubBaseUrl: user.githubBaseUrl,
       colorTheme: user.colorTheme,
       fontTheme: user.fontTheme,
+      showTimesheet: user.showTimesheet,
     });
   });
 }
@@ -39,6 +40,7 @@ const patchSchema = z.object({
   githubBaseUrl: z.string().url().max(500).nullable().optional(),
   colorTheme: z.enum(["paper", "nord", "forest", "royal"]).optional(),
   fontTheme: z.enum(["serif", "sans", "mono"]).optional(),
+  showTimesheet: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request) {

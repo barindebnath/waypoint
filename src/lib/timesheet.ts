@@ -59,19 +59,40 @@ export type MonthView = {
 };
 
 export async function listTimesheet(userId: string, tz: string, monthCount = 6): Promise<MonthView[]> {
-  // Walk back from the current week until we've covered `monthCount` months.
+  // Fetch user's signup time to bound tracking
+  const [userRow] = await db
+    .select({ createdAt: schema.user.createdAt })
+    .from(schema.user)
+    .where(eq(schema.user.id, userId))
+    .limit(1);
+
+  const signupLimit = userRow?.createdAt
+    ? DateTime.fromJSDate(userRow.createdAt).setZone(tz).startOf("month")
+    : null;
+
+  // Walk back from the current week until we've covered `monthCount` months or reached the signup month.
   const weeks: { weekId: string; friday: DateTime }[] = [];
   let cursor = DateTime.now().setZone(tz).startOf("week");
   const seenMonths = new Set<string>();
   while (true) {
     const friday = cursor.plus({ days: 4 });
     const month = friday.toFormat("yyyy-MM");
+
+    // Stop if we walk past the month of signup
+    if (signupLimit && friday < signupLimit) {
+      break;
+    }
+
     if (!seenMonths.has(month)) {
       if (seenMonths.size >= monthCount) break;
       seenMonths.add(month);
     }
     weeks.push({ weekId: weekIdFor(cursor), friday });
     cursor = cursor.minus({ weeks: 1 });
+  }
+
+  if (weeks.length === 0) {
+    return [];
   }
 
   const stored = await db

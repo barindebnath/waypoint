@@ -10,6 +10,7 @@ import { TimesheetFooter } from "@/components/timesheet-footer";
 
 export default function DashboardPage() {
   const { data, isLoading } = useQuery({ queryKey: ["rows"], queryFn: api.rows });
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
 
   // Global filter (spec §7): default OFF = completed hidden.
   const [showCompleted, setShowCompleted] = useState(false);
@@ -34,6 +35,8 @@ export default function DashboardPage() {
     `${active} in flight` +
     (loose > 0 ? ` · ${loose} loose end${loose > 1 ? "s" : ""}` : "") +
     ` · ${rows.length - active} complete`;
+
+  const showTimesheet = me?.showTimesheet ?? true;
 
   return (
     <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-7 pb-5 pt-[26px]">
@@ -120,7 +123,9 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <TimesheetFooter showCompleted={effectiveShowCompleted} readOnly={readOnly} inspect={inspect} />
+      {showTimesheet && (
+        <TimesheetFooter showCompleted={effectiveShowCompleted} readOnly={readOnly} inspect={inspect} />
+      )}
     </main>
   );
 }
