@@ -15,6 +15,13 @@
       "when": 1784354899624,
       "tag": "0001_public_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784355253047,
+      "tag": "0002_dazzling_amazoness",
+      "breakpoints": true
     }
   ]
 }

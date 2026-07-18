@@ -77,12 +77,14 @@ export const api = {
       jiraBaseUrl: string | null;
       githubBaseUrl: string | null;
       colorTheme: string;
+      fontTheme: string;
     }>("/api/v1/me"),
   updateMe: (patch: {
     timezone?: string;
     jiraBaseUrl?: string | null;
     githubBaseUrl?: string | null;
     colorTheme?: string;
+    fontTheme?: string;
   }) => request<{ ok: true }>("/api/v1/me", { method: "PATCH", body: JSON.stringify(patch) }),
   analytics: (from: string, to: string) =>
     request<{

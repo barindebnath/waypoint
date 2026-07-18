@@ -16,6 +16,7 @@ export async function GET() {
       jiraBaseUrl: user.jiraBaseUrl,
       githubBaseUrl: user.githubBaseUrl,
       colorTheme: user.colorTheme,
+      fontTheme: user.fontTheme,
     });
   });
 }
@@ -37,6 +38,7 @@ const patchSchema = z.object({
   jiraBaseUrl: z.string().url().max(500).nullable().optional(),
   githubBaseUrl: z.string().url().max(500).nullable().optional(),
   colorTheme: z.enum(["paper", "nord", "forest", "royal"]).optional(),
+  fontTheme: z.enum(["serif", "sans", "mono"]).optional(),
 });
 
 export async function PATCH(req: Request) {

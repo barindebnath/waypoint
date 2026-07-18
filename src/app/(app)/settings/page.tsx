@@ -6,6 +6,7 @@ import { api } from "@/lib/client-api";
 import { authClient } from "@/lib/auth-client";
 import { getThemePref, setThemePref, subscribeTheme, type ThemePref } from "@/lib/theme";
 import { getColorThemePref, setColorThemePref, subscribeColorTheme, type ColorThemePref } from "@/lib/color-theme";
+import { getFontThemePref, setFontThemePref, subscribeFontTheme, type FontThemePref } from "@/lib/font-theme";
 
 type ApiKeyRow = {
   id: string;
@@ -145,6 +146,75 @@ function ColorPaletteSection() {
   );
 }
 
+const FONT_THEME_CARDS: {
+  key: FontThemePref;
+  label: string;
+  fontFamilyClass: string;
+  desc: string;
+}[] = [
+  { key: "serif", label: "Serif", fontFamilyClass: "font-serif", desc: "Warm literary style." },
+  { key: "sans", label: "Sans-Serif", fontFamilyClass: "font-sans", desc: "Clean & contemporary." },
+  { key: "mono", label: "Monospace", fontFamilyClass: "font-mono", desc: "Bold developer feel." },
+];
+
+function FontStyleSection() {
+  const pref = useSyncExternalStore(subscribeFontTheme, getFontThemePref, () => "serif" as const);
+  const qc = useQueryClient();
+
+  const fontMut = useMutation({
+    mutationFn: (font: FontThemePref) => api.updateMe({ fontTheme: font }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+
+  const getFamilyStyle = (key: FontThemePref) => {
+    if (key === "serif") return { fontFamily: "var(--font-newsreader), Georgia, serif" };
+    if (key === "sans") return { fontFamily: "ui-sans-serif, system-ui, -apple-system, sans-serif" };
+    if (key === "mono") return { fontFamily: "var(--font-plex-mono), ui-monospace, monospace" };
+    return {};
+  };
+
+  return (
+    <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+      <h2 className="mb-1 text-sm font-semibold">Font Style</h2>
+      <p className="mb-3.5 text-xs text-ink-muted">Choose your preferred typography category for headings and UI accents.</p>
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3" suppressHydrationWarning>
+        {FONT_THEME_CARDS.map((t) => {
+          const on = pref === t.key;
+          return (
+            <button
+              key={t.key}
+              disabled={fontMut.isPending}
+              onClick={() => {
+                setFontThemePref(t.key);
+                fontMut.mutate(t.key);
+              }}
+              className={`flex flex-col gap-2 rounded-[10px] border-[1.5px] bg-surface-2 p-2.5 text-left transition-all ${
+                on ? "border-accent" : "border-edge hover:border-edge-strong"
+              } ${fontMut.isPending ? "opacity-75 cursor-not-allowed" : ""}`}
+            >
+              <span
+                className="relative flex h-11 items-center justify-center rounded-md border border-edge bg-surface"
+                style={getFamilyStyle(t.key)}
+              >
+                <span className="text-2xl font-medium text-ink">Aa</span>
+              </span>
+              <span
+                className={`text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"}`}
+                style={getFamilyStyle(t.key)}
+              >
+                {t.label}
+              </span>
+              <span className="text-[11px] text-ink-faint leading-tight">{t.desc}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function SettingsPage() {
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
   if (!me) {
@@ -158,7 +228,7 @@ export default function SettingsPage() {
 function SettingsForm({
   me,
 }: {
-  me: { userId: string; timezone: string; jiraBaseUrl: string | null; githubBaseUrl: string | null; colorTheme: string };
+  me: { userId: string; timezone: string; jiraBaseUrl: string | null; githubBaseUrl: string | null; colorTheme: string; fontTheme: string };
 }) {
   const qc = useQueryClient();
   const [timezone, setTimezone] = useState(me.timezone);
@@ -174,6 +244,15 @@ function SettingsForm({
       }
     }
   }, [me.colorTheme]);
+
+  useEffect(() => {
+    if (me.fontTheme) {
+      const currentLocal = getFontThemePref();
+      if (currentLocal !== me.fontTheme) {
+        setFontThemePref(me.fontTheme as FontThemePref);
+      }
+    }
+  }, [me.fontTheme]);
 
   const saveMut = useMutation({
     mutationFn: () =>
@@ -238,6 +317,7 @@ function SettingsForm({
 
       <AppearanceSection />
       <ColorPaletteSection />
+      <FontStyleSection />
 
       {/* Timezone & link templates */}
       <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
