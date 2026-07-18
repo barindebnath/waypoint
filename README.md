@@ -45,7 +45,8 @@ Pipeline definitions seed themselves into the DB on first use (source:
    | `DATABASE_URL` | the Neon pooled connection string |
    | `DATABASE_URL_UNPOOLED` | (optional) Neon's direct connection string — used for migrations; added automatically if you use the Neon↔Vercel integration |
    | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
-   | `BETTER_AUTH_URL` | your Vercel URL, e.g. `https://waypoint-xyz.vercel.app` |
+   | `BETTER_AUTH_URL` | **canonical browser URL** for the app, e.g. `https://waypoint.example.com` (or your `*.vercel.app` URL when no custom domain is used) |
+   | `BETTER_AUTH_TRUSTED_ORIGINS` | (optional) comma-separated additional origins, such as a Vercel preview URL |
 3. **Deploy.** Migrations run automatically during the Vercel build
    (`vercel-build` runs `drizzle-kit migrate` first). Sign up at your URL,
    then in **Settings**: set your timezone, Jira base URL, GitHub org URL,
@@ -54,6 +55,18 @@ Pipeline definitions seed themselves into the DB on first use (source:
 
 After changing the schema later: `npm run db:generate`, commit the new
 migration file, push — the next deploy applies it.
+
+### Better Auth does not connect in production
+
+Set `BETTER_AUTH_URL` in **Vercel → Project Settings → Environment
+Variables** to the exact `https://` URL people use in their browser. This is
+especially important after adding a custom domain: do not leave it set to an
+old `*.vercel.app` deployment URL. Redeploy after changing the value. The app
+uses Vercel's deployment URL as a fallback, but the explicit canonical URL is
+required for a custom domain so Better Auth's cookie and CSRF origin checks
+agree with the browser. If you intentionally sign in through a preview URL,
+add that exact origin to `BETTER_AUTH_TRUSTED_ORIGINS`, separated with commas
+when there is more than one.
 
 ## API
 

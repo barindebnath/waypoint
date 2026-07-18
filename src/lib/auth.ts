@@ -4,6 +4,21 @@ import { apiKey } from "@better-auth/api-key";
 import { db, schema } from "./db";
 
 /**
+ * Vercel sets VERCEL_URL for every deployment, but Better Auth deliberately
+ * does not consume that server-only variable. Use it as a safe fallback when
+ * an explicit canonical URL has not been configured yet. A custom domain must
+ * still be supplied through BETTER_AUTH_URL so callback/origin validation is
+ * anchored to the URL that users actually visit.
+ */
+function vercelDeploymentUrl() {
+  const host = process.env.VERCEL_URL;
+  return host ? `https://${host}` : undefined;
+}
+
+const baseURL = process.env.BETTER_AUTH_URL?.trim() || vercelDeploymentUrl();
+const deploymentURL = vercelDeploymentUrl();
+
+/**
  * Better Auth server instance.
  *
  * - Email + password only; `name` is derived from the email prefix at signup
@@ -15,6 +30,11 @@ import { db, schema } from "./db";
  *   (our API also accepts `Authorization: Bearer` and maps it across).
  */
 export const auth = betterAuth({
+  // Pin the canonical public origin in production rather than relying on the
+  // internal serverless request URL. VERCEL_URL also keeps direct deployment
+  // URLs working while a custom domain is configured as BETTER_AUTH_URL.
+  baseURL,
+  trustedOrigins: deploymentURL ? [deploymentURL] : undefined,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
