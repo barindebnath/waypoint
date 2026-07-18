@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 // Resolve the stored theme preference before first paint so there is no flash.
-const themeInit = `(function(){try{var t=localStorage.getItem("wp-theme");var r=(t==="light"||t==="dark")?t:(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",r);}catch(e){}})();`;
+const themeInit = `(function(){try{var t=localStorage.getItem("wp-theme");var r=(t==="light"||t==="dark")?t:(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.setAttribute("data-theme",r);var c=localStorage.getItem("wp-color-theme")||"paper";document.documentElement.setAttribute("data-color-theme",c);}catch(e){}})();`;
 
 export default function RootLayout({
   children,

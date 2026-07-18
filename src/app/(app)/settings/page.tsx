@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { authClient } from "@/lib/auth-client";
 import { getThemePref, setThemePref, subscribeTheme, type ThemePref } from "@/lib/theme";
+import { getColorThemePref, setColorThemePref, subscribeColorTheme, type ColorThemePref } from "@/lib/color-theme";
 
 type ApiKeyRow = {
   id: string;
@@ -71,6 +72,58 @@ function AppearanceSection() {
                 {t.glyph} {t.label}
               </span>
               <span className="text-[11px] text-ink-faint">{t.desc}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+const COLOR_THEME_CARDS: {
+  key: ColorThemePref;
+  label: string;
+  desc: string;
+  swBg: string;
+  swInk: string;
+  swAccent: string;
+  swMuted: string;
+}[] = [
+  { key: "paper", label: "Paper", desc: "Warm sepia, amber accent.", swBg: "#f5efe3", swInk: "#241d10", swAccent: "#b4501e", swMuted: "#c8bb9a" },
+  { key: "nord", label: "Nordic", desc: "Cool grey, blue/teal accent.", swBg: "#eef2f7", swInk: "#0f172a", swAccent: "#0284c7", swMuted: "#94a3b8" },
+  { key: "forest", label: "Forest", desc: "Earthy sage, pine accent.", swBg: "#edf1eb", swInk: "#1c281a", swAccent: "#2d6a4f", swMuted: "#a3b89f" },
+  { key: "royal", label: "Royal", desc: "Rich purple, gold/lavender.", swBg: "#f5f0f6", swInk: "#24112c", swAccent: "#7b2cb1", swMuted: "#b796c3" },
+];
+
+function ColorPaletteSection() {
+  const pref = useSyncExternalStore(subscribeColorTheme, getColorThemePref, () => "paper" as const);
+  return (
+    <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+      <h2 className="mb-1 text-sm font-semibold">Color Palette</h2>
+      <p className="mb-3.5 text-xs text-ink-muted">Choose a theme variant. Applies to both light and dark modes.</p>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4" suppressHydrationWarning>
+        {COLOR_THEME_CARDS.map((t) => {
+          const on = pref === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setColorThemePref(t.key)}
+              className={`flex flex-col gap-2 rounded-[10px] border-[1.5px] bg-surface-2 p-2.5 text-left ${
+                on ? "border-accent" : "border-edge hover:border-edge-strong"
+              }`}
+            >
+              <span
+                className="relative block h-11 overflow-hidden rounded-md border border-edge"
+                style={{ background: t.swBg }}
+              >
+                <span className="absolute left-2 top-2 h-[5px] w-11 rounded" style={{ background: t.swInk }} />
+                <span className="absolute left-2 top-[18px] h-[5px] w-7 rounded" style={{ background: t.swAccent }} />
+                <span className="absolute left-2 top-7 h-[5px] w-14 rounded" style={{ background: t.swMuted }} />
+              </span>
+              <span className={`text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"}`}>
+                {t.label}
+              </span>
+              <span className="text-[11px] text-ink-faint leading-tight">{t.desc}</span>
             </button>
           );
         })}
@@ -162,6 +215,7 @@ function SettingsForm({
       <h1 className="font-serif text-[32px] font-medium tracking-tight">Settings</h1>
 
       <AppearanceSection />
+      <ColorPaletteSection />
 
       {/* Timezone & link templates */}
       <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">

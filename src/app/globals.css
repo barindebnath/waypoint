@@ -80,6 +80,145 @@ html[data-theme="dark"] {
   }
 }
 
+/* --- NORDIC FROST THEME --- */
+html[data-color-theme="nord"] {
+  --bg: #eef2f7;
+  --surface: #f8fafc;
+  --surface2: #e2e8f0;
+  --surface3: #cbd5e1;
+  --edge: #cbd5e1;
+  --edge2: #94a3b8;
+  --ink: #0f172a;
+  --muted: #475569;
+  --faint: #64748b;
+  --accent: #0284c7;
+  --accent-soft: rgba(2, 132, 199, 0.11);
+  --accent-ink: #ffffff;
+  --done: #0d9488;
+  --done-soft: rgba(13, 148, 136, 0.13);
+  --support: #0369a1;
+  --product: #4f46e5;
+  --warn: #b45309;
+  --danger: #e11d48;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 10px 28px -14px rgba(15, 23, 42, 0.18);
+  color-scheme: light;
+}
+html[data-theme="dark"][data-color-theme="nord"] {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #334155;
+  --surface3: #475569;
+  --edge: #334155;
+  --edge2: #475569;
+  --ink: #f8fafc;
+  --muted: #cbd5e1;
+  --faint: #94a3b8;
+  --accent: #38bdf8;
+  --accent-soft: rgba(56, 189, 248, 0.14);
+  --accent-ink: #0f172a;
+  --done: #2dd4bf;
+  --done-soft: rgba(45, 212, 191, 0.15);
+  --support: #38bdf8;
+  --product: #818cf8;
+  --warn: #fbbf24;
+  --danger: #fb7185;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -14px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+/* --- FOREST SAGE THEME --- */
+html[data-color-theme="forest"] {
+  --bg: #edf1eb;
+  --surface: #f7f9f6;
+  --surface2: #dee5db;
+  --surface3: #ced9cb;
+  --edge: #cbd7c7;
+  --edge2: #a3b89f;
+  --ink: #1c281a;
+  --muted: #4a5a47;
+  --faint: #768c72;
+  --accent: #2d6a4f;
+  --accent-soft: rgba(45, 106, 79, 0.11);
+  --accent-ink: #f7f9f6;
+  --done: #40916c;
+  --done-soft: rgba(64, 145, 108, 0.13);
+  --support: #977f1a;
+  --product: #3f72af;
+  --warn: #d6802a;
+  --danger: #b23a3a;
+  --shadow: 0 1px 2px rgba(28, 40, 26, 0.05), 0 10px 28px -14px rgba(28, 40, 26, 0.18);
+  color-scheme: light;
+}
+html[data-theme="dark"][data-color-theme="forest"] {
+  --bg: #101912;
+  --surface: #18231a;
+  --surface2: #213123;
+  --surface3: #2a3e2d;
+  --edge: #243927;
+  --edge2: #3b593e;
+  --ink: #e7ece8;
+  --muted: #a3bca4;
+  --faint: #6d8c70;
+  --accent: #52b788;
+  --accent-soft: rgba(82, 183, 136, 0.14);
+  --accent-ink: #0d1710;
+  --done: #74c69d;
+  --done-soft: rgba(116, 198, 157, 0.15);
+  --support: #e9c46a;
+  --product: #93b5e1;
+  --warn: #e9c46a;
+  --danger: #e76f51;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -14px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+/* --- ROYAL PLUM THEME --- */
+html[data-color-theme="royal"] {
+  --bg: #f5f0f6;
+  --surface: #faf8fc;
+  --surface2: #ebdff0;
+  --surface3: #dfcce5;
+  --edge: #dcc7e2;
+  --edge2: #b796c3;
+  --ink: #24112c;
+  --muted: #684d75;
+  --faint: #967fa2;
+  --accent: #7b2cb1;
+  --accent-soft: rgba(123, 44, 177, 0.11);
+  --accent-ink: #faf8fc;
+  --done: #1b8a5a;
+  --done-soft: rgba(27, 138, 90, 0.13);
+  --support: #a07104;
+  --product: #8263cf;
+  --warn: #a07104;
+  --danger: #b62b53;
+  --shadow: 0 1px 2px rgba(36, 17, 44, 0.05), 0 10px 28px -14px rgba(36, 17, 44, 0.18);
+  color-scheme: light;
+}
+html[data-theme="dark"][data-color-theme="royal"] {
+  --bg: #150d1b;
+  --surface: #1f1428;
+  --surface2: #2d1e39;
+  --surface3: #3a284a;
+  --edge: #352443;
+  --edge2: #583e6d;
+  --ink: #ebdff0;
+  --muted: #b69cc4;
+  --faint: #7b628b;
+  --accent: #d896ff;
+  --accent-soft: rgba(216, 150, 255, 0.14);
+  --accent-ink: #140a1b;
+  --done: #4ade80;
+  --done-soft: rgba(74, 222, 128, 0.15);
+  --support: #fbbf24;
+  --product: #c0b3f5;
+  --warn: #fbbf24;
+  --danger: #f43f5e;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -14px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+
 /*
  * Tailwind tokens map onto the theme variables so every existing utility
  * class (bg-surface, text-ink-muted, border-edge, …) follows the theme.
