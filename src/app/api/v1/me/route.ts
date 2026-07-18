@@ -15,6 +15,7 @@ export async function GET() {
       timezone: user.timezone,
       jiraBaseUrl: user.jiraBaseUrl,
       githubBaseUrl: user.githubBaseUrl,
+      colorTheme: user.colorTheme,
     });
   });
 }
@@ -35,6 +36,7 @@ const patchSchema = z.object({
     .optional(),
   jiraBaseUrl: z.string().url().max(500).nullable().optional(),
   githubBaseUrl: z.string().url().max(500).nullable().optional(),
+  colorTheme: z.enum(["paper", "nord", "forest", "royal"]).optional(),
 });
 
 export async function PATCH(req: Request) {

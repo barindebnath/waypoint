@@ -10,6 +10,7 @@ export type AuthedUser = {
   timezone: string;
   jiraBaseUrl: string | null;
   githubBaseUrl: string | null;
+  colorTheme: string;
 };
 
 export class ApiError extends Error {
@@ -70,6 +71,7 @@ export async function requireUser(opts: { write?: boolean } = {}): Promise<Authe
     timezone: settings.timezone,
     jiraBaseUrl: settings.jiraBaseUrl,
     githubBaseUrl: settings.githubBaseUrl,
+    colorTheme: settings.colorTheme,
   };
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "color_theme" text DEFAULT 'paper' NOT NULL;

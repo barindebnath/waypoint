@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { authClient } from "@/lib/auth-client";
@@ -97,6 +97,15 @@ const COLOR_THEME_CARDS: {
 
 function ColorPaletteSection() {
   const pref = useSyncExternalStore(subscribeColorTheme, getColorThemePref, () => "paper" as const);
+  const qc = useQueryClient();
+
+  const themeMut = useMutation({
+    mutationFn: (theme: ColorThemePref) => api.updateMe({ colorTheme: theme }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+
   return (
     <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
       <h2 className="mb-1 text-sm font-semibold">Color Palette</h2>
@@ -107,10 +116,14 @@ function ColorPaletteSection() {
           return (
             <button
               key={t.key}
-              onClick={() => setColorThemePref(t.key)}
-              className={`flex flex-col gap-2 rounded-[10px] border-[1.5px] bg-surface-2 p-2.5 text-left ${
+              disabled={themeMut.isPending}
+              onClick={() => {
+                setColorThemePref(t.key);
+                themeMut.mutate(t.key);
+              }}
+              className={`flex flex-col gap-2 rounded-[10px] border-[1.5px] bg-surface-2 p-2.5 text-left transition-all ${
                 on ? "border-accent" : "border-edge hover:border-edge-strong"
-              }`}
+              } ${themeMut.isPending ? "opacity-75 cursor-not-allowed" : ""}`}
             >
               <span
                 className="relative block h-11 overflow-hidden rounded-md border border-edge"
@@ -145,13 +158,22 @@ export default function SettingsPage() {
 function SettingsForm({
   me,
 }: {
-  me: { userId: string; timezone: string; jiraBaseUrl: string | null; githubBaseUrl: string | null };
+  me: { userId: string; timezone: string; jiraBaseUrl: string | null; githubBaseUrl: string | null; colorTheme: string };
 }) {
   const qc = useQueryClient();
   const [timezone, setTimezone] = useState(me.timezone);
   const [jira, setJira] = useState(me.jiraBaseUrl ?? "");
   const [github, setGithub] = useState(me.githubBaseUrl ?? "");
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (me.colorTheme) {
+      const currentLocal = getColorThemePref();
+      if (currentLocal !== me.colorTheme) {
+        setColorThemePref(me.colorTheme as ColorThemePref);
+      }
+    }
+  }, [me.colorTheme]);
 
   const saveMut = useMutation({
     mutationFn: () =>

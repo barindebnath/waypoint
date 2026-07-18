@@ -110,6 +110,7 @@ export const userSettings = pgTable("user_settings", {
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
   timezone: text("timezone").notNull().default("Asia/Kolkata"),
+  colorTheme: text("color_theme").notNull().default("paper"),
   /** e.g. https://myxplorinfo.atlassian.net — Jira refs auto-link as {base}/browse/{ref} */
   jiraBaseUrl: text("jira_base_url"),
   /** e.g. https://github.com/xplor — PR refs `repo#123` auto-link as {base}/{repo}/pull/{123} */
