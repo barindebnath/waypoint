@@ -38,7 +38,7 @@ export default function SignupPage() {
     <main className="flex min-h-screen flex-1 items-center justify-center px-5 py-10">
       <div className="w-[360px]">
         <Link href="/" className="mx-auto mb-[22px] flex items-baseline justify-center gap-2 !text-ink">
-          <span className="text-[15px] !text-accent">◆</span>
+          <span className="text-[15px] !text-accent">●</span>
           <span className="font-serif text-[22px] font-semibold">Waypoint</span>
         </Link>
         <div className="rounded-[14px] border border-edge bg-surface p-[26px] shadow-card">

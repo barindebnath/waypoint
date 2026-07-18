@@ -1,4 +1,4 @@
-# ◆ Waypoint
+# ● Waypoint
 
 A personal status tracker that acts as **external memory** for a developer who
 ships more because AI does much of the doing. One row = one unit of work,

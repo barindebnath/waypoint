@@ -131,7 +131,7 @@ export default function DocsPage() {
       <div className="sticky top-0 z-40 border-b border-edge bg-bg/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
           <Link href="/" className="flex items-baseline gap-2 !text-ink">
-            <span className="text-[15px] !text-accent">◆</span>
+            <span className="text-[15px] !text-accent">●</span>
             <span className="font-serif text-lg font-semibold">Waypoint</span>
           </Link>
           <span className="rounded border border-edge px-2.5 py-1 font-mono text-[10px] text-ink-muted">API v1</span>
@@ -176,7 +176,7 @@ export default function DocsPage() {
           <Code>
             {`# either header works\nAuthorization: Bearer wp_XXXXXXXXXXXX\nx-api-key: wp_XXXXXXXXXXXX`}
           </Code>
-          <Note tone="good" title="◆ Least privilege">
+          <Note tone="good" title="● Least privilege">
             Mint the narrowest token the job needs — a reporting script gets <code className="font-mono">read</code>,
             nothing more. Inject tokens as environment secrets; never in client code, prompts, or repos.
           </Note>

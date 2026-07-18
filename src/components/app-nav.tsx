@@ -25,7 +25,7 @@ export function AppNav({ email }: { email: string }) {
     <header className="sticky top-0 z-40 border-b-[3px] border-double border-edge-strong bg-surface shadow-card">
       <div className="mx-auto flex max-w-[1100px] items-baseline gap-6 px-7 pb-[11px] pt-[13px]">
         <Link href="/dashboard" className="flex items-baseline gap-2 !text-ink hover:!text-ink">
-          <span className="text-[15px] !text-accent">◆</span>
+          <span className="text-[15px] !text-accent">●</span>
           <span className="font-serif text-[21px] font-semibold tracking-tight">Waypoint</span>
         </Link>
         <nav className="flex gap-[22px]">

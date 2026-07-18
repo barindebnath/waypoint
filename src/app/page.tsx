@@ -20,7 +20,7 @@ export default async function LandingPage() {
       <header className="border-b-[3px] border-double border-edge-strong">
         <div className="mx-auto flex max-w-[1000px] items-baseline px-7 py-[18px]">
           <span className="flex items-baseline gap-2">
-            <span className="text-[15px] text-accent">◆</span>
+            <span className="text-[15px] text-accent">●</span>
             <span className="font-serif text-[21px] font-semibold">Waypoint</span>
           </span>
           <div className="ml-auto flex items-baseline gap-2.5">
@@ -77,15 +77,15 @@ export default async function LandingPage() {
               PES-1032
             </span>
             <span className="flex flex-1 items-center">
-              <span className="text-[13px] text-done">◆</span>
+              <span className="text-[13px] text-done">●</span>
               <span className="mx-[3px] h-[1.5px] flex-1 bg-done" />
-              <span className="text-[13px] text-done">◆</span>
+              <span className="text-[13px] text-done">●</span>
               <span className="mx-[3px] h-[1.5px] flex-1 bg-done" />
-              <span className="animate-live text-[13px] text-accent">◆</span>
+              <span className="animate-live text-[13px] text-accent">●</span>
               <span className="mx-[3px] h-[1.5px] flex-1 bg-edge-strong" />
-              <span className="text-[13px] text-ink-faint">◇</span>
+              <span className="text-[13px] text-ink-faint">○</span>
               <span className="mx-[3px] h-[1.5px] flex-1 bg-edge-strong" />
-              <span className="text-[13px] text-ink-faint">◇</span>
+              <span className="text-[13px] text-ink-faint">○</span>
             </span>
             <span className="font-serif text-sm italic text-accent">Staging</span>
           </div>
@@ -99,7 +99,7 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="mt-auto border-t border-edge">
         <div className="mx-auto flex max-w-[1000px] flex-wrap gap-4 px-7 py-4 text-xs text-ink-faint">
-          <span>◆ Waypoint</span>
+          <span>● Waypoint</span>
           <span className="ml-auto flex flex-wrap items-baseline gap-4">
             <span>API-first</span>
             <a href="/llms.txt" className="!text-ink-faint hover:!text-ink">

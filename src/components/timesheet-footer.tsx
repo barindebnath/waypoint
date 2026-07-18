@@ -47,7 +47,7 @@ export function TimesheetFooter({
             Timesheet — Tempo logged?
           </span>
           <span className="ml-auto font-serif text-xs italic text-ink-faint">
-            ◇ submit unlocks at 5/5 · ◆ submitted
+            ○ submit unlocks at 5/5 · ● submitted
           </span>
         </div>
         <div className="flex max-h-24 flex-col gap-[7px] overflow-y-auto">
@@ -117,7 +117,7 @@ export function TimesheetFooter({
                               : "text-ink-faint"
                         } ${submitGrayed && submitted ? "opacity-25" : ""} disabled:cursor-not-allowed`}
                       >
-                        {submitted ? "◆" : "◇"}
+                        {submitted ? "●" : "○"}
                       </button>
                     </div>
                   );

@@ -90,7 +90,7 @@ export function RowCard({
                   title={`${m.label} — ${m.complete ? "complete" : m.isCurrent ? "current" : "pending"} · ${fmt(m.updatedAt)}`}
                   className={`text-[13px] leading-none ${nodeColor} ${m.isCurrent ? "animate-live" : ""} ${grayed ? "opacity-30" : ""}`}
                 >
-                  {m.complete || m.isCurrent ? "◆" : "◇"}
+                  {m.complete || m.isCurrent ? "●" : "○"}
                 </span>
                 {i < row.milestones.length - 1 && (
                   <span
@@ -157,7 +157,7 @@ export function RowCard({
                       }}
                       className={`text-[13px] leading-none ${nodeColor} ${m.complete && !readOnly ? "cursor-pointer" : "cursor-default"}`}
                     >
-                      {m.complete || m.isCurrent ? "◆" : "◇"}
+                      {m.complete || m.isCurrent ? "●" : "○"}
                     </button>
                     <span
                       className={`truncate text-xs font-semibold ${
