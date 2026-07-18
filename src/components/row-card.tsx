@@ -5,6 +5,76 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type EnrichedRowView } from "@/lib/client-api";
 import { inRange, type InspectRange } from "@/lib/inspect";
 import { RefPill } from "./ref-pill";
+import { useDeferredLoading } from "@/lib/use-deferred-loading";
+import { Spinner } from "./spinner";
+import { DeferredSpinner } from "./deferred-spinner";
+
+function SubtaskCheckbox({
+  checked,
+  disabled,
+  onChange,
+  isPending,
+}: {
+  checked: boolean;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+  isPending: boolean;
+}) {
+  const showSpinner = useDeferredLoading(isPending);
+
+  if (showSpinner) {
+    return (
+      <span className="mt-0.5 flex h-[13px] w-[13px] items-center justify-center">
+        <Spinner className="h-3 w-3 text-done" />
+      </span>
+    );
+  }
+
+  return (
+    <input
+      type="checkbox"
+      checked={checked}
+      disabled={disabled || isPending}
+      onChange={(e) => onChange(e.target.checked)}
+      className="mt-px accent-done"
+    />
+  );
+}
+
+function MilestoneCircle({
+  complete,
+  isCurrent,
+  disabled,
+  onClick,
+  isPending,
+}: {
+  complete: boolean;
+  isCurrent: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  isPending: boolean;
+}) {
+  const showSpinner = useDeferredLoading(isPending);
+  const nodeColor = complete ? "text-done" : isCurrent ? "text-accent" : "text-ink-faint";
+
+  if (showSpinner) {
+    return (
+      <span className="flex h-[13px] w-[13px] items-center justify-center">
+        <Spinner className={`h-3 w-3 ${nodeColor}`} />
+      </span>
+    );
+  }
+
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className={`text-[13px] leading-none ${nodeColor} ${!disabled ? "cursor-pointer" : "cursor-default"}`}
+    >
+      {complete || isCurrent ? "●" : "○"}
+    </button>
+  );
+}
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -138,15 +208,12 @@ export function RowCard({
                   className={`rounded-[9px] border border-edge bg-surface-2 px-3 py-[11px] ${grayed ? "opacity-30" : ""}`}
                 >
                   <div className="mb-2 flex items-center gap-[7px] border-b border-edge pb-2">
-                    <button
-                      disabled={readOnly || !m.complete}
-                      title={
-                        m.complete
-                          ? "Uncheck to regress: clears this milestone and everything after it"
-                          : "Completes automatically when all sub-tasks are checked"
-                      }
+                    <MilestoneCircle
+                      complete={m.complete}
+                      isCurrent={m.isCurrent}
+                      disabled={readOnly || !m.complete || regressMut.isPending}
+                      isPending={regressMut.isPending && regressMut.variables === m.key}
                       onClick={() => {
-                        if (!m.complete) return;
                         if (
                           window.confirm(
                             `Regress to "${m.label}"? This clears all sub-tasks of this milestone and every milestone after it.`,
@@ -155,10 +222,7 @@ export function RowCard({
                           regressMut.mutate(m.key);
                         }
                       }}
-                      className={`text-[13px] leading-none ${nodeColor} ${m.complete && !readOnly ? "cursor-pointer" : "cursor-default"}`}
-                    >
-                      {m.complete || m.isCurrent ? "●" : "○"}
-                    </button>
+                    />
                     <span
                       className={`truncate text-xs font-semibold ${
                         m.isCurrent ? "text-accent" : m.complete ? "text-done" : "text-ink-muted"
@@ -177,14 +241,17 @@ export function RowCard({
                             className={`flex cursor-pointer items-start gap-[7px] text-xs ${s.checked ? "text-ink-muted" : "text-ink"}`}
                             title={`Updated ${fmt(s.updatedAt)}${s.humanUsual ? " · usually done by you" : ""}`}
                           >
-                            <input
-                              type="checkbox"
+                            <SubtaskCheckbox
                               checked={s.checked}
                               disabled={readOnly || subtaskMut.isPending}
-                              onChange={(e) =>
-                                subtaskMut.mutate({ milestone: m.key, subtask: s.key, checked: e.target.checked })
+                              onChange={(checked) =>
+                                subtaskMut.mutate({ milestone: m.key, subtask: s.key, checked })
                               }
-                              className="mt-px accent-done"
+                              isPending={
+                                subtaskMut.isPending &&
+                                subtaskMut.variables?.milestone === m.key &&
+                                subtaskMut.variables?.subtask === s.key
+                              }
                             />
                             <span className={s.checked ? "line-through" : ""}>
                               {s.label}
@@ -227,32 +294,40 @@ export function RowCard({
                 />
                 <button
                   type="submit"
-                  className="rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-muted hover:border-edge-strong"
+                  disabled={refsMut.isPending}
+                  className="rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-muted hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5"
                 >
+                  <DeferredSpinner isPending={refsMut.isPending && refsMut.variables?.action === "add"} className="h-3 w-3 text-current" />
                   + ref
                 </button>
               </form>
               {row.secondaryRefs.length > 0 && (
                 <span className="flex items-center gap-1.5">
-                  {row.secondaryRefs.map((r) => (
-                    <RefPill
-                      key={r.ref}
-                      refText={r.ref}
-                      url={r.resolvedUrl}
-                      tone="secondary"
-                      onRemove={() => refsMut.mutate({ action: "remove", ref: r.ref })}
-                    />
-                  ))}
+                  {row.secondaryRefs.map((r) => {
+                    const isRemoving = refsMut.isPending && refsMut.variables?.action === "remove" && refsMut.variables?.ref === r.ref;
+                    return (
+                      <RefPill
+                        key={r.ref}
+                        refText={r.ref}
+                        url={r.resolvedUrl}
+                        tone="secondary"
+                        onRemove={() => refsMut.mutate({ action: "remove", ref: r.ref })}
+                        isRemoving={isRemoving}
+                      />
+                    );
+                  })}
                 </span>
               )}
               <button
+                disabled={deleteMut.isPending}
                 onClick={() => {
                   if (window.confirm(`Delete the row for ${row.identityRef}? This cannot be undone.`)) {
                     deleteMut.mutate();
                   }
                 }}
-                className="ml-auto rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-faint hover:border-danger hover:text-danger"
+                className="ml-auto rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-faint hover:border-danger hover:text-danger disabled:opacity-50 flex items-center gap-1.5"
               >
+                <DeferredSpinner isPending={deleteMut.isPending} className="h-3 w-3 text-current" />
                 Delete row
               </button>
             </div>

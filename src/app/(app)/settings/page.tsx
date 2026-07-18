@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { getThemePref, setThemePref, subscribeTheme, type ThemePref } from "@/lib/theme";
 import { getColorThemePref, setColorThemePref, subscribeColorTheme, type ColorThemePref } from "@/lib/color-theme";
 import { getFontThemePref, setFontThemePref, subscribeFontTheme, type FontThemePref } from "@/lib/font-theme";
+import { DeferredSpinner } from "@/components/deferred-spinner";
 
 type ApiKeyRow = {
   id: string;
@@ -134,8 +135,9 @@ function ColorPaletteSection() {
                 <span className="absolute left-2 top-[18px] h-[5px] w-7 rounded" style={{ background: t.swAccent }} />
                 <span className="absolute left-2 top-7 h-[5px] w-14 rounded" style={{ background: t.swMuted }} />
               </span>
-              <span className={`text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"}`}>
+              <span className={`text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"} flex items-center gap-1.5`}>
                 {t.label}
+                <DeferredSpinner isPending={themeMut.isPending && themeMut.variables === t.key} className="h-3 w-3" />
               </span>
               <span className="text-[11px] text-ink-faint leading-tight">{t.desc}</span>
             </button>
@@ -201,10 +203,11 @@ function FontStyleSection() {
                 <span className="text-2xl font-medium text-ink">Aa</span>
               </span>
               <span
-                className={`text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"}`}
+                className={`text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"} flex items-center gap-1.5`}
                 style={getFamilyStyle(t.key)}
               >
                 {t.label}
+                <DeferredSpinner isPending={fontMut.isPending && fontMut.variables === t.key} className="h-3 w-3" />
               </span>
               <span className="text-[11px] text-ink-faint leading-tight">{t.desc}</span>
             </button>
@@ -281,21 +284,28 @@ function SettingsForm({
   const [tokenScope, setTokenScope] = useState<"read" | "read,write">("read,write");
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
+  const [creatingToken, setCreatingToken] = useState(false);
+  const [revokingKeyId, setRevokingKeyId] = useState<string | null>(null);
 
   async function createToken(e: React.FormEvent) {
     e.preventDefault();
     setTokenError(null);
-    const { data, error } = await authClient.apiKey.create({
-      name: tokenName.trim() || "token",
-      metadata: { scopes: tokenScope.split(",") },
-    });
-    if (error) {
-      setTokenError(error.message ?? "Failed to create token");
-      return;
+    setCreatingToken(true);
+    try {
+      const { data, error } = await authClient.apiKey.create({
+        name: tokenName.trim() || "token",
+        metadata: { scopes: tokenScope.split(",") },
+      });
+      if (error) {
+        setTokenError(error.message ?? "Failed to create token");
+        return;
+      }
+      setFreshToken((data as { key: string }).key);
+      setTokenName("");
+      refetchKeys();
+    } finally {
+      setCreatingToken(false);
     }
-    setFreshToken((data as { key: string }).key);
-    setTokenName("");
-    refetchKeys();
   }
 
   const timezones = [
@@ -365,12 +375,13 @@ function SettingsForm({
               className={`${inputCls} font-mono text-xs`}
             />
           </label>
-          <div>
+           <div>
             <button
               type="submit"
               disabled={saveMut.isPending}
-              className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50"
+              className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
             >
+              <DeferredSpinner isPending={saveMut.isPending} className="h-3.5 w-3.5 text-current" />
               {saved ? "Saved ✓" : "Save"}
             </button>
           </div>
@@ -422,8 +433,10 @@ function SettingsForm({
           </select>
           <button
             type="submit"
-            className="rounded-[7px] border border-edge px-3.5 py-[7px] text-xs text-ink-muted hover:border-edge-strong"
+            disabled={creatingToken}
+            className="rounded-[7px] border border-edge px-3.5 py-[7px] text-xs text-ink-muted hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5"
           >
+            <DeferredSpinner isPending={creatingToken} className="h-3 w-3 text-current" />
             Create token
           </button>
           {tokenError && <span className="text-xs text-danger">{tokenError}</span>}
@@ -441,14 +454,21 @@ function SettingsForm({
                 {scopesOf(k.metadata)}
               </span>
               <button
+                disabled={revokingKeyId !== null}
                 onClick={async () => {
                   if (window.confirm(`Revoke token "${k.name ?? k.id}"?`)) {
-                    await authClient.apiKey.delete({ keyId: k.id });
-                    refetchKeys();
+                    setRevokingKeyId(k.id);
+                    try {
+                      await authClient.apiKey.delete({ keyId: k.id });
+                      refetchKeys();
+                    } finally {
+                      setRevokingKeyId(null);
+                    }
                   }
                 }}
-                className="ml-auto rounded-md border border-edge px-2.5 py-[3px] text-[11px] text-ink-faint hover:border-danger hover:text-danger"
+                className="ml-auto rounded-md border border-edge px-2.5 py-[3px] text-[11px] text-ink-faint hover:border-danger hover:text-danger disabled:opacity-50 flex items-center gap-1.5"
               >
+                <DeferredSpinner isPending={revokingKeyId === k.id} className="h-3 w-3 text-current" />
                 Revoke
               </button>
             </li>

@@ -4,6 +4,88 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { DAY_KEYS, type DayKey } from "@/lib/timesheet-shared";
 import { inRange, monthTouchedInRange, type InspectRange } from "@/lib/inspect";
+import { useDeferredLoading } from "@/lib/use-deferred-loading";
+import { Spinner } from "./spinner";
+
+function TimesheetDayButton({
+  dayLabel,
+  checked,
+  title,
+  disabled,
+  isPending,
+  onClick,
+  grayed,
+}: {
+  dayLabel: string;
+  checked: boolean;
+  title: string;
+  disabled: boolean;
+  isPending: boolean;
+  onClick: () => void;
+  grayed: boolean;
+}) {
+  const showSpinner = useDeferredLoading(isPending);
+
+  return (
+    <button
+      disabled={disabled || isPending}
+      title={title}
+      onClick={onClick}
+      className={`flex h-[21px] w-[21px] items-center justify-center rounded-[5px] border text-[9px] transition-colors ${
+        checked
+          ? "border-done bg-[var(--done-soft)] text-done"
+          : "border-edge bg-surface-3 text-ink-faint hover:border-edge-strong"
+      } ${grayed ? "opacity-25" : ""} disabled:cursor-not-allowed`}
+    >
+      {showSpinner ? <Spinner className="h-2 w-2 text-current" /> : dayLabel}
+    </button>
+  );
+}
+
+function TimesheetSubmitButton({
+  disabled,
+  isPending,
+  submitted,
+  submitGrayed,
+  title,
+  onClick,
+  submittable,
+}: {
+  disabled: boolean;
+  isPending: boolean;
+  submitted: boolean;
+  submitGrayed: boolean;
+  title: string;
+  onClick: () => void;
+  submittable: boolean;
+}) {
+  const showSpinner = useDeferredLoading(isPending);
+
+  if (showSpinner) {
+    return (
+      <span className="ml-[3px] flex h-3.5 w-3.5 items-center justify-center">
+        <Spinner className="h-2.5 w-2.5 text-accent" />
+      </span>
+    );
+  }
+
+  return (
+    <button
+      disabled={disabled}
+      title={title}
+      onClick={onClick}
+      className={`ml-[3px] text-sm leading-none ${
+        submitted
+          ? "text-done"
+          : submittable
+            ? "text-accent hover:scale-110"
+            : "text-ink-faint"
+      } ${submitGrayed && submitted ? "opacity-25" : ""} disabled:cursor-not-allowed`}
+    >
+      {submitted ? "●" : "○"}
+    </button>
+  );
+}
 
 const DAY_LABELS = "MTWTF";
 
@@ -80,27 +162,28 @@ export function TimesheetFooter({
                       {DAY_KEYS.map((d, di) => {
                         const day = week.days[d];
                         const grayed = inspect && !inRange(day.updatedAt, inspect);
+                        const isTicking = tickMut.isPending && tickMut.variables?.weekId === week.weekId && tickMut.variables?.day === d;
                         return (
-                          <button
+                          <TimesheetDayButton
                             key={d}
-                            disabled={readOnly || submitted || tickMut.isPending}
+                            dayLabel={DAY_LABELS[di]}
+                            checked={day.checked}
                             title={`${week.dates[d]}${day.updatedAt ? ` · ${new Date(day.updatedAt).toLocaleString()}` : ""}`}
+                            disabled={readOnly || submitted || tickMut.isPending}
+                            isPending={isTicking}
                             onClick={() =>
                               tickMut.mutate({ weekId: week.weekId, day: d, checked: !day.checked })
                             }
-                            className={`flex h-[21px] w-[21px] items-center justify-center rounded-[5px] border text-[9px] transition-colors ${
-                              day.checked
-                                ? "border-done bg-[var(--done-soft)] text-done"
-                                : "border-edge bg-surface-3 text-ink-faint hover:border-edge-strong"
-                            } ${grayed ? "opacity-25" : ""} disabled:cursor-not-allowed`}
-                          >
-                            {DAY_LABELS[di]}
-                          </button>
+                            grayed={!!grayed}
+                          />
                         );
                       })}
                       {/* Submit marker sits after Friday */}
-                      <button
+                      <TimesheetSubmitButton
                         disabled={readOnly || !week.submittable || submitMut.isPending}
+                        isPending={submitMut.isPending && submitMut.variables === week.weekId}
+                        submitted={submitted}
+                        submitGrayed={!!submitGrayed}
                         title={
                           submitted
                             ? `Submitted ${week.submit.submittedAt ? new Date(week.submit.submittedAt).toLocaleString() : ""}`
@@ -109,16 +192,8 @@ export function TimesheetFooter({
                               : "Check all five days first"
                         }
                         onClick={() => submitMut.mutate(week.weekId)}
-                        className={`ml-[3px] text-sm leading-none ${
-                          submitted
-                            ? "text-done"
-                            : week.submittable
-                              ? "text-accent hover:scale-110"
-                              : "text-ink-faint"
-                        } ${submitGrayed && submitted ? "opacity-25" : ""} disabled:cursor-not-allowed`}
-                      >
-                        {submitted ? "●" : "○"}
-                      </button>
+                        submittable={week.submittable}
+                      />
                     </div>
                   );
                 })}

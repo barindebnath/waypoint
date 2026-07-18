@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type PipelineKey } from "@/lib/client-api";
 import { RequestError } from "@/lib/client-api";
+import { useDeferredLoading } from "@/lib/use-deferred-loading";
+import { Spinner } from "./spinner";
 
 const PIPELINE_LABELS: Record<PipelineKey, string> = {
   support_full: "Support",
@@ -35,6 +37,8 @@ export function NewRowForm() {
     },
     onError: (e) => setError(e instanceof RequestError ? e.message : "Failed to create row"),
   });
+
+  const showCreatingLoader = useDeferredLoading(createMut.isPending);
 
   return (
     <form
@@ -79,8 +83,9 @@ export function NewRowForm() {
       <button
         type="submit"
         disabled={createMut.isPending || !ref.trim()}
-        className="ml-auto rounded-[7px] bg-accent px-4 py-2 text-[13px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
+        className="ml-auto flex items-center gap-1.5 rounded-[7px] bg-accent px-4 py-2 text-[13px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
       >
+        {showCreatingLoader && <Spinner className="h-3.5 w-3.5 text-current" />}
         {createMut.isPending ? "Adding…" : "+ Add row"}
       </button>
     </form>
