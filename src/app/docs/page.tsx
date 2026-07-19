@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { DocsSidebar } from "@/components/docs-sidebar";
 
 export const metadata = {
@@ -127,7 +129,9 @@ const NAV = [
 
 import { Logo } from "@/components/logo";
 
-export default function DocsPage() {
+export default async function DocsPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+
   return (
     <div className="min-h-screen">
       <div className="sticky top-0 z-40 border-b border-edge bg-bg/90 backdrop-blur">
@@ -136,14 +140,33 @@ export default function DocsPage() {
             <Logo className="h-6 w-6 -mt-0.5" />
             <span className="font-serif text-lg font-semibold">Waypoint</span>
           </Link>
-          <span className="rounded border border-edge px-2.5 py-1 font-mono text-[10px] text-ink-muted">API v1</span>
+          <div className="flex items-center gap-4">
+            <Link href="/llms.txt" className="text-xs text-ink-muted hover:text-ink">
+              llms.txt
+            </Link>
+            <span className="rounded border border-edge px-2 py-0.5 font-mono text-[9px] text-ink-muted select-none">API v1</span>
+            {session ? (
+              <Link href="/dashboard" className="rounded border border-edge px-2.5 py-1 text-xs text-ink-muted hover:border-edge-strong">
+                Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="text-xs text-ink-muted hover:text-ink">
+                  Sign in
+                </Link>
+                <Link href="/signup" className="rounded bg-accent px-2.5 py-1 text-xs !text-accent-ink hover:opacity-90">
+                  Sign up
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="mx-auto flex max-w-5xl gap-10 px-5">
         <DocsSidebar groups={NAV} />
 
-        <main className="min-w-0 flex-1 pb-28 pt-10">
+        <main className="min-w-0 flex-1 pb-120 pt-10">
           <p className="mb-3 font-mono text-xs uppercase tracking-[0.22em] text-live">Integration guide</p>
           <h1 className="font-serif text-4xl font-medium tracking-tight">Automate your tracker with any AI.</h1>
           <p className="mt-4 max-w-2xl text-lg text-ink-muted">
@@ -188,7 +211,7 @@ export default function DocsPage() {
           </Note>
 
           <H2 id="base">Base URL &amp; versioning</H2>
-          <Code>{`https://<your-deployment>/api/v1`}</Code>
+          <Code>{`https://waypoint-bd.vercel.app/api/v1`}</Code>
           <p className="max-w-2xl text-sm text-ink-muted">
             The API lives on the same host as the app; the version is in the path. Additive fields may
             appear within <code className="font-mono">v1</code> — parse defensively and ignore unknown keys.
@@ -291,18 +314,18 @@ export default function DocsPage() {
           </Ep>
 
           <H2 id="ep-subtasks">Endpoints · Sub-tasks &amp; regression</H2>
-          <p className="max-w-2xl text-sm text-ink-muted">The workhorse. Report a sub-task the moment the underlying action really happened:</p>
+          <p className="max-w-2xl text-sm text-ink-muted">The workhorse. Report a sub-task the moment the underlying action really happened. Omit <code className="font-mono">subtask</code> to bulk-check the whole milestone atomically in one transaction:</p>
           <Ep v="POST" path="/api/v1/rows/{ref}/subtasks">
             <Fields
               rows={[
                 ["milestone*", "string", "Milestone key from /api/v1/pipelines."],
-                ["subtask*", "string", "Sub-task key within that milestone."],
+                ["subtask", "string", "Sub-task key within that milestone. Omit to atomically check all sub-tasks in the milestone (milestone then completes and bar advances in the same request)."],
                 ["checked*", "boolean", "true when it happened; false to record an honest un-happening."],
               ]}
             />
           </Ep>
           <Code>
-            {`POST /api/v1/rows/ZT-4821/subtasks\nAuthorization: Bearer wp_XXXXXXXXXXXX\nIdempotency-Key: pr-panipuri-87\n\n{ "milestone": "development", "subtask": "pr_raised", "checked": true }\n\n# 200 — last sub-task of the milestone → it completes, bar advances\n{ "row": {\n    "identityRef": "ZT-4821",\n    "currentMilestone": "staging",\n    "isComplete": false,\n    "hasLooseEnds": false,\n    "milestones": [ { "key": "development", "complete": true, … }, … ]\n} }`}
+            {`# Tick a single sub-task\nPOST /api/v1/rows/ZT-4821/subtasks\nAuthorization: Bearer wp_XXXXXXXXXXXX\nIdempotency-Key: pr-panipuri-87\n\n{ "milestone": "development", "subtask": "pr_raised", "checked": true }\n\n# 200 — last sub-task → milestone completes, bar advances\n{ "row": { "identityRef": "ZT-4821", "currentMilestone": "staging", ... } }\n\n\n# Bulk-check all sub-tasks in a milestone (omit "subtask")\nPOST /api/v1/rows/ZT-4821/subtasks\n\n{ "milestone": "development", "checked": true }\n\n# 200 — all sub-tasks + the milestone complete atomically`}
           </Code>
           <Ep v="POST" path="/api/v1/rows/{ref}/regress">
             <p>The one way work moves backwards. <code className="font-mono">{`{"milestone": "development"}`}</code>{" "}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, Fragment, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { DAY_KEYS, type DayKey } from "@/lib/timesheet-shared";
@@ -100,8 +100,6 @@ function TimesheetSubmitButton({
   );
 }
 
-const DAY_LABELS = "MTWTF";
-
 export function TimesheetFooter({
   showCompleted,
   readOnly,
@@ -114,6 +112,7 @@ export function TimesheetFooter({
 
   const [activeMonthIndex, setActiveMonthIndex] = useState(0);
   const qc = useQueryClient();
+
   const { data } = useQuery({ queryKey: ["timesheet"], queryFn: () => api.timesheet(6) });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["timesheet"] });
 
@@ -130,6 +129,31 @@ export function TimesheetFooter({
     mutationFn: (weekId: string) => api.unsubmitWeek(weekId),
     onSettled: invalidate,
   });
+
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowLeftShadow(el.scrollLeft > 0);
+    setShowRightShadow(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) {
+      handleScroll();
+      el.addEventListener("scroll", handleScroll);
+      window.addEventListener("resize", handleScroll);
+      return () => {
+        el.removeEventListener("scroll", handleScroll);
+        window.removeEventListener("resize", handleScroll);
+      };
+    }
+  }, [activeMonthIndex, data]);
 
   if (!data) return null;
 
@@ -204,7 +228,25 @@ export function TimesheetFooter({
             </span>
           )}
           {activeMonth && (
-            <div className="flex flex-row flex-nowrap items-center gap-5 pl-2 py-1 overflow-x-auto">
+            <div className="relative">
+              {/* Left shadow fade */}
+              <div
+                className={`absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+                  showLeftShadow ? "opacity-100" : "opacity-0"
+                }`}
+              />
+              {/* Right shadow fade */}
+              <div
+                className={`absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+                  showRightShadow ? "opacity-100" : "opacity-0"
+                }`}
+              />
+
+              <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="flex flex-row flex-nowrap items-center gap-5 pl-2 py-1 overflow-x-auto"
+              >
                 {[...activeMonth.weeks].reverse().map((week, index, arr) => {
                   const submitted = week.submit.status === "submitted";
                   const submitGrayed = inspect && !inRange(week.submit.submittedAt, inspect);
@@ -215,7 +257,7 @@ export function TimesheetFooter({
                         title={week.weekId}
                       >
                         <div className={`flex gap-1 ${submitted ? "pointer-events-none" : ""}`}>
-                          {DAY_KEYS.map((d, di) => {
+                          {DAY_KEYS.map((d) => {
                             const day = week.days[d];
                             const grayed = inspect && !inRange(day.updatedAt, inspect);
                             const isTicking = tickMut.isPending && tickMut.variables?.weekId === week.weekId && tickMut.variables?.day === d;
@@ -276,6 +318,7 @@ export function TimesheetFooter({
                   );
                 })}
               </div>
+            </div>
             )}
           </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, Fragment, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type EnrichedRowView } from "@/lib/client-api";
 import { inRange, type InspectRange } from "@/lib/inspect";
@@ -36,7 +36,7 @@ function SubtaskCheckbox({
       checked={checked}
       disabled={disabled || isPending}
       onChange={(e) => onChange(e.target.checked)}
-      className="mt-px accent-done"
+      className="mt-px accent-done cursor-pointer disabled:cursor-not-allowed"
     />
   );
 }
@@ -45,13 +45,15 @@ function MilestoneCircle({
   complete,
   isCurrent,
   disabled,
-  onClick,
+  onCheckAll,
+  onRegress,
   isPending,
 }: {
   complete: boolean;
   isCurrent: boolean;
   disabled: boolean;
-  onClick: () => void;
+  onCheckAll: () => void;
+  onRegress: () => void;
   isPending: boolean;
 }) {
   const showSpinner = useDeferredLoading(isPending);
@@ -66,13 +68,20 @@ function MilestoneCircle({
   }
 
   return (
-    <button
+    <input
+      type="checkbox"
+      checked={complete}
       disabled={disabled}
-      onClick={onClick}
-      className={`text-[13px] leading-none ${nodeColor} ${!disabled ? "cursor-pointer" : "cursor-default"}`}
-    >
-      {complete || isCurrent ? "●" : "○"}
-    </button>
+      onChange={() => (complete ? onRegress() : onCheckAll())}
+      title={
+        complete
+          ? "Click to regress this milestone"
+          : "Click to tick all sub-tasks in this milestone"
+      }
+      className={`h-[13px] w-[13px] ${
+        complete ? "accent-done" : ""
+      } ${!disabled ? "cursor-pointer" : "cursor-default"}`}
+    />
   );
 }
 
@@ -104,6 +113,11 @@ export function RowCard({
       api.setSubtask(row.identityRef, v.milestone, v.subtask, v.checked),
     onSettled: invalidate,
   });
+  const checkAllMut = useMutation({
+    mutationFn: (v: { milestone: string; checked: boolean }) =>
+      api.checkAllSubtasks(row.identityRef, v.milestone, v.checked),
+    onSettled: invalidate,
+  });
   const regressMut = useMutation({
     mutationFn: (milestone: string) => api.regress(row.identityRef, milestone),
     onSettled: invalidate,
@@ -114,6 +128,33 @@ export function RowCard({
     onSettled: invalidate,
   });
   const deleteMut = useMutation({ mutationFn: () => api.deleteRow(row.identityRef), onSettled: invalidate });
+
+  const [showLeftShadow, setShowLeftShadow] = useState(false);
+  const [showRightShadow, setShowRightShadow] = useState(false);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowLeftShadow(el.scrollLeft > 0);
+    setShowRightShadow(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+  };
+
+  useEffect(() => {
+    if (open) {
+      const el = scrollRef.current;
+      if (el) {
+        handleScroll();
+        el.addEventListener("scroll", handleScroll);
+        window.addEventListener("resize", handleScroll);
+        return () => {
+          el.removeEventListener("scroll", handleScroll);
+          window.removeEventListener("resize", handleScroll);
+        };
+      }
+    }
+  }, [open]);
 
   const doneCount = row.milestones.filter((m) => m.complete).length;
   const originColor = row.origin === "support" ? "text-support" : "text-product";
@@ -130,7 +171,7 @@ export function RowCard({
       {/* Collapsed line */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-3.5 px-4 py-[13px] text-left"
+        className="flex w-full items-center gap-3.5 px-4 py-[13px] text-left cursor-pointer"
       >
         <span
           className={`w-[104px] shrink-0 truncate text-[10px] uppercase tracking-[0.13em] ${originColor}`}
@@ -194,10 +235,25 @@ export function RowCard({
 
       {/* Expanded milestones */}
       {open && (
-        <div className="border-t border-edge p-4">
+        <div className="border-t border-edge p-4 relative">
+          {/* Left shadow fade */}
           <div
-            className="grid gap-3"
-            style={{ gridTemplateColumns: `repeat(${row.milestones.length}, minmax(0, 1fr))` }}
+            className={`absolute left-4 top-4 bottom-[66px] w-8 bg-gradient-to-r from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+              showLeftShadow ? "opacity-100" : "opacity-0"
+            }`}
+          />
+          {/* Right shadow fade */}
+          <div
+            className={`absolute right-4 top-4 bottom-[66px] w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+              showRightShadow ? "opacity-100" : "opacity-0"
+            }`}
+          />
+
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="grid gap-3 overflow-x-auto pb-1.5"
+            style={{ gridTemplateColumns: `repeat(${row.milestones.length}, minmax(180px, 1fr))` }}
           >
             {row.milestones.map((m) => {
               const grayed = inspect && !inRange(m.updatedAt, inspect);
@@ -205,15 +261,31 @@ export function RowCard({
               return (
                 <div
                   key={m.key}
-                  className={`rounded-[9px] border border-edge bg-surface-2 px-3 py-[11px] ${grayed ? "opacity-30" : ""}`}
+                  className={`rounded-[9px] border bg-surface-2 px-3 py-[11px] transition-colors ${
+                    m.isCurrent
+                      ? "border-accent ring-1 ring-accent/20"
+                      : "border-edge"
+                  } ${grayed ? "opacity-30" : ""}`}
                 >
                   <div className="mb-2 flex items-center gap-[7px] border-b border-edge pb-2">
                     <MilestoneCircle
                       complete={m.complete}
                       isCurrent={m.isCurrent}
-                      disabled={readOnly || !m.complete || regressMut.isPending}
-                      isPending={regressMut.isPending && regressMut.variables === m.key}
-                      onClick={() => {
+                      disabled={
+                        readOnly ||
+                        subtaskMut.isPending ||
+                        checkAllMut.isPending ||
+                        regressMut.isPending
+                      }
+                      isPending={
+                        (regressMut.isPending && regressMut.variables === m.key) ||
+                        (checkAllMut.isPending && checkAllMut.variables?.milestone === m.key) ||
+                        (subtaskMut.isPending && subtaskMut.variables?.milestone === m.key)
+                      }
+                      onCheckAll={() => {
+                        checkAllMut.mutate({ milestone: m.key, checked: true });
+                      }}
+                      onRegress={() => {
                         if (
                           window.confirm(
                             `Regress to "${m.label}"? This clears all sub-tasks of this milestone and every milestone after it.`,
@@ -225,7 +297,7 @@ export function RowCard({
                     />
                     <span
                       className={`truncate text-xs font-semibold ${
-                        m.isCurrent ? "text-accent" : m.complete ? "text-done" : "text-ink-muted"
+                        m.complete ? "text-done" : m.isCurrent ? "text-accent" : "text-ink-muted"
                       }`}
                       title={`${m.label} · updated ${fmt(m.updatedAt)}`}
                     >
@@ -238,7 +310,9 @@ export function RowCard({
                       return (
                         <li key={s.key} className={sGrayed ? "opacity-30" : ""}>
                           <label
-                            className={`flex cursor-pointer items-start gap-[7px] text-xs ${s.checked ? "text-ink-muted" : "text-ink"}`}
+                            className={`flex items-start gap-[7px] text-xs ${
+                              readOnly || subtaskMut.isPending ? "cursor-not-allowed" : "cursor-pointer"
+                            } ${s.checked ? "text-ink-muted" : "text-ink"}`}
                             title={`Updated ${fmt(s.updatedAt)}${s.humanUsual ? " · usually done by you" : ""}`}
                           >
                             <SubtaskCheckbox

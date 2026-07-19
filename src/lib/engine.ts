@@ -373,6 +373,40 @@ export async function setSubtask(
 }
 
 /**
+ * Bulk-check all unchecked sub-tasks of a milestone in a single transaction,
+ * then recompute milestone + row completion. Avoids the race condition that
+ * occurs when individual setSubtask calls are fired in parallel.
+ */
+export async function bulkSetSubtasks(
+  userId: string,
+  ref: string,
+  milestoneKey: string,
+  checked: boolean,
+): Promise<RowView> {
+  const row = await findRowByRef(userId, ref);
+  if (!row) throw new EngineError(`No row found for ${ref}`, 404);
+  const pipelines = await loadPipelines();
+  const def = pipelines[row.pipelineKey];
+  const mDef = def.milestones.find((m) => m.key === milestoneKey);
+  if (!mDef) throw new EngineError(`Unknown milestone ${milestoneKey} for ${row.pipelineKey}`);
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.subtaskState)
+      .set({ checked, updatedAt: new Date() })
+      .where(
+        and(
+          eq(schema.subtaskState.rowId, row.id),
+          eq(schema.subtaskState.milestoneKey, milestoneKey),
+        ),
+      );
+    await recomputeAfterCheck(tx, row, def, milestoneKey, checked);
+  });
+
+  return (await getRowView(userId, row.identityRef))!;
+}
+
+/**
  * Regression: uncheck a milestone → it and every milestone after it are fully
  * cleared (sub-tasks and completion), and the bar returns to that milestone.
  */

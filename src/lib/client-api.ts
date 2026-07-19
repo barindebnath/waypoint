@@ -48,6 +48,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ milestone, subtask, checked }),
     }),
+  checkAllSubtasks: (ref: string, milestone: string, checked: boolean) =>
+    request<{ row: EnrichedRowView }>(`/api/v1/rows/${encodeURIComponent(ref)}/subtasks`, {
+      method: "POST",
+      body: JSON.stringify({ milestone, checked }),
+    }),
   regress: (ref: string, milestone: string) =>
     request<{ row: EnrichedRowView }>(`/api/v1/rows/${encodeURIComponent(ref)}/regress`, {
       method: "POST",

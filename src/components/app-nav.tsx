@@ -11,6 +11,7 @@ const tabs = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/analytics", label: "Analytics" },
   { href: "/settings", label: "Settings" },
+  { href: "/docs", label: "Docs" },
 ];
 
 export function AppNav({ email }: { email: string }) {
@@ -25,7 +26,7 @@ export function AppNav({ email }: { email: string }) {
 
   return (
     <header className="sticky top-0 z-40 border-b-[3px] border-double border-edge-strong bg-surface shadow-card">
-      <div className="mx-auto flex max-w-[1100px] items-baseline gap-6 px-7 pb-[11px] pt-[13px]">
+      <div className="mx-auto flex max-w-[1100px] items-center gap-6 px-7 pb-[11px] pt-[13px]">
         <Link href="/dashboard" className="flex items-center gap-2.5 !text-ink hover:!text-ink">
           <Logo className="h-6 w-6 -mt-0.5" />
           <span className="font-serif text-[21px] font-semibold tracking-tight">Waypoint</span>
@@ -45,7 +46,7 @@ export function AppNav({ email }: { email: string }) {
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex items-baseline gap-4">
+        <div className="ml-auto flex items-center gap-4">
           <span suppressHydrationWarning className="hidden text-[11px] uppercase tracking-[0.1em] text-ink-faint md:inline">
             {today.replace(",", " ·")}
           </span>
@@ -57,7 +58,7 @@ export function AppNav({ email }: { email: string }) {
               router.push("/login");
               router.refresh();
             }}
-            className="rounded-md border border-edge px-2.5 py-1 text-[11px] text-ink-muted hover:border-edge-strong"
+            className="rounded-md border border-edge px-2.5 py-1 text-[11px] text-ink-muted hover:border-edge-strong cursor-pointer"
           >
             Sign out
           </button>

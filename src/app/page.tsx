@@ -19,12 +19,20 @@ export default async function LandingPage() {
     <div className="flex min-h-screen flex-1 flex-col">
       {/* Header */}
       <header className="border-b-[3px] border-double border-edge-strong">
-        <div className="mx-auto flex max-w-[1000px] items-baseline px-7 py-[18px]">
+        <div className="mx-auto flex max-w-[1000px] items-center px-7 py-[18px]">
           <span className="flex items-center gap-2.5">
             <Logo className="h-6 w-6 -mt-0.5" />
             <span className="font-serif text-[21px] font-semibold">Waypoint</span>
           </span>
-          <div className="ml-auto flex items-baseline gap-2.5">
+          <nav className="ml-6 flex gap-[22px]">
+            <Link href="/docs" className="text-[13px] text-ink-muted hover:text-ink">
+              Docs
+            </Link>
+            <a href="/llms.txt" className="text-[13px] text-ink-muted hover:text-ink">
+              llms.txt
+            </a>
+          </nav>
+          <div className="ml-auto flex items-center gap-2.5">
             <Link href="/login" className="!text-ink-muted text-[13px] hover:!text-ink">
               Sign in
             </Link>
