@@ -70,6 +70,8 @@ export const api = {
     }),
   submitWeek: (weekId: string) =>
     request<{ week: WeekView }>(`/api/v1/timesheet/${weekId}/submit`, { method: "POST" }),
+  unsubmitWeek: (weekId: string) =>
+    request<{ week: WeekView }>(`/api/v1/timesheet/${weekId}/unsubmit`, { method: "POST" }),
   me: () =>
     request<{
       userId: string;

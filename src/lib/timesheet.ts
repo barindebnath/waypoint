@@ -72,7 +72,10 @@ export async function listTimesheet(userId: string, tz: string, monthCount = 6):
 
   // Walk back from the current week until we've covered `monthCount` months or reached the signup month.
   const weeks: { weekId: string; friday: DateTime }[] = [];
-  let cursor = DateTime.now().setZone(tz).startOf("week");
+  let cursor = DateTime.now().setZone(tz).endOf("month").startOf("week");
+  if (cursor.plus({ days: 4 }).month > DateTime.now().setZone(tz).month) {
+    cursor = cursor.minus({ weeks: 1 });
+  }
   const seenMonths = new Set<string>();
   while (true) {
     const friday = cursor.plus({ days: 4 });
@@ -197,6 +200,28 @@ export async function submitWeek(userId: string, weekId: string, tz: string): Pr
       throw new EngineError("All five days must be checked before submitting", 409);
     }
     const submit: TimesheetSubmit = { status: "submitted", submittedAt: new Date().toISOString() };
+    await tx
+      .update(schema.timesheetWeek)
+      .set({ submit, updatedAt: new Date() })
+      .where(eq(schema.timesheetWeek.id, rec.id));
+    return weekView(weekId, rec.days, submit, tz);
+  });
+}
+
+export async function unsubmitWeek(userId: string, weekId: string, tz: string): Promise<WeekView> {
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select()
+      .from(schema.timesheetWeek)
+      .where(
+        and(eq(schema.timesheetWeek.userId, userId), eq(schema.timesheetWeek.weekId, weekId)),
+      );
+    if (existing.length === 0) throw new EngineError(`No timesheet entries for ${weekId}`, 404);
+    const rec = existing[0];
+    if (rec.submit.status !== "submitted") {
+      throw new EngineError(`Week ${weekId} is not submitted`, 409);
+    }
+    const submit: TimesheetSubmit = { status: "open", submittedAt: null };
     await tx
       .update(schema.timesheetWeek)
       .set({ submit, updatedAt: new Date() })

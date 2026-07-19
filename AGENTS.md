@@ -83,6 +83,8 @@ management are session-only — you cannot and must not do them.
   is the default; pass `weekId: "2026-W29"` for another week).
 - **All five days checked and user confirms the week is submitted in Tempo** →
   `POST /api/v1/timesheet/{weekId}/submit`.
+- **User wants to undo/reopen a submitted timesheet week** →
+  `POST /api/v1/timesheet/{weekId}/unsubmit`.
 
 ## Endpoints
 
@@ -99,6 +101,7 @@ management are session-only — you cannot and must not do them.
 | GET | `/api/v1/timesheet` | months → weeks → days |
 | POST | `/api/v1/timesheet` | `{weekId?, day, checked}` |
 | POST | `/api/v1/timesheet/{weekId}/submit` | submit a fully-checked week |
+| POST | `/api/v1/timesheet/{weekId}/unsubmit` | unsubmit/reopen a previously submitted week |
 | GET | `/api/v1/analytics?from&to` | throughput, velocity delta, breakdown, loose ends |
 | GET | `/api/v1/me` | caller identity + settings |
 | GET | `/api/v1/export` | full JSON export of the user's data |
