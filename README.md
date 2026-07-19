@@ -17,7 +17,7 @@ Decisions: [docs/adr/](docs/adr/)
 ## Stack
 
 Next.js (App Router) · PostgreSQL (Neon) + Drizzle · Better Auth (+ API-key
-plugin for PATs) · Tailwind · TanStack Query · Zod · Luxon. See
+and dashboard plugins) · Tailwind · TanStack Query · Zod · Luxon. See
 [ADR-0001](docs/adr/0001-nextjs-on-vercel.md).
 
 ## Local development
@@ -45,6 +45,7 @@ Pipeline definitions seed themselves into the DB on first use (source:
    | `DATABASE_URL` | the Neon pooled connection string |
    | `DATABASE_URL_UNPOOLED` | (optional) Neon's direct connection string — used for migrations; added automatically if you use the Neon↔Vercel integration |
    | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
+   | `BETTER_AUTH_API_KEY` | Server-only API key from the Better Auth dashboard project |
    | `BETTER_AUTH_URL` | **canonical browser URL** for the app, e.g. `https://waypoint.example.com` (or your `*.vercel.app` URL when no custom domain is used) |
    | `BETTER_AUTH_TRUSTED_ORIGINS` | (optional) comma-separated additional origins, such as a Vercel preview URL |
 3. **Deploy.** Migrations run automatically during the Vercel build
@@ -58,7 +59,13 @@ migration file, push — the next deploy applies it.
 
 ### Better Auth does not connect in production
 
-Set `BETTER_AUTH_URL` in **Vercel → Project Settings → Environment
+Add the Better Auth dashboard's API key as `BETTER_AUTH_API_KEY` in **Vercel →
+Project Settings → Environment Variables** for the Production environment,
+then redeploy. The server-side `dash()` plugin uses this key to authenticate
+the dashboard connection; do not use a `NEXT_PUBLIC_` variable or commit the
+key to the repository.
+
+Also set `BETTER_AUTH_URL` in **Vercel → Project Settings → Environment
 Variables** to the exact `https://` URL people use in their browser. This is
 especially important after adding a custom domain: do not leave it set to an
 old `*.vercel.app` deployment URL. Redeploy after changing the value. The app
