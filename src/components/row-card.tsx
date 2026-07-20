@@ -157,10 +157,14 @@ export function RowCard({
   }, [open]);
 
   const doneCount = row.milestones.filter((m) => m.complete).length;
-  const originColor = row.origin === "support" ? "text-support" : "text-product";
-  const identityTone = row.origin === "support" ? "identity-support" : "identity-product";
+  const isSupportLight = row.pipelineKey === "support_light";
+  const identityTone = isSupportLight
+    ? "identity-support-light"
+    : row.origin === "support"
+      ? "identity-support"
+      : "identity-product";
   const current = row.milestones.find((m) => m.isCurrent);
-  const plLabel = `${row.pipelineLabel}${row.subType ? ` · ${row.subType}` : ""}`;
+
 
   return (
     <div
@@ -173,12 +177,7 @@ export function RowCard({
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-3.5 px-4 py-[13px] text-left cursor-pointer"
       >
-        <span
-          className={`w-[104px] shrink-0 truncate text-[10px] uppercase tracking-[0.13em] ${originColor}`}
-          title={plLabel}
-        >
-          {plLabel}
-        </span>
+
 
         <span className="flex min-w-0 shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           <RefPill refText={row.identityRef} url={row.identityResolvedUrl} tone={identityTone} />
@@ -214,7 +213,7 @@ export function RowCard({
         </span>
 
         <span
-          className={`w-[150px] shrink-0 truncate text-right font-serif text-sm italic ${
+          className={`hidden sm:inline-block w-[150px] shrink-0 truncate text-right font-serif text-sm italic ${
             row.isComplete ? "text-done" : "text-accent"
           }`}
         >

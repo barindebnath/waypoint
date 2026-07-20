@@ -24,6 +24,7 @@
   --done: #33724f;
   --done-soft: rgba(51, 114, 79, 0.13);
   --support: #96670c;
+  --support-light: #0b7285;
   --product: #6353c0;
   --warn: #96670c;
   --danger: #a83a35;
@@ -48,6 +49,7 @@ html[data-theme="dark"] {
   --done: #6cb98d;
   --done-soft: rgba(108, 185, 141, 0.15);
   --support: #d9a83f;
+  --support-light: #22b8cf;
   --product: #ab9ce8;
   --warn: #d9a83f;
   --danger: #e0736c;
@@ -73,6 +75,7 @@ html[data-theme="dark"] {
     --done: #6cb98d;
     --done-soft: rgba(108, 185, 141, 0.15);
     --support: #d9a83f;
+    --support-light: #22b8cf;
     --product: #ab9ce8;
     --warn: #d9a83f;
     --danger: #e0736c;
@@ -97,7 +100,8 @@ html[data-color-theme="nord"] {
   --accent-ink: #ffffff;
   --done: #0d9488;
   --done-soft: rgba(13, 148, 136, 0.13);
-  --support: #0369a1;
+  --support: #b45309;
+  --support-light: #0891b2;
   --product: #4f46e5;
   --warn: #b45309;
   --danger: #e11d48;
@@ -119,7 +123,8 @@ html[data-theme="dark"][data-color-theme="nord"] {
   --accent-ink: #0f172a;
   --done: #2dd4bf;
   --done-soft: rgba(45, 212, 191, 0.15);
-  --support: #38bdf8;
+  --support: #fbbf24;
+  --support-light: #22d3ee;
   --product: #818cf8;
   --warn: #fbbf24;
   --danger: #fb7185;
@@ -144,6 +149,7 @@ html[data-color-theme="forest"] {
   --done: #40916c;
   --done-soft: rgba(64, 145, 108, 0.13);
   --support: #977f1a;
+  --support-light: #9e4784;
   --product: #3f72af;
   --warn: #d6802a;
   --danger: #b23a3a;
@@ -166,6 +172,7 @@ html[data-theme="dark"][data-color-theme="forest"] {
   --done: #74c69d;
   --done-soft: rgba(116, 198, 157, 0.15);
   --support: #e9c46a;
+  --support-light: #d682b4;
   --product: #93b5e1;
   --warn: #e9c46a;
   --danger: #e76f51;
@@ -190,6 +197,7 @@ html[data-color-theme="royal"] {
   --done: #1b8a5a;
   --done-soft: rgba(27, 138, 90, 0.13);
   --support: #a07104;
+  --support-light: #099268;
   --product: #8263cf;
   --warn: #a07104;
   --danger: #b62b53;
@@ -212,6 +220,7 @@ html[data-theme="dark"][data-color-theme="royal"] {
   --done: #4ade80;
   --done-soft: rgba(74, 222, 128, 0.15);
   --support: #fbbf24;
+  --support-light: #34d399;
   --product: #c0b3f5;
   --warn: #fbbf24;
   --danger: #f43f5e;
@@ -251,6 +260,7 @@ html[data-font-theme="mono"] {
   --color-live: var(--accent);
   --color-done: var(--done);
   --color-support: var(--support);
+  --color-support-light: var(--support-light);
   --color-product: var(--product);
   --color-warn: var(--warn);
   --color-danger: var(--danger);

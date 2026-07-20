@@ -148,6 +148,7 @@ export const ticketRow = pgTable(
     identityUrl: text("identity_url"),
     currentMilestone: text("current_milestone").notNull(),
     isComplete: boolean("is_complete").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

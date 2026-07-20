@@ -104,6 +104,12 @@ export const api = {
       looseEnds: { count: number; refs: string[] };
       wip: number;
     }>(`/api/v1/analytics?from=${from}&to=${to}`),
+  reorderRows: (rowIds: string[]) =>
+    request<{ ok: true }>("/api/v1/rows/reorder", {
+      method: "POST",
+      body: JSON.stringify({ rowIds }),
+      headers: { "Idempotency-Key": `reorder-${Date.now()}-${Math.random()}` },
+    }),
   deleteAccount: () =>
     request<{ ok: true }>("/api/v1/account", {
       method: "DELETE",

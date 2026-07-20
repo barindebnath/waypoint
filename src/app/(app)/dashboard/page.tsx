@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { rowTouchedInRange, type InspectRange } from "@/lib/inspect";
 import { NewRowForm } from "@/components/new-row-form";
@@ -11,6 +11,7 @@ import { TimesheetFooter } from "@/components/timesheet-footer";
 export default function DashboardPage() {
   const { data, isLoading } = useQuery({ queryKey: ["rows"], queryFn: api.rows });
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
+  const queryClient = useQueryClient();
 
   // Global filter (spec §7): default OFF = completed hidden.
   const [showCompleted, setShowCompleted] = useState(false);
@@ -23,11 +24,74 @@ export default function DashboardPage() {
   const effectiveShowCompleted = inspect ? true : showCompleted;
 
   const rows = data?.rows ?? [];
-  const visibleRows = rows.filter((row) => {
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [localRowIds, setLocalRowIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (rows.length > 0 && !draggedId) {
+      setLocalRowIds(rows.map((r) => r.id));
+    }
+  }, [rows, draggedId]);
+
+  // Sort rows based on localRowIds order
+  const sortedRows = [...rows].sort((a, b) => {
+    const aIdx = localRowIds.indexOf(a.id);
+    const bIdx = localRowIds.indexOf(b.id);
+    if (aIdx === -1) return 1;
+    if (bIdx === -1) return -1;
+    return aIdx - bIdx;
+  });
+
+  const visibleRows = sortedRows.filter((row) => {
     if (inspect) return rowTouchedInRange(row, inspect);
     if (!effectiveShowCompleted && row.isComplete && !row.hasLooseEnds) return false;
     return true;
   });
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    if (readOnly) return;
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.currentTarget.classList.add("opacity-40");
+  };
+
+  const handleDragEnd = async (e: React.DragEvent) => {
+    setDraggedId(null);
+    e.currentTarget.classList.remove("opacity-40");
+
+    // Optimistically update React Query cache with new order
+    queryClient.setQueryData(["rows"], (old: any) => {
+      if (!old) return old;
+      return {
+        ...old,
+        rows: sortedRows,
+      };
+    });
+
+    try {
+      await api.reorderRows(localRowIds);
+    } catch (err) {
+      console.error("Failed to save reordered ticket rows:", err);
+      // Revert cache to trigger refetch / reset state
+      queryClient.invalidateQueries({ queryKey: ["rows"] });
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+    if (readOnly || !draggedId || draggedId === targetId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+
+    const currentOrder = [...localRowIds];
+    const fromIndex = currentOrder.indexOf(draggedId);
+    const toIndex = currentOrder.indexOf(targetId);
+
+    if (fromIndex !== -1 && toIndex !== -1) {
+      currentOrder.splice(fromIndex, 1);
+      currentOrder.splice(toIndex, 0, draggedId);
+      setLocalRowIds(currentOrder);
+    }
+  };
 
   const active = rows.filter((r) => !r.isComplete).length;
   const loose = rows.filter((r) => r.hasLooseEnds).length;
@@ -105,7 +169,16 @@ export default function DashboardPage() {
 
       <NewRowForm />
 
-      <div className="flex flex-1 flex-col gap-2.5">
+      <div
+        className="flex flex-1 flex-col gap-2.5"
+        onDragOver={(e) => {
+          if (!readOnly && draggedId) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }
+        }}
+        onDrop={(e) => e.preventDefault()}
+      >
         {isLoading && (
           <p className="py-8 text-center font-serif text-base italic text-ink-faint">Loading…</p>
         )}
@@ -119,7 +192,32 @@ export default function DashboardPage() {
           </div>
         )}
         {visibleRows.map((row) => (
-          <RowCard key={row.id} row={row} readOnly={readOnly} inspect={inspect} />
+          <div
+            key={row.id}
+            draggable={!readOnly}
+            onDragStart={(e) => handleDragStart(e, row.id)}
+            onDragEnd={handleDragEnd}
+            onDragOver={(e) => handleDragOver(e, row.id)}
+            onDrop={(e) => e.preventDefault()}
+            className="group relative transition-all duration-150"
+          >
+            {!readOnly && (
+              <div
+                title="Drag to reorder"
+                className="absolute -left-6 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing text-ink-faint hover:text-ink-muted opacity-0 group-hover:opacity-100 transition-opacity p-1.5 select-none"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="9" cy="5" r="2"/>
+                  <circle cx="9" cy="12" r="2"/>
+                  <circle cx="9" cy="19" r="2"/>
+                  <circle cx="15" cy="5" r="2"/>
+                  <circle cx="15" cy="12" r="2"/>
+                  <circle cx="15" cy="19" r="2"/>
+                </svg>
+              </div>
+            )}
+            <RowCard row={row} readOnly={readOnly} inspect={inspect} />
+          </div>
         ))}
       </div>
 

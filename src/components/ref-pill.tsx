@@ -12,7 +12,7 @@ export function RefPill({
 }: {
   refText: string;
   url: string | null;
-  tone: "identity-support" | "identity-product" | "secondary";
+  tone: "identity-support" | "identity-support-light" | "identity-product" | "secondary";
   onRemove?: () => void;
   isRemoving?: boolean;
 }) {
@@ -20,9 +20,11 @@ export function RefPill({
   const toneClass =
     tone === "identity-support"
       ? "border-support text-support font-medium text-[11.5px]"
-      : tone === "identity-product"
-        ? "border-product text-product font-medium text-[11.5px]"
-        : "border-edge text-ink-muted text-[11px]";
+      : tone === "identity-support-light"
+        ? "border-support-light text-support-light font-medium text-[11.5px]"
+        : tone === "identity-product"
+          ? "border-product text-product font-medium text-[11.5px]"
+          : "border-edge text-ink-muted text-[11px]";
 
   const inner = (
     <span

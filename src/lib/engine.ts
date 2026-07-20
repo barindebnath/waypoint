@@ -174,8 +174,19 @@ export async function listRows(userId: string): Promise<RowView[]> {
     .select()
     .from(schema.ticketRow)
     .where(eq(schema.ticketRow.userId, userId))
-    .orderBy(asc(schema.ticketRow.createdAt));
+    .orderBy(asc(schema.ticketRow.sortOrder), asc(schema.ticketRow.createdAt));
   return buildViews(userId, rows);
+}
+
+export async function reorderRows(userId: string, rowIds: string[]): Promise<void> {
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < rowIds.length; i++) {
+      await tx
+        .update(schema.ticketRow)
+        .set({ sortOrder: i })
+        .where(and(eq(schema.ticketRow.userId, userId), eq(schema.ticketRow.id, rowIds[i])));
+    }
+  });
 }
 
 /** Find a row by its identity ref, or fall back to secondary refs. */
@@ -250,6 +261,14 @@ export async function createRow(userId: string, input: CreateRowInput): Promise<
     if (existing.length > 0) {
       throw new EngineError(`A row for ${identityRef} already exists`, 409);
     }
+    const existingRows = await tx
+      .select({ sortOrder: schema.ticketRow.sortOrder })
+      .from(schema.ticketRow)
+      .where(eq(schema.ticketRow.userId, userId));
+    const nextSortOrder = existingRows.length > 0
+      ? Math.max(...existingRows.map((r) => r.sortOrder)) + 1
+      : 0;
+
     const [row] = await tx
       .insert(schema.ticketRow)
       .values({
@@ -261,6 +280,7 @@ export async function createRow(userId: string, input: CreateRowInput): Promise<
         identityUrl: input.identityUrl ?? null,
         secondaryRefs,
         currentMilestone: def.milestones[0].key,
+        sortOrder: nextSortOrder,
       })
       .returning({ id: schema.ticketRow.id });
     // Materialize all milestone/sub-task states up front so ticks are pure updates.
