@@ -45,58 +45,63 @@ export default function AnalyticsPage() {
   return (
     <main className="mx-auto w-full max-w-[1100px] flex-1 px-7 pb-12 pt-[26px]">
       {/* Header + range chips */}
-      <div className="mb-5 flex flex-wrap items-baseline gap-3">
-        <h1 className="font-serif text-[32px] font-medium tracking-tight">Analytics</h1>
-        <div className="ml-2 flex gap-1.5">
-          {PRESETS.map((p) => {
-            const on = preset === p.label;
-            return (
-              <button
-                key={p.label}
-                onClick={() => {
-                  setPreset(p.label);
-                  setFrom(isoDaysAgo(p.days));
-                  setTo(isoDaysAgo(0));
-                }}
-                className={`rounded-full border px-[13px] py-[5px] text-xs ${
-                  on
-                    ? "border-accent bg-[var(--accent-soft)] text-accent"
-                    : "border-edge text-ink-muted hover:border-edge-strong"
-                }`}
-              >
-                {p.label}
-              </button>
-            );
-          })}
+      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
+        <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
+          <h1 className="font-serif text-[32px] font-medium tracking-tight">Analytics</h1>
+          <div className="flex gap-1.5 shrink-0">
+            {PRESETS.map((p) => {
+              const on = preset === p.label;
+              return (
+                <button
+                  key={p.label}
+                  onClick={() => {
+                    setPreset(p.label);
+                    setFrom(isoDaysAgo(p.days));
+                    setTo(isoDaysAgo(0));
+                  }}
+                  className={`rounded-full border px-[13px] py-[5px] text-xs cursor-pointer ${
+                    on
+                      ? "border-accent bg-[var(--accent-soft)] text-accent"
+                      : "border-edge text-ink-muted hover:border-edge-strong"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <span className="flex items-center gap-1.5 text-xs text-ink-faint">
-          <input
-            type="date"
-            value={from}
-            max={to}
-            onChange={(e) => {
-              setFrom(e.target.value);
-              setPreset("");
-            }}
-            className="rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1"
-            aria-label="From"
-          />
-          →
-          <input
-            type="date"
-            value={to}
-            min={from}
-            onChange={(e) => {
-              setTo(e.target.value);
-              setPreset("");
-            }}
-            className="rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1"
-            aria-label="To"
-          />
-        </span>
-        <span className="ml-auto font-serif text-[13px] italic text-ink-faint">
-          vs the previous equal period
-        </span>
+
+        <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+          <span className="flex items-center gap-1.5 text-xs text-ink-faint w-full sm:w-auto">
+            <input
+              type="date"
+              value={from}
+              max={to}
+              onChange={(e) => {
+                setFrom(e.target.value);
+                setPreset("");
+              }}
+              className="flex-1 min-w-0 sm:w-[130px] rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-center"
+              aria-label="From"
+            />
+            <span>→</span>
+            <input
+              type="date"
+              value={to}
+              min={from}
+              onChange={(e) => {
+                setTo(e.target.value);
+                setPreset("");
+              }}
+              className="flex-1 min-w-0 sm:w-[130px] rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-center"
+              aria-label="To"
+            />
+          </span>
+          <span className="font-serif text-[13px] italic text-ink-faint shrink-0">
+            vs the previous equal period
+          </span>
+        </div>
       </div>
 
       {isLoading && (
