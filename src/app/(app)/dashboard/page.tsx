@@ -104,13 +104,15 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-7 pb-5 pt-[26px]">
-      <div className="mb-[18px] flex flex-wrap items-baseline gap-4">
-        <h1 className="font-serif text-[32px] font-medium tracking-tight">Ticket rows</h1>
-        <span className="font-serif text-[15px] italic text-ink-muted">{statsLine}</span>
+      <div className="mb-[18px] flex flex-col gap-4 md:flex-row md:items-baseline md:justify-between">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-4">
+          <h1 className="font-serif text-[32px] font-medium tracking-tight">Ticket rows</h1>
+          <span className="font-serif text-[15px] italic text-ink-muted">{statsLine}</span>
+        </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 md:ml-auto md:justify-end">
           <label
-            className={`flex items-center gap-[7px] text-xs text-ink-muted ${inspect ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+            className={`flex items-center gap-[7px] text-xs text-ink-muted shrink-0 ${inspect ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
             title={inspect ? "Forced on while inspecting a date range" : "Show rows whose final milestone is complete"}
           >
             <input
@@ -144,7 +146,7 @@ export default function DashboardPage() {
                 type="date"
                 value={draftFrom}
                 onChange={(e) => setDraftFrom(e.target.value)}
-                className="rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink-muted"
+                className="w-[110px] rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink-muted sm:w-[130px]"
                 aria-label="Inspect from"
               />
               <span className="text-ink-faint">→</span>
@@ -152,13 +154,13 @@ export default function DashboardPage() {
                 type="date"
                 value={draftTo}
                 onChange={(e) => setDraftTo(e.target.value)}
-                className="rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink-muted"
+                className="w-[110px] rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink-muted sm:w-[130px]"
                 aria-label="Inspect to"
               />
               <button
                 type="submit"
                 disabled={!draftFrom || !draftTo || draftFrom > draftTo}
-                className="rounded-[7px] border border-edge px-2.5 py-1 text-xs text-ink-muted hover:border-edge-strong disabled:opacity-40"
+                className="rounded-[7px] border border-edge px-2.5 py-1 text-xs text-ink-muted hover:border-edge-strong disabled:opacity-40 cursor-pointer"
               >
                 Inspect
               </button>
