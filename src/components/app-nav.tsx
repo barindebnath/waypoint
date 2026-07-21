@@ -36,7 +36,7 @@ export function AppNav({ email }: { email: string }) {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex gap-1.5 lg:ml-4">
+        <nav className="hidden lg:flex gap-1.5 lg:ml-4 shrink-0">
           {tabs.map((t) => {
             const active = pathname === t.href;
             return (
@@ -56,14 +56,16 @@ export function AppNav({ email }: { email: string }) {
         </nav>
 
         {/* Desktop Actions */}
-        <div className="hidden lg:flex items-center gap-3.5 lg:ml-auto">
-          <span suppressHydrationWarning className="hidden xl:inline text-[10px] uppercase tracking-[0.1em] text-ink-faint">
+        <div className="hidden lg:flex items-center gap-3.5 lg:ml-auto min-w-0">
+          <span suppressHydrationWarning className="hidden xl:inline text-[10px] uppercase tracking-[0.1em] text-ink-faint shrink-0">
             {today.replace(",", " ·")}
           </span>
-          <div className="hidden xl:block h-4 w-[1px] bg-edge/70" />
-          <ThemeToggle />
-          <div className="flex items-center gap-2 rounded-full border border-edge bg-surface-2/45 pl-3.5 pr-2 py-1 shadow-sm">
-            <span className="font-mono text-[10.5px] text-ink-muted leading-none">{email}</span>
+          <div className="hidden xl:block h-4 w-[1px] bg-edge/70 shrink-0" />
+          <div className="shrink-0">
+            <ThemeToggle />
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-edge bg-surface-2/45 pl-3.5 pr-2 py-1 shadow-sm min-w-0 max-w-[180px] xl:max-w-[240px]">
+            <span className="font-mono text-[10.5px] text-ink-muted leading-none truncate" title={email}>{email}</span>
             <button
               onClick={async () => {
                 await authClient.signOut();
@@ -71,7 +73,7 @@ export function AppNav({ email }: { email: string }) {
                 router.refresh();
               }}
               title="Sign out"
-              className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-3 hover:bg-danger hover:text-white transition-colors cursor-pointer focus:outline-none"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-3 hover:bg-danger hover:text-white transition-colors cursor-pointer focus:outline-none"
               aria-label="Sign out"
             >
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
