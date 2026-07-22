@@ -103,14 +103,14 @@ export default function DashboardPage() {
   const showTimesheet = me?.showTimesheet ?? true;
 
   return (
-    <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-7 pb-5 pt-[26px]">
-      <div className="mb-[18px] flex flex-col gap-4 md:flex-row md:items-baseline md:justify-between">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-4">
-          <h1 className="font-serif text-[32px] font-medium tracking-tight">Ticket rows</h1>
-          <span className="font-serif text-[15px] italic text-ink-muted">{statsLine}</span>
+    <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-3 sm:px-7 pb-5 pt-3 sm:pt-[26px]">
+      <div className="mb-3 sm:mb-[18px] flex flex-col gap-2 sm:gap-4 md:flex-row md:items-baseline md:justify-between">
+        <div className="flex flex-row items-baseline gap-2.5 sm:gap-4 flex-wrap">
+          <h1 className="font-serif text-xl sm:text-[32px] font-medium tracking-tight">Ticket rows</h1>
+          <span className="font-serif text-xs sm:text-[15px] italic text-ink-muted">{statsLine}</span>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 md:ml-auto md:justify-end">
+        <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-4 md:ml-auto md:justify-end">
           <label
             className={`flex items-center gap-[7px] text-xs text-ink-muted shrink-0 ${inspect ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
             title={inspect ? "Forced on while inspecting a date range" : "Show rows whose final milestone is complete"}
@@ -126,7 +126,7 @@ export default function DashboardPage() {
           </label>
 
           {inspect ? (
-            <span className="flex items-center gap-2 rounded-[7px] border border-accent bg-surface-2 px-2.5 py-1 font-serif text-xs italic text-accent">
+            <span className="flex items-center gap-2 rounded-[7px] border border-accent bg-surface-2 px-2 py-0.5 sm:px-2.5 sm:py-1 font-serif text-[11px] sm:text-xs italic text-accent">
               Inspecting {inspect.from} → {inspect.to} · read-only
               <button onClick={() => setInspect(null)} className="not-italic font-sans font-semibold hover:underline">
                 Dismiss
@@ -134,7 +134,7 @@ export default function DashboardPage() {
             </span>
           ) : (
             <form
-              className="flex items-center gap-1.5"
+              className="flex items-center gap-1 sm:gap-1.5"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (draftFrom && draftTo && draftFrom <= draftTo) {
@@ -146,21 +146,21 @@ export default function DashboardPage() {
                 type="date"
                 value={draftFrom}
                 onChange={(e) => setDraftFrom(e.target.value)}
-                className="w-[110px] rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink-muted sm:w-[130px]"
+                className="w-[95px] sm:w-[130px] rounded-[7px] border border-edge bg-surface-2 px-1 py-0.5 text-[11px] sm:text-xs text-ink-muted"
                 aria-label="Inspect from"
               />
-              <span className="text-ink-faint">→</span>
+              <span className="text-ink-faint text-xs">→</span>
               <input
                 type="date"
                 value={draftTo}
                 onChange={(e) => setDraftTo(e.target.value)}
-                className="w-[110px] rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink-muted sm:w-[130px]"
+                className="w-[95px] sm:w-[130px] rounded-[7px] border border-edge bg-surface-2 px-1 py-0.5 text-[11px] sm:text-xs text-ink-muted"
                 aria-label="Inspect to"
               />
               <button
                 type="submit"
                 disabled={!draftFrom || !draftTo || draftFrom > draftTo}
-                className="rounded-[7px] border border-edge px-2.5 py-1 text-xs text-ink-muted hover:border-edge-strong disabled:opacity-40 cursor-pointer"
+                className="rounded-[7px] border border-edge px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs text-ink-muted hover:border-edge-strong disabled:opacity-40 cursor-pointer"
               >
                 Inspect
               </button>

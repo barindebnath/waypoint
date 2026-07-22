@@ -27,12 +27,12 @@ export function AppNav({ email }: { email: string }) {
   });
 
   return (
-    <header className="sticky top-3 z-40 mx-auto w-[calc(100%-3.5rem)] max-w-[1044px] transition-all duration-300">
+    <header className="sticky top-0 sm:top-3 z-40 mx-auto w-full sm:w-[calc(100%-3.5rem)] max-w-[1044px] transition-all duration-300">
       {/* Top Bar Glass Capsule */}
-      <div className="flex items-center justify-between lg:justify-start gap-4 lg:gap-8 px-6 py-2.5 rounded-2xl border border-edge/60 bg-surface/80 backdrop-blur-md shadow-card">
-        <Link href="/dashboard" className="flex items-center gap-2.5 !text-ink hover:!text-ink shrink-0 transition-transform duration-200 hover:scale-[1.02]">
-          <Logo className="h-6 w-6 -mt-0.5" />
-          <span className="font-serif text-[21px] font-semibold tracking-tight">Waypoint</span>
+      <div className="flex items-center justify-between lg:justify-start gap-4 lg:gap-8 px-3.5 sm:px-6 py-2 sm:py-2.5 rounded-none sm:rounded-2xl border-x-0 border-t-0 border-b sm:border border-edge/60 bg-surface/85 backdrop-blur-md shadow-card">
+        <Link href="/dashboard" className="flex items-center gap-2 sm:gap-2.5 !text-ink hover:!text-ink shrink-0 transition-transform duration-200 hover:scale-[1.02]">
+          <Logo className="h-5 w-5 sm:h-6 sm:w-6 -mt-0.5" />
+          <span className="font-serif text-lg sm:text-[21px] font-semibold tracking-tight">Waypoint</span>
         </Link>
 
         {/* Desktop Navigation */}

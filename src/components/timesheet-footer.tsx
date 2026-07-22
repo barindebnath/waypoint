@@ -109,8 +109,8 @@ export function TimesheetFooter({
   readOnly: boolean;
   inspect: InspectRange | null;
 }) {
-
   const [activeMonthIndex, setActiveMonthIndex] = useState(0);
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const qc = useQueryClient();
 
   const { data } = useQuery({ queryKey: ["timesheet"], queryFn: () => api.timesheet(6) });
@@ -168,9 +168,14 @@ export function TimesheetFooter({
   const activeMonth = months[safeIndex];
 
   return (
-    <footer className="sticky bottom-4 z-30 mx-auto w-full max-w-[1100px] mt-6">
-      <div className="rounded-2xl border border-edge bg-surface/85 backdrop-blur-md shadow-card px-4 py-4 md:py-5 flex flex-col gap-3.5">
-        <div className="flex items-center justify-between w-full border-b border-edge/60 pb-2.5">
+    <footer className="sticky bottom-2 sm:bottom-4 z-30 mx-auto w-full max-w-[1100px] mt-4 sm:mt-6">
+      <div className="rounded-xl sm:rounded-2xl border border-edge bg-surface/90 backdrop-blur-md shadow-card px-3 py-2.5 sm:px-4 sm:py-4 md:py-5 flex flex-col gap-2 md:gap-3.5 transition-all">
+        <div
+          onClick={() => setIsMobileExpanded(!isMobileExpanded)}
+          className={`flex items-center justify-between w-full cursor-pointer md:cursor-default select-none ${
+            isMobileExpanded ? "border-b border-edge/60 pb-2 md:pb-2.5" : "border-b-0 md:border-b md:border-edge/60 md:pb-2.5"
+          }`}
+        >
           {/* Static Header Left */}
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
@@ -186,7 +191,7 @@ export function TimesheetFooter({
 
           {/* Navigation Controls on Right */}
           {activeMonth && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2" onClick={(e) => e.stopPropagation()}>
               <button
                 disabled={safeIndex >= months.length - 1}
                 onClick={() => setActiveMonthIndex(safeIndex + 1)}
@@ -199,7 +204,7 @@ export function TimesheetFooter({
               </button>
               
               <span
-                className={`text-xs font-semibold flex items-center gap-1.5 min-w-[90px] justify-center select-none ${activeMonth.allSubmitted ? "text-done" : "text-ink-muted"}`}
+                className={`text-xs font-semibold flex items-center gap-1.5 min-w-[80px] sm:min-w-[90px] justify-center select-none ${activeMonth.allSubmitted ? "text-done" : "text-ink-muted"}`}
               >
                 {activeMonth.label}
                 {activeMonth.allSubmitted && (
@@ -217,11 +222,29 @@ export function TimesheetFooter({
                   <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                 </svg>
               </button>
+
+              {/* Mobile Collapse Toggle Icon */}
+              <button
+                onClick={() => setIsMobileExpanded(!isMobileExpanded)}
+                className="md:hidden flex items-center justify-center p-1 rounded text-ink-muted hover:bg-surface-3 ml-1"
+                aria-label="Toggle timesheet view"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.5}
+                  stroke="currentColor"
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${isMobileExpanded ? "rotate-180" : ""}`}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+                </svg>
+              </button>
             </div>
           )}
         </div>
 
-        <div className="flex max-h-64 flex-col gap-4 overflow-y-auto pr-1 pt-1">
+        <div className={`max-h-64 flex-col gap-4 overflow-y-auto pr-1 pt-1 ${isMobileExpanded ? "flex" : "hidden md:flex"}`}>
           {months.length === 0 && (
             <span className="font-serif text-xs italic text-ink-faint">
               Nothing to show here right now.
