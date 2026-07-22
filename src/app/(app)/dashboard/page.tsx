@@ -8,6 +8,8 @@ import { NewRowForm } from "@/components/new-row-form";
 import { RowCard } from "@/components/row-card";
 import { TimesheetFooter } from "@/components/timesheet-footer";
 
+export type SortOption = "custom" | "newest" | "oldest" | "longest_in_stage" | "recently_updated";
+
 export default function DashboardPage() {
   const { data, isLoading } = useQuery({ queryKey: ["rows"], queryFn: api.rows });
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
@@ -15,6 +17,7 @@ export default function DashboardPage() {
 
   // Global filter (spec §7): default OFF = completed hidden.
   const [showCompleted, setShowCompleted] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("custom");
 
   // Date-range inspection (spec §8): read-only; filter forced ON and disabled.
   const [inspect, setInspect] = useState<InspectRange | null>(null);
@@ -33,8 +36,26 @@ export default function DashboardPage() {
     }
   }, [rows, draggedId]);
 
-  // Sort rows based on localRowIds order
+  const getActiveStageTime = (r: (typeof rows)[number]) => {
+    const current = r.milestones.find((m) => m.isCurrent);
+    return current ? new Date(current.updatedAt || current.createdAt).getTime() : new Date(r.updatedAt).getTime();
+  };
+
+  // Sort rows based on selected sort option
   const sortedRows = [...rows].sort((a, b) => {
+    if (sortBy === "newest") {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+    if (sortBy === "oldest") {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    if (sortBy === "longest_in_stage") {
+      return getActiveStageTime(a) - getActiveStageTime(b);
+    }
+    if (sortBy === "recently_updated") {
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    }
+    // Default: Custom order (drag & drop)
     const aIdx = localRowIds.indexOf(a.id);
     const bIdx = localRowIds.indexOf(b.id);
     if (aIdx === -1) return 1;
@@ -50,6 +71,9 @@ export default function DashboardPage() {
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     if (readOnly) return;
+    if (sortBy !== "custom") {
+      setSortBy("custom");
+    }
     setDraggedId(id);
     e.dataTransfer.effectAllowed = "move";
     e.currentTarget.classList.add("opacity-40");
@@ -110,7 +134,23 @@ export default function DashboardPage() {
           <span className="font-serif text-xs sm:text-[15px] italic text-ink-muted">{statsLine}</span>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-4 md:ml-auto md:justify-end">
+        <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 md:ml-auto md:justify-end">
+          <div className="flex items-center gap-1.5 text-xs text-ink-muted shrink-0">
+            <span className="text-[11px] sm:text-xs text-ink-faint">Sort:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="rounded-[7px] border border-edge bg-surface-2 px-2 py-0.5 sm:py-1 text-[11px] sm:text-xs text-ink-muted outline-none cursor-pointer hover:border-edge-strong transition-colors"
+              aria-label="Sort ticket rows"
+            >
+              <option value="custom">Custom order (drag & drop)</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="longest_in_stage">Longest in stage</option>
+              <option value="recently_updated">Recently updated</option>
+            </select>
+          </div>
+
           <label
             className={`flex items-center gap-[7px] text-xs text-ink-muted shrink-0 ${inspect ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
             title={inspect ? "Forced on while inspecting a date range" : "Show rows whose final milestone is complete"}
