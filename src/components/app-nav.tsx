@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { ThemeToggle } from "./theme-toggle";
 import { Logo } from "./logo";
+import { Spinner } from "./spinner";
 
 const tabs = [
   { href: "/dashboard", label: "Dashboard" },
@@ -18,6 +19,7 @@ export function AppNav({ email }: { email: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const today = new Date().toLocaleDateString("en-GB", {
     weekday: "short",
@@ -68,17 +70,23 @@ export function AppNav({ email }: { email: string }) {
             <span className="font-mono text-[10.5px] text-ink-muted leading-none truncate" title={email}>{email}</span>
             <button
               onClick={async () => {
+                setSigningOut(true);
                 await authClient.signOut();
-                router.push("/login");
+                router.push("/");
                 router.refresh();
               }}
+              disabled={signingOut}
               title="Sign out"
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-3 hover:bg-danger hover:text-white transition-colors cursor-pointer focus:outline-none"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-3 hover:bg-danger hover:text-white transition-colors cursor-pointer focus:outline-none disabled:opacity-50"
               aria-label="Sign out"
             >
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+              {signingOut ? (
+                <Spinner className="h-3 w-3 text-current" />
+              ) : (
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
@@ -140,14 +148,17 @@ export function AppNav({ email }: { email: string }) {
               </div>
               <button
                 onClick={async () => {
+                  setSigningOut(true);
                   setIsOpen(false);
                   await authClient.signOut();
-                  router.push("/login");
+                  router.push("/");
                   router.refresh();
                 }}
-                className="w-full rounded-xl bg-surface-2/70 border border-edge py-2.5 text-xs text-ink-muted hover:bg-danger hover:text-white hover:border-transparent transition-all cursor-pointer font-medium text-center"
+                disabled={signingOut}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-surface-2/70 border border-edge py-2.5 text-xs text-ink-muted hover:bg-danger hover:text-white hover:border-transparent transition-all cursor-pointer font-medium text-center disabled:opacity-50"
               >
-                Sign out
+                {signingOut && <Spinner className="h-3.5 w-3.5 text-current" />}
+                {signingOut ? "Signing out…" : "Sign out"}
               </button>
             </div>
           </div>

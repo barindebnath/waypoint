@@ -94,6 +94,19 @@ function fmt(iso: string): string {
   });
 }
 
+function fmtAge(isoString: string): string {
+  const ms = Date.now() - new Date(isoString).getTime();
+  if (ms < 0 || isNaN(ms)) return "just now";
+  const minutes = Math.floor(ms / (1000 * 60));
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days >= 1) return `${days}d`;
+  if (hours >= 1) return `${hours}h`;
+  if (minutes >= 1) return `${minutes}m`;
+  return "<1m";
+}
+
 export function RowCard({
   row,
   readOnly,
@@ -165,7 +178,6 @@ export function RowCard({
       : "identity-product";
   const current = row.milestones.find((m) => m.isCurrent);
 
-
   return (
     <div
       className={`rounded-xl border border-edge bg-surface shadow-card transition-opacity ${
@@ -177,8 +189,6 @@ export function RowCard({
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-3.5 px-4 py-[13px] text-left cursor-pointer"
       >
-
-
         <span className="flex min-w-0 shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           <RefPill refText={row.identityRef} url={row.identityResolvedUrl} tone={identityTone} />
           <span className="hidden sm:inline-flex items-center gap-1.5">
@@ -199,7 +209,7 @@ export function RowCard({
             return (
               <Fragment key={m.key}>
                 <span
-                  title={`${m.label} — ${m.complete ? "complete" : m.isCurrent ? "current" : "pending"} · ${fmt(m.updatedAt)}`}
+                  title={`${m.label} — ${m.complete ? "complete" : m.isCurrent ? `current (${fmtAge(m.updatedAt || m.createdAt)})` : "pending"} · ${fmt(m.updatedAt)}`}
                   className={`text-[13px] leading-none ${nodeColor} ${m.isCurrent ? "animate-live" : ""} ${grayed ? "opacity-30" : ""}`}
                 >
                   {m.complete || m.isCurrent ? "●" : "○"}
@@ -214,13 +224,22 @@ export function RowCard({
           })}
         </span>
 
-        <span
-          className={`hidden sm:inline-block w-[150px] shrink-0 truncate text-right font-serif text-sm italic ${
-            row.isComplete ? "text-done" : "text-accent"
-          }`}
-        >
-          {row.isComplete ? "✓ complete" : current?.label}
-        </span>
+        <div className="hidden sm:flex flex-col items-end shrink-0 w-[150px]">
+          <span
+            className={`w-full truncate text-right font-serif text-sm italic ${
+              row.isComplete ? "text-done" : "text-accent"
+            }`}
+          >
+            {row.isComplete ? "✓ complete" : current?.label}
+          </span>
+          <span className="text-[10px] text-ink-faint font-mono leading-none mt-0.5" title={`Card age: ${fmtAge(row.createdAt)}`}>
+            {row.isComplete
+              ? `Age: ${fmtAge(row.createdAt)}`
+              : current
+                ? `${fmtAge(current.updatedAt || current.createdAt)} in stage`
+                : `Age: ${fmtAge(row.createdAt)}`}
+          </span>
+        </div>
         {row.hasLooseEnds && (
           <span
             className="shrink-0 rounded-full border border-warn px-2 py-0.5 font-serif text-[10px] italic tracking-[0.06em] text-warn"
@@ -237,6 +256,17 @@ export function RowCard({
       {/* Expanded milestones */}
       {open && (
         <div className="border-t border-edge p-4 relative">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-edge/60 pb-2 text-[11px]">
+            <span className="font-mono text-ink-muted">
+              Card age: <span className="font-semibold text-ink">{fmtAge(row.createdAt)}</span> ({new Date(row.createdAt).toLocaleDateString()})
+            </span>
+            {current && !row.isComplete && (
+              <span className="font-mono text-ink-muted">
+                In <span className="font-serif italic text-accent">{current.label}</span>:{" "}
+                <span className="font-semibold text-ink">{fmtAge(current.updatedAt || current.createdAt)}</span>
+              </span>
+            )}
+          </div>
           <div className="relative">
             {/* Left shadow fade */}
             <div

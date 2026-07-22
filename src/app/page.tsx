@@ -60,7 +60,7 @@ export default async function LandingPage() {
         </p>
         <div className="mt-[30px] flex justify-center gap-3">
           <Link
-            href="/signup"
+            href="/login"
             className="rounded-lg bg-accent px-6 py-3 text-sm font-semibold !text-accent-ink hover:opacity-90"
           >
             Start tracking
@@ -76,9 +76,6 @@ export default async function LandingPage() {
         {/* Sample row */}
         <div className="mx-auto mt-14 max-w-[760px] rounded-[14px] border border-edge bg-surface px-[22px] py-[18px] text-left shadow-card">
           <div className="flex items-center gap-3.5">
-            <span className="w-[104px] shrink-0 text-[10px] uppercase tracking-[0.13em] text-support">
-              Support · Bug
-            </span>
             <span className="whitespace-nowrap rounded-full border border-support bg-surface-2 px-2.5 py-[3px] font-mono text-[11.5px] font-medium text-support">
               ZT-4821
             </span>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Logo } from "@/components/logo";
+import { Spinner } from "@/components/spinner";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -77,9 +78,10 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={busy}
-              className="mt-1 rounded-lg bg-accent p-[11px] text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50"
+              className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-accent p-[11px] text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50 cursor-pointer"
             >
-              {busy ? "Creating…" : "Create account"}
+              {busy && <Spinner className="h-4 w-4 text-current" />}
+              {busy ? "Creating account…" : "Create account"}
             </button>
           </form>
         </div>
