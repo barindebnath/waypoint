@@ -8,6 +8,8 @@ import { RefPill } from "./ref-pill";
 import { useDeferredLoading } from "@/lib/use-deferred-loading";
 import { Spinner } from "./spinner";
 import { DeferredSpinner } from "./deferred-spinner";
+import { parsePrRef } from "@/lib/github";
+import { GithubPrBadge, JiraStatusBadge, GitPullRequestIcon } from "./status-badge";
 
 function SubtaskCheckbox({
   checked,
@@ -107,6 +109,115 @@ function fmtAge(isoString: string): string {
   return "<1m";
 }
 
+type EnrichedRef = EnrichedRowView["secondaryRefs"][number];
+
+function PrRefPill({
+  prRef,
+  readOnly,
+  onRemove,
+  isRemoving,
+  className = "",
+}: {
+  prRef: EnrichedRef;
+  readOnly?: boolean;
+  onRemove?: () => void;
+  isRemoving?: boolean;
+  className?: string;
+}) {
+  const showRemovingLoader = useDeferredLoading(!!isRemoving);
+
+  const paddingClass = prRef.prStatus ? "pl-2.5 pr-[3px]" : "px-2.5";
+
+  const innerPill = (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border border-edge bg-surface-2 ${paddingClass} py-[3px] font-mono text-[11px] text-ink-muted hover:border-edge-strong transition-colors cursor-pointer`}>
+      <GitPullRequestIcon className="h-3 w-3 text-accent shrink-0" />
+      <span className="font-semibold text-ink">{prRef.ref}</span>
+      {prRef.prStatus && (
+        <GithubPrBadge
+          state={prRef.prStatus.state}
+          mergeableState={prRef.prStatus.mergeableState}
+          reviewDecision={prRef.prStatus.reviewDecision}
+        />
+      )}
+    </span>
+  );
+
+  return (
+    <span className={`relative group/pr items-center ${className || "inline-flex"}`}>
+      {prRef.resolvedUrl ? (
+        <a
+          href={prRef.resolvedUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:opacity-85 transition-opacity"
+          title={`Open ${prRef.ref} in GitHub`}
+        >
+          {innerPill}
+        </a>
+      ) : (
+        innerPill
+      )}
+
+      {onRemove && !readOnly && (
+        <>
+          {showRemovingLoader ? (
+            <span className="ml-1 inline-flex items-center justify-center">
+              <Spinner className="h-2.5 w-2.5 text-danger" />
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onRemove}
+              disabled={isRemoving}
+              className="ml-1 hidden group-hover/pr:inline text-xs font-bold text-ink-faint hover:text-danger cursor-pointer"
+              title="Remove linked PR"
+            >
+              ×
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Hover Popover Card */}
+      <div className="absolute left-0 top-full mt-1.5 hidden group-hover/pr:block z-30 w-64 rounded-xl border border-edge bg-surface p-3 shadow-xl text-xs text-ink pointer-events-none transition-all">
+        <div className="flex items-center justify-between border-b border-edge/60 pb-1.5 mb-2 font-mono text-[11px]">
+          <span className="font-semibold text-accent flex items-center gap-1">
+            <GitPullRequestIcon className="h-3.5 w-3.5" /> {prRef.ref}
+          </span>
+          <span className="text-[10px] text-ink-faint">GitHub PR</span>
+        </div>
+        {prRef.prStatus ? (
+          <div className="space-y-1.5 text-[11.5px]">
+            <div className="flex justify-between">
+              <span className="text-ink-muted">State:</span>
+              <span className="font-medium capitalize">{prRef.prStatus.state}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Review Decision:</span>
+              <span className="font-medium capitalize">
+                {prRef.prStatus.reviewDecision === "none" ? "Pending" : prRef.prStatus.reviewDecision.replace("_", " ")}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Mergeable:</span>
+              <span className={prRef.prStatus.mergeableState === "dirty" ? "font-semibold text-danger" : "font-medium text-done"}>
+                {prRef.prStatus.mergeableState === "dirty" ? "⚠️ Has Conflicts" : "Clean"}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-ink-faint text-[11px] italic">Live status pending sync…</p>
+        )}
+        {prRef.resolvedUrl && (
+          <div className="mt-2.5 pt-1.5 border-t border-edge/60 text-[10.5px] text-accent font-medium text-right">
+            Click pill to open on GitHub ↗
+          </div>
+        )}
+      </div>
+    </span>
+  );
+}
+
 export function RowCard({
   row,
   readOnly,
@@ -144,8 +255,37 @@ export function RowCard({
 
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
+  const [showPrInput, setShowPrInput] = useState(false);
+  const [showRefInput, setShowRefInput] = useState(false);
+  const [prRefValue, setPrRefValue] = useState("");
+  const [prError, setPrError] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const prRef = row.secondaryRefs.find((r) => r.kind === "github_pr");
+  const otherRefs = row.secondaryRefs.filter((r) => r.kind !== "github_pr");
+
+  const handleLinkPr = async (inputStr: string) => {
+    setPrError(null);
+    const parsed = parsePrRef(inputStr);
+    if (!parsed) {
+      setPrError("Invalid format. Use repo#123 or https://github.com/owner/repo/pull/123");
+      return;
+    }
+    // Enforce 1-to-1 PR mapping
+    const existingPr = row.secondaryRefs.find((r) => r.kind === "github_pr");
+    if (existingPr) {
+      if (existingPr.ref === parsed.fullRef) {
+        setShowPrInput(false);
+        setPrRefValue("");
+        return;
+      }
+      await api.updateRefs(row.identityRef, "remove", { ref: existingPr.ref });
+    }
+    await refsMut.mutateAsync({ action: "add", ref: parsed.fullRef });
+    setShowPrInput(false);
+    setPrRefValue("");
+  };
 
   const handleScroll = () => {
     const el = scrollRef.current;
@@ -185,14 +325,51 @@ export function RowCard({
       }`}
     >
       {/* Collapsed line */}
-      <button
+      <div
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-3.5 px-4 py-[13px] text-left cursor-pointer"
+        className="flex w-full items-center gap-3.5 px-4 py-[13px] text-left cursor-pointer select-none"
       >
-        <span className="flex min-w-0 shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-          <RefPill refText={row.identityRef} url={row.identityResolvedUrl} tone={identityTone} />
+        <span className="flex min-w-0 shrink-0 items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+          <RefPill
+            refText={row.identityRef}
+            url={row.identityResolvedUrl}
+            tone={identityTone}
+            jiraStatus={row.jiraStatus}
+            statusBadge={
+              row.jiraStatus ? (
+                <JiraStatusBadge
+                  statusName={row.jiraStatus.statusName}
+                  statusCategory={row.jiraStatus.statusCategory}
+                />
+              ) : undefined
+            }
+          />
+
+          {/* Dedicated GitHub PR Pill Badge (Desktop / Medium screens) */}
+          {prRef ? (
+            <PrRefPill
+              prRef={prRef}
+              readOnly={readOnly}
+              onRemove={() => refsMut.mutate({ action: "remove", ref: prRef.ref })}
+              isRemoving={refsMut.isPending && refsMut.variables?.action === "remove" && refsMut.variables?.ref === prRef.ref}
+              className="hidden sm:inline-flex"
+            />
+          ) : (
+            !readOnly && (
+              <button
+                type="button"
+                onClick={() => setShowPrInput(true)}
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-edge px-2 py-0.5 font-mono text-[11px] text-ink-muted hover:border-accent hover:text-accent transition-colors"
+                title="Link a GitHub PR to this card (1 PR limit)"
+              >
+                <span>+ Link PR</span>
+              </button>
+            )
+          )}
+
+          {/* Other Secondary Refs */}
           <span className="hidden sm:inline-flex items-center gap-1.5">
-            {row.secondaryRefs.map((r) => (
+            {otherRefs.map((r) => (
               <RefPill key={r.ref} refText={r.ref} url={r.resolvedUrl} tone="secondary" />
             ))}
           </span>
@@ -251,7 +428,7 @@ export function RowCard({
         <span className={`shrink-0 text-[13px] text-ink-faint transition-transform ${open ? "rotate-90" : ""}`}>
           ›
         </span>
-      </button>
+      </div>
 
       {/* Expanded milestones */}
       {open && (
@@ -381,37 +558,140 @@ export function RowCard({
             </div>
           </div>
 
-          {/* Row actions */}
-          {!readOnly && (
-            <div className="mt-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
+          {/* Dedicated Link GitHub PR Form */}
+          {showPrInput && (
+            <div className="mt-3 rounded-lg border border-edge bg-surface-2 p-3 text-xs shadow-card">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-semibold text-ink flex items-center gap-1.5">
+                  <GitPullRequestIcon className="h-3.5 w-3.5 text-accent" /> Link GitHub PR
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPrInput(false);
+                    setPrError(null);
+                  }}
+                  className="text-ink-faint hover:text-ink font-bold text-sm"
+                >
+                  ×
+                </button>
+              </div>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!newRef.trim()) return;
-                  refsMut.mutate({ action: "add", ref: newRef.trim() });
-                  setNewRef("");
+                  handleLinkPr(prRefValue);
                 }}
-                className="flex items-center gap-1.5 w-full sm:w-auto"
+                className="flex flex-col sm:flex-row gap-2"
               >
                 <input
-                  value={newRef}
-                  onChange={(e) => setNewRef(e.target.value)}
-                  placeholder="Add ref (PES-123, repo#45)"
-                  className="flex-1 min-w-0 sm:w-[200px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 font-mono text-[11.5px] outline-none focus:border-accent"
+                  type="text"
+                  value={prRefValue}
+                  onChange={(e) => setPrRefValue(e.target.value)}
+                  placeholder="repo#123 or https://github.com/owner/repo/pull/123"
+                  className="flex-1 rounded-[7px] border border-edge bg-surface px-2.5 py-1.5 font-mono text-xs outline-none focus:border-accent text-ink"
                 />
                 <button
                   type="submit"
-                  disabled={refsMut.isPending}
-                  className="rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-muted hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  disabled={refsMut.isPending || !prRefValue.trim()}
+                  className="rounded-[7px] bg-accent px-3.5 py-1.5 font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <DeferredSpinner isPending={refsMut.isPending && refsMut.variables?.action === "add"} className="h-3 w-3 text-current" />
-                  + ref
+                  <DeferredSpinner isPending={refsMut.isPending} className="h-3 w-3 text-current" />
+                  {prRef ? "Replace PR" : "Link PR"}
                 </button>
               </form>
-              {row.secondaryRefs.length > 0 && (
+              {prError && <p className="text-danger text-[11px] mt-1.5">{prError}</p>}
+            </div>
+          )}
+
+          {/* Row actions */}
+          {!readOnly && (
+            <div className="mt-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
+              {showRefInput ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const val = newRef.trim();
+                    if (!val) return;
+                    if (val.includes("#") || val.toLowerCase().includes("github.com")) {
+                      alert("PR refs cannot be added here. Please use the dedicated '+ Link GitHub PR' button to link pull requests.");
+                      setPrRefValue(val);
+                      setShowPrInput(true);
+                      setNewRef("");
+                      setShowRefInput(false);
+                      return;
+                    }
+                    refsMut.mutate(
+                      { action: "add", ref: val },
+                      {
+                        onSuccess: () => {
+                          setNewRef("");
+                          setShowRefInput(false);
+                        },
+                      }
+                    );
+                  }}
+                  className="flex items-center gap-1.5 w-full sm:w-auto"
+                >
+                  <input
+                    value={newRef}
+                    onChange={(e) => setNewRef(e.target.value)}
+                    placeholder="Ref (PES-123, ZT-456)"
+                    className="flex-1 min-w-0 sm:w-[190px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 font-mono text-[11.5px] outline-none focus:border-accent"
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    disabled={refsMut.isPending || !newRef.trim()}
+                    className="rounded-[7px] bg-accent px-3 py-1.5 text-[11.5px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <DeferredSpinner isPending={refsMut.isPending && refsMut.variables?.action === "add"} className="h-3 w-3 text-current" />
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRefInput(false);
+                      setNewRef("");
+                    }}
+                    className="rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 text-[11.5px] font-medium text-ink-faint hover:text-ink cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowRefInput(true)}
+                  className="rounded-[7px] border border-edge bg-surface-2 hover:border-edge-strong px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:text-ink flex items-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  + Add Secondary Ref
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowPrInput(!showPrInput)}
+                className="rounded-[7px] border border-edge bg-surface-2 hover:border-edge-strong px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:text-ink flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <GitPullRequestIcon className="h-3.5 w-3.5 text-accent" />
+                {prRef ? "Edit Linked PR" : "+ Link GitHub PR"}
+              </button>
+              {(otherRefs.length > 0 || prRef) && (
                 <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                  {row.secondaryRefs.map((r) => {
-                    const isRemoving = refsMut.isPending && refsMut.variables?.action === "remove" && refsMut.variables?.ref === r.ref;
+                  {/* PR ref at bottom only on small screens (sm:hidden) to save space on top */}
+                  {prRef && (
+                    <PrRefPill
+                      prRef={prRef}
+                      readOnly={readOnly}
+                      onRemove={() => refsMut.mutate({ action: "remove", ref: prRef.ref })}
+                      isRemoving={refsMut.isPending && refsMut.variables?.action === "remove" && refsMut.variables?.ref === prRef.ref}
+                      className="sm:hidden"
+                    />
+                  )}
+                  {otherRefs.map((r) => {
+                    const isRemoving =
+                      refsMut.isPending &&
+                      refsMut.variables?.action === "remove" &&
+                      refsMut.variables?.ref === r.ref;
                     return (
                       <RefPill
                         key={r.ref}

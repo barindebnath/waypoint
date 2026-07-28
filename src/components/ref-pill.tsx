@@ -7,42 +7,59 @@ export function RefPill({
   refText,
   url,
   tone,
+  jiraStatus,
+  statusBadge,
   onRemove,
   isRemoving = false,
 }: {
   refText: string;
   url: string | null;
   tone: "identity-support" | "identity-support-light" | "identity-product" | "secondary";
+  jiraStatus?: { statusName: string; statusCategory: string } | null;
+  statusBadge?: React.ReactNode;
   onRemove?: () => void;
   isRemoving?: boolean;
 }) {
   const showRemovingLoader = useDeferredLoading(isRemoving);
-  const toneClass =
+  const bgToneClass =
     tone === "identity-support"
-      ? "border-support text-support font-medium text-[11.5px]"
+      ? "bg-support/15 border-support/30"
       : tone === "identity-support-light"
-        ? "border-support-light text-support-light font-medium text-[11.5px]"
+        ? "bg-support-light/15 border-support-light/30"
         : tone === "identity-product"
-          ? "border-product text-product font-medium text-[11.5px]"
-          : "border-edge text-ink-muted text-[11px]";
+          ? "bg-product/15 border-product/30"
+          : "bg-surface-2 border-edge";
+
+  const originLabel =
+    tone === "identity-product"
+      ? "Product Feature"
+      : tone === "identity-support"
+        ? "Support Bug"
+        : tone === "identity-support-light"
+          ? "Support Task"
+          : "Secondary Ref";
+
+  const paddingClass = statusBadge ? "pl-2.5 pr-[3px]" : "px-2.5";
 
   const inner = (
     <span
-      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border bg-surface-2 px-2.5 py-[3px] font-mono ${toneClass}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border ${bgToneClass} ${paddingClass} py-[3px] font-mono text-[11px] hover:border-edge-strong transition-colors cursor-pointer`}
     >
-      {refText}
-      {url && (
-        <span aria-hidden className="text-[9px] opacity-70">
-          ↗
-        </span>
-      )}
+      <span className="font-semibold text-ink">{refText}</span>
+      {statusBadge && <span className="inline-flex items-center ml-0.5">{statusBadge}</span>}
     </span>
   );
 
   return (
-    <span className="group/pill inline-flex items-center">
+    <span className="relative group/pill inline-flex items-center">
       {url ? (
-        <a href={url} target="_blank" rel="noreferrer noopener" className="hover:opacity-75" title={url}>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="hover:opacity-85 transition-opacity"
+          title={`Open ${refText} in Jira`}
+        >
           {inner}
         </a>
       ) : (
@@ -59,13 +76,40 @@ export function RefPill({
               onClick={onRemove}
               disabled={isRemoving}
               title="Remove ref"
-              className="ml-0.5 hidden text-xs text-ink-faint hover:text-danger group-hover/pill:inline disabled:opacity-40"
+              className="ml-1 hidden text-xs font-bold text-ink-faint hover:text-danger group-hover/pill:inline disabled:opacity-40 cursor-pointer"
             >
               ×
             </button>
           )}
         </>
       )}
+
+      {/* Hover Popover Card */}
+      <div className="absolute left-0 top-full mt-1.5 hidden group-hover/pill:block z-30 w-60 rounded-xl border border-edge bg-surface p-3 shadow-xl text-xs text-ink pointer-events-none transition-all">
+        <div className="flex items-center justify-between border-b border-edge/60 pb-1.5 mb-2 font-mono text-[11px]">
+          <span className="font-semibold text-accent">{refText}</span>
+          <span className="text-[10px] text-ink-muted px-1.5 py-0.5 rounded bg-surface-2">{originLabel}</span>
+        </div>
+        {jiraStatus ? (
+          <div className="space-y-1.5 text-[11.5px]">
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Jira Status:</span>
+              <span className="font-medium">{jiraStatus.statusName}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-ink-muted">Category:</span>
+              <span className="font-medium capitalize">{jiraStatus.statusCategory.replace("inprogress", "In Progress")}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-ink-faint text-[11px] italic">No active Jira sync</p>
+        )}
+        {url && (
+          <div className="mt-2.5 pt-1.5 border-t border-edge/60 text-[10.5px] text-accent font-medium text-right">
+            Click pill to open in Jira ↗
+          </div>
+        )}
+      </div>
     </span>
   );
 }

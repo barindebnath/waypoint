@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { rowTouchedInRange, type InspectRange } from "@/lib/inspect";
 import { NewRowForm } from "@/components/new-row-form";
 import { RowCard } from "@/components/row-card";
 import { TimesheetFooter } from "@/components/timesheet-footer";
+import { DeferredSpinner } from "@/components/deferred-spinner";
+import { FilterIcon, RefreshIcon } from "@/components/status-badge";
 
 export type SortOption = "custom" | "newest" | "oldest" | "longest_in_stage" | "recently_updated";
 
@@ -18,6 +20,21 @@ export default function DashboardPage() {
   // Global filter (spec §7): default OFF = completed hidden.
   const [showCompleted, setShowCompleted] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("custom");
+  const [showFilterPopover, setShowFilterPopover] = useState(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
+
+  const syncMut = useMutation({
+    mutationFn: () => api.syncIntegrations(),
+    onSuccess: (res) => {
+      setSyncToast(`Synced ${res.syncedJiraCount} Jira & ${res.syncedGithubCount} GitHub PR(s) ✓`);
+      queryClient.invalidateQueries({ queryKey: ["rows"] });
+      setTimeout(() => setSyncToast(null), 4000);
+    },
+    onError: (err: Error) => {
+      setSyncToast(`Sync failed: ${err.message}`);
+      setTimeout(() => setSyncToast(null), 4000);
+    },
+  });
 
   // Date-range inspection (spec §8): read-only; filter forced ON and disabled.
   const [inspect, setInspect] = useState<InspectRange | null>(null);
@@ -134,78 +151,149 @@ export default function DashboardPage() {
           <span className="font-serif text-xs sm:text-[15px] italic text-ink-muted">{statsLine}</span>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-3 md:ml-auto md:justify-end">
-          <div className="flex items-center gap-1.5 text-xs text-ink-muted shrink-0">
-            <span className="text-[11px] sm:text-xs text-ink-faint">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="rounded-[7px] border border-edge bg-surface-2 px-2 py-0.5 sm:py-1 text-[11px] sm:text-xs text-ink-muted outline-none cursor-pointer hover:border-edge-strong transition-colors"
-              aria-label="Sort ticket rows"
-            >
-              <option value="custom">Custom order (drag & drop)</option>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="longest_in_stage">Longest in stage</option>
-              <option value="recently_updated">Recently updated</option>
-            </select>
-          </div>
-
-          <label
-            className={`flex items-center gap-[7px] text-xs text-ink-muted shrink-0 ${inspect ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-            title={inspect ? "Forced on while inspecting a date range" : "Show rows whose final milestone is complete"}
-          >
-            <input
-              type="checkbox"
-              checked={effectiveShowCompleted}
-              disabled={readOnly}
-              onChange={(e) => setShowCompleted(e.target.checked)}
-              className="accent-accent"
-            />
-            Show completed
-          </label>
-
-          {inspect ? (
-            <span className="flex items-center gap-2 rounded-[7px] border border-accent bg-surface-2 px-2 py-0.5 sm:px-2.5 sm:py-1 font-serif text-[11px] sm:text-xs italic text-accent">
-              Inspecting {inspect.from} → {inspect.to} · read-only
-              <button onClick={() => setInspect(null)} className="not-italic font-sans font-semibold hover:underline">
-                Dismiss
-              </button>
+        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5 ml-auto">
+          {syncToast && (
+            <span className="rounded-md border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs text-accent font-medium animate-fade-in">
+              {syncToast}
             </span>
-          ) : (
-            <form
-              className="flex items-center gap-1 sm:gap-1.5"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (draftFrom && draftTo && draftFrom <= draftTo) {
-                  setInspect({ from: draftFrom, to: draftTo });
-                }
-              }}
-            >
-              <input
-                type="date"
-                value={draftFrom}
-                onChange={(e) => setDraftFrom(e.target.value)}
-                className="w-[95px] sm:w-[130px] rounded-[7px] border border-edge bg-surface-2 px-1 py-0.5 text-[11px] sm:text-xs text-ink-muted"
-                aria-label="Inspect from"
-              />
-              <span className="text-ink-faint text-xs">→</span>
-              <input
-                type="date"
-                value={draftTo}
-                onChange={(e) => setDraftTo(e.target.value)}
-                className="w-[95px] sm:w-[130px] rounded-[7px] border border-edge bg-surface-2 px-1 py-0.5 text-[11px] sm:text-xs text-ink-muted"
-                aria-label="Inspect to"
-              />
-              <button
-                type="submit"
-                disabled={!draftFrom || !draftTo || draftFrom > draftTo}
-                className="rounded-[7px] border border-edge px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs text-ink-muted hover:border-edge-strong disabled:opacity-40 cursor-pointer"
-              >
-                Inspect
-              </button>
-            </form>
           )}
+
+          {/* Sync integrations shortcut button */}
+          <button
+            type="button"
+            disabled={syncMut.isPending}
+            onClick={() => syncMut.mutate()}
+            className="rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-semibold text-ink hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5 cursor-pointer transition-colors"
+            title="Sync Jira status & GitHub PRs now"
+          >
+            <DeferredSpinner isPending={syncMut.isPending} className="h-3.5 w-3.5 text-current" />
+            {!syncMut.isPending && <RefreshIcon className="h-3.5 w-3.5 text-ink-muted" />}
+            <span className="hidden sm:inline">Sync Integrations</span>
+            <span className="sm:hidden">Sync</span>
+          </button>
+
+          {/* Filter & Sort Popover */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowFilterPopover(!showFilterPopover)}
+              className={`rounded-[7px] border px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                showCompleted || sortBy !== "custom" || inspect !== null
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-edge bg-surface-2 text-ink hover:border-edge-strong"
+              }`}
+            >
+              <FilterIcon className="h-3.5 w-3.5 text-ink-muted" />
+              <span>Filter &amp; Sort</span>
+              {(showCompleted || sortBy !== "custom" || inspect !== null) && (
+                <span className="flex h-2 w-2 rounded-full bg-accent" />
+              )}
+            </button>
+
+            {/* Popover Card */}
+            {showFilterPopover && (
+              <div className="absolute right-0 top-full mt-1.5 z-40 w-80 max-w-[calc(100vw-24px)] rounded-xl border border-edge bg-surface p-4 shadow-2xl text-xs text-ink">
+                <div className="flex items-center justify-between border-b border-edge/60 pb-2 mb-3">
+                  <span className="font-semibold text-sm">Display &amp; Filter</span>
+                  <button
+                    onClick={() => setShowFilterPopover(false)}
+                    className="text-ink-faint hover:text-ink text-sm font-bold cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="space-y-3.5">
+                  {/* Sort order selection */}
+                  <div>
+                    <label className="block text-[11px] font-medium text-ink-muted mb-1">Sort order:</label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as SortOption)}
+                      className="w-full rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 text-xs text-ink outline-none cursor-pointer hover:border-edge-strong"
+                    >
+                      <option value="custom">Custom order (drag &amp; drop)</option>
+                      <option value="newest">Newest first</option>
+                      <option value="oldest">Oldest first</option>
+                      <option value="longest_in_stage">Longest in stage</option>
+                      <option value="recently_updated">Recently updated</option>
+                    </select>
+                  </div>
+
+                  {/* Show completed checkbox */}
+                  <div>
+                    <label className={`flex items-center gap-2 ${inspect ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+                      <input
+                        type="checkbox"
+                        checked={effectiveShowCompleted}
+                        disabled={readOnly}
+                        onChange={(e) => setShowCompleted(e.target.checked)}
+                        className="accent-accent h-3.5 w-3.5"
+                      />
+                      <span className="font-medium select-none">Show completed rows</span>
+                    </label>
+                  </div>
+
+                  {/* Date Range Inspection */}
+                  <div className="border-t border-edge/60 pt-3">
+                    <label className="block text-[11px] font-medium text-ink-muted mb-1.5">Date Range Inspection:</label>
+                    {inspect ? (
+                      <div className="flex items-center justify-between rounded-[7px] border border-accent bg-accent/10 p-2 text-accent">
+                        <span className="font-serif italic text-[11.5px]">
+                          {inspect.from} → {inspect.to}
+                        </span>
+                        <button
+                          onClick={() => setInspect(null)}
+                          className="font-sans text-xs font-semibold hover:underline cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    ) : (
+                      <form
+                        className="space-y-2.5"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (draftFrom && draftTo && draftFrom <= draftTo) {
+                            setInspect({ from: draftFrom, to: draftTo });
+                            setShowFilterPopover(false);
+                          }
+                        }}
+                      >
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] text-ink-faint mb-0.5">From:</label>
+                            <input
+                              type="date"
+                              value={draftFrom}
+                              onChange={(e) => setDraftFrom(e.target.value)}
+                              className="w-full rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink outline-none focus:border-accent"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-ink-faint mb-0.5">To:</label>
+                            <input
+                              type="date"
+                              value={draftTo}
+                              onChange={(e) => setDraftTo(e.target.value)}
+                              className="w-full rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink outline-none focus:border-accent"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={!draftFrom || !draftTo || draftFrom > draftTo}
+                          className="w-full rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-edge-strong disabled:opacity-40 cursor-pointer"
+                        >
+                          Inspect Date Range
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

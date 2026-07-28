@@ -292,7 +292,6 @@ input,
 select,
 button {
   font-family: inherit;
-  color: inherit;
 }
 input[type="date"] {
   color-scheme: inherit;

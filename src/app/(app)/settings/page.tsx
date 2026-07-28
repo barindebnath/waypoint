@@ -8,6 +8,7 @@ import { getThemePref, setThemePref, subscribeTheme, type ThemePref } from "@/li
 import { getColorThemePref, setColorThemePref, subscribeColorTheme, type ColorThemePref } from "@/lib/color-theme";
 import { getFontThemePref, setFontThemePref, subscribeFontTheme, type FontThemePref } from "@/lib/font-theme";
 import { DeferredSpinner } from "@/components/deferred-spinner";
+import { RefreshIcon } from "@/components/status-badge";
 
 type ApiKeyRow = {
   id: string;
@@ -231,14 +232,31 @@ export default function SettingsPage() {
 function SettingsForm({
   me,
 }: {
-  me: { userId: string; timezone: string; jiraBaseUrl: string | null; githubBaseUrl: string | null; colorTheme: string; fontTheme: string; showTimesheet: boolean };
+  me: {
+    userId: string;
+    timezone: string;
+    jiraBaseUrl: string | null;
+    jiraEmail: string | null;
+    jiraApiToken: string | null;
+    githubBaseUrl: string | null;
+    githubPat: string | null;
+    githubDefaultOrg: string | null;
+    colorTheme: string;
+    fontTheme: string;
+    showTimesheet: boolean;
+  };
 }) {
   const qc = useQueryClient();
   const [timezone, setTimezone] = useState(me.timezone);
   const [jira, setJira] = useState(me.jiraBaseUrl ?? "");
+  const [jiraEmail, setJiraEmail] = useState(me.jiraEmail ?? "");
+  const [jiraApiToken, setJiraApiToken] = useState(me.jiraApiToken ?? "");
   const [github, setGithub] = useState(me.githubBaseUrl ?? "");
+  const [githubPat, setGithubPat] = useState(me.githubPat ?? "");
+  const [githubDefaultOrg, setGithubDefaultOrg] = useState(me.githubDefaultOrg ?? "");
   const [showTimesheet, setShowTimesheet] = useState(me.showTimesheet);
   const [saved, setSaved] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (me.colorTheme) {
@@ -263,13 +281,35 @@ function SettingsForm({
       api.updateMe({
         timezone,
         jiraBaseUrl: jira.trim() || null,
+        jiraEmail: jiraEmail.trim() || null,
+        jiraApiToken: jiraApiToken.trim() || null,
         githubBaseUrl: github.trim() || null,
+        githubPat: githubPat.trim() || null,
+        githubDefaultOrg: githubDefaultOrg.trim() || null,
         showTimesheet,
       }),
     onSuccess: () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       qc.invalidateQueries();
+    },
+  });
+
+  const [syncMessages, setSyncMessages] = useState<string[]>([]);
+
+  const syncMut = useMutation({
+    mutationFn: () => api.syncIntegrations(),
+    onSuccess: (res) => {
+      setSyncStatus(`Sync complete! Synced ${res.syncedJiraCount} Jira issue(s) & ${res.syncedGithubCount} GitHub PR(s).`);
+      setSyncMessages(res.messages ?? []);
+      qc.invalidateQueries();
+      setTimeout(() => {
+        setSyncStatus(null);
+        setSyncMessages([]);
+      }, 10000);
+    },
+    onError: (err: Error) => {
+      setSyncStatus(`Sync failed: ${err.message}`);
     },
   });
 
@@ -334,13 +374,7 @@ function SettingsForm({
       {/* Timezone & link templates */}
       <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
         <h2 className="mb-3.5 text-sm font-semibold">Timezone &amp; link templates</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            saveMut.mutate();
-          }}
-          className="flex flex-col gap-3.5 text-[13px]"
-        >
+        <div className="flex flex-col gap-3.5 text-[13px]">
           <label className="block">
             <span className="mb-1.5 block text-xs text-ink-muted">
               Timezone (day/week/month bucketing happens here)
@@ -359,24 +393,85 @@ function SettingsForm({
             </span>
             <input
               type="url"
+              name="jira_base_url_setting"
+              autoComplete="off"
               value={jira}
               onChange={(e) => setJira(e.target.value)}
               placeholder="https://yourorg.atlassian.net"
               className={`${inputCls} font-mono text-xs`}
             />
           </label>
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-ink-muted">
-              GitHub org URL — makes PR refs like <span className="font-mono">repo#123</span> clickable
-            </span>
-            <input
-              type="url"
-              value={github}
-              onChange={(e) => setGithub(e.target.value)}
-              placeholder="https://github.com/yourorg"
-              className={`${inputCls} font-mono text-xs`}
-            />
-          </label>
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-ink-muted">
+                Jira Account Email (for status sync)
+              </span>
+              <input
+                type="text"
+                name="jira_email_setting"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                value={jiraEmail}
+                onChange={(e) => setJiraEmail(e.target.value)}
+                placeholder="dev@company.com"
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-ink-muted">
+                Jira API Token
+              </span>
+              <input
+                type="text"
+                name="jira_api_token_setting"
+                autoComplete="off"
+                style={{ WebkitTextSecurity: "disc" } as any}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                value={jiraApiToken}
+                onChange={(e) => setJiraApiToken(e.target.value)}
+                placeholder="ATATT3xFfGF0..."
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-ink-muted">
+                GitHub Org / Owner (makes PR refs clickable & resolve short <span className="font-mono">repo#123</span> refs)
+              </span>
+              <input
+                type="text"
+                name="github_org_setting"
+                autoComplete="off"
+                value={github}
+                onChange={(e) => setGithub(e.target.value)}
+                placeholder="my-org or https://github.com/my-org"
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-ink-muted">
+                GitHub Personal Access Token (PAT)
+              </span>
+              <input
+                type="text"
+                name="github_pat_setting"
+                autoComplete="off"
+                style={{ WebkitTextSecurity: "disc" } as any}
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                value={githubPat}
+                onChange={(e) => setGithubPat(e.target.value)}
+                placeholder="ghp_xxxxxxxxxxxx"
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </label>
+          </div>
           <label className="flex items-center gap-[7px] cursor-pointer py-1">
             <input
               type="checkbox"
@@ -388,17 +483,36 @@ function SettingsForm({
               Enable timesheet panel on dashboard
             </span>
           </label>
-           <div>
+          <div className="flex items-center gap-3">
             <button
-              type="submit"
+              type="button"
+              onClick={() => saveMut.mutate()}
               disabled={saveMut.isPending}
-              className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
+              className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-bold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
             >
               <DeferredSpinner isPending={saveMut.isPending} className="h-3.5 w-3.5 text-current" />
               {saved ? "Saved ✓" : "Save"}
             </button>
+            <button
+              type="button"
+              disabled={syncMut.isPending}
+              onClick={() => syncMut.mutate()}
+              className="rounded-[7px] border border-edge bg-surface-2 px-3.5 py-[9px] text-[13px] font-semibold text-ink hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+            >
+              <DeferredSpinner isPending={syncMut.isPending} className="h-3.5 w-3.5 text-current" />
+              {!syncMut.isPending && <RefreshIcon className="h-3.5 w-3.5 text-ink-muted" />}
+              Sync Integrations Now
+            </button>
           </div>
-        </form>
+          {syncStatus && <p className="text-xs text-accent font-medium mt-1">{syncStatus}</p>}
+          {syncMessages.length > 0 && (
+            <div className="mt-2 rounded-md border border-warn/40 bg-warn/10 p-2.5 text-xs text-warn flex flex-col gap-1">
+              {syncMessages.map((msg, i) => (
+                <p key={i}>⚠️ {msg}</p>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* PATs */}

@@ -3,13 +3,14 @@ import { z } from "zod";
 import { requireUser } from "@/lib/api-auth";
 import { handle, parseBody, withIdempotency } from "@/lib/api-helpers";
 import { createRow, listRows } from "@/lib/engine";
-import { enrichRowView } from "@/lib/links";
+import { enrichRowsWithCaches } from "@/lib/links";
 
 export async function GET() {
   return handle(async () => {
     const user = await requireUser();
     const rows = await listRows(user.userId);
-    return NextResponse.json({ rows: rows.map((r) => enrichRowView(r, user)) });
+    const enriched = await enrichRowsWithCaches(user.userId, rows, user);
+    return NextResponse.json({ rows: enriched });
   });
 }
 
@@ -31,7 +32,8 @@ export async function POST(req: Request) {
     return withIdempotency(user.userId, async () => {
       const input = await parseBody(req, createSchema);
       const row = await createRow(user.userId, input);
-      return NextResponse.json({ row: enrichRowView(row, user) }, { status: 201 });
+      const [enriched] = await enrichRowsWithCaches(user.userId, [row], user);
+      return NextResponse.json({ row: enriched }, { status: 201 });
     });
   });
 }

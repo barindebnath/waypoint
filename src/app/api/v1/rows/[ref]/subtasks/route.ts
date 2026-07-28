@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/api-auth";
 import { handle, parseBody, withIdempotency } from "@/lib/api-helpers";
 import { bulkSetSubtasks, setSubtask } from "@/lib/engine";
-import { enrichRowView } from "@/lib/links";
+import { enrichRowsWithCaches } from "@/lib/links";
 
 type Params = { params: Promise<{ ref: string }> };
 
@@ -33,7 +33,8 @@ export async function POST(req: Request, { params }: Params) {
             body.milestone,
             body.checked,
           );
-      return NextResponse.json({ row: enrichRowView(row, user) });
+      const [enriched] = await enrichRowsWithCaches(user.userId, [row], user);
+      return NextResponse.json({ row: enriched });
     });
   });
 }

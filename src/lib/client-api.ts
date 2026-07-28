@@ -82,7 +82,11 @@ export const api = {
       userId: string;
       timezone: string;
       jiraBaseUrl: string | null;
+      jiraEmail: string | null;
+      jiraApiToken: string | null;
       githubBaseUrl: string | null;
+      githubPat: string | null;
+      githubDefaultOrg: string | null;
       colorTheme: string;
       fontTheme: string;
       showTimesheet: boolean;
@@ -90,11 +94,20 @@ export const api = {
   updateMe: (patch: {
     timezone?: string;
     jiraBaseUrl?: string | null;
+    jiraEmail?: string | null;
+    jiraApiToken?: string | null;
     githubBaseUrl?: string | null;
+    githubPat?: string | null;
+    githubDefaultOrg?: string | null;
     colorTheme?: string;
     fontTheme?: string;
     showTimesheet?: boolean;
   }) => request<{ ok: true }>("/api/v1/me", { method: "PATCH", body: JSON.stringify(patch) }),
+  syncIntegrations: () =>
+    request<{ success: true; syncedJiraCount: number; syncedGithubCount: number; messages?: string[] }>(
+      "/api/v1/integrations/sync",
+      { method: "POST" }
+    ),
   analytics: (from: string, to: string) =>
     request<{
       range: { from: string; to: string; bucket: "day" | "week" };

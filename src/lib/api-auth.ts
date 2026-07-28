@@ -9,7 +9,11 @@ export type AuthedUser = {
   scopes: string[]; // token scopes; sessions always have full access
   timezone: string;
   jiraBaseUrl: string | null;
+  jiraEmail: string | null;
+  jiraApiToken: string | null;
   githubBaseUrl: string | null;
+  githubPat: string | null;
+  githubDefaultOrg: string | null;
   colorTheme: string;
   fontTheme: string;
   showTimesheet: boolean;
@@ -72,7 +76,11 @@ export async function requireUser(opts: { write?: boolean } = {}): Promise<Authe
     scopes,
     timezone: settings.timezone,
     jiraBaseUrl: settings.jiraBaseUrl,
+    jiraEmail: settings.jiraEmail,
+    jiraApiToken: settings.jiraApiToken,
     githubBaseUrl: settings.githubBaseUrl,
+    githubPat: settings.githubPat,
+    githubDefaultOrg: settings.githubDefaultOrg,
     colorTheme: settings.colorTheme,
     fontTheme: settings.fontTheme,
     showTimesheet: settings.showTimesheet,

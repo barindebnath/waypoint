@@ -115,11 +115,44 @@ export const userSettings = pgTable("user_settings", {
   showTimesheet: boolean("show_timesheet").notNull().default(true),
   /** e.g. https://myxplorinfo.atlassian.net — Jira refs auto-link as {base}/browse/{ref} */
   jiraBaseUrl: text("jira_base_url"),
+  jiraEmail: text("jira_email"),
+  jiraApiToken: text("jira_api_token"),
   /** e.g. https://github.com/xplor — PR refs `repo#123` auto-link as {base}/{repo}/pull/{123} */
   githubBaseUrl: text("github_base_url"),
+  githubPat: text("github_pat"),
+  githubDefaultOrg: text("github_default_org"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const prStatusCache = pgTable(
+  "pr_status_cache",
+  {
+    prRef: text("pr_ref").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    state: text("state").notNull(), // 'open' | 'closed' | 'merged' | 'draft'
+    mergeableState: text("mergeable_state").notNull(), // 'clean' | 'dirty' | 'blocked' | 'unknown'
+    reviewDecision: text("review_decision").notNull(), // 'approved' | 'changes_requested' | 'review_required' | 'none'
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("pr_cache_user_idx").on(t.userId)]
+);
+
+export const jiraStatusCache = pgTable(
+  "jira_status_cache",
+  {
+    cardRef: text("card_ref").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    statusName: text("status_name").notNull(), // e.g. 'In Progress', 'Code Review'
+    statusCategory: text("status_category").notNull(), // 'todo' | 'inprogress' | 'done'
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("jira_cache_user_idx").on(t.userId)]
+);
 
 export type ExternalRef = {
   kind: "jira" | "github_pr" | "other";

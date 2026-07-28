@@ -306,24 +306,19 @@ async function recomputeAfterCheck(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   row: RowRecord,
   def: PipelineDef,
-  milestoneKey: string,
-  checked: boolean,
 ) {
-  if (checked) {
-    // Milestone completes when all its sub-tasks are checked.
-    const states = await tx
-      .select()
-      .from(schema.subtaskState)
-      .where(
-        and(
-          eq(schema.subtaskState.rowId, row.id),
-          eq(schema.subtaskState.milestoneKey, milestoneKey),
-        ),
-      );
-    const mDef = def.milestones.find((m) => m.key === milestoneKey)!;
-    const allChecked = mDef.subtasks.every(
-      (s) => states.find((st) => st.subtaskKey === s.key)?.checked,
-    );
+  const allSubtasks = await tx
+    .select()
+    .from(schema.subtaskState)
+    .where(eq(schema.subtaskState.rowId, row.id));
+
+  const subtaskMap = new Map(
+    allSubtasks.map((s) => [`${s.milestoneKey}/${s.subtaskKey}`, s.checked])
+  );
+
+  // Evaluate completion for all milestones
+  for (const mDef of def.milestones) {
+    const allChecked = mDef.subtasks.every((s) => subtaskMap.get(`${mDef.key}/${s.key}`));
     if (allChecked) {
       await tx
         .update(schema.milestoneState)
@@ -331,13 +326,12 @@ async function recomputeAfterCheck(
         .where(
           and(
             eq(schema.milestoneState.rowId, row.id),
-            eq(schema.milestoneState.milestoneKey, milestoneKey),
+            eq(schema.milestoneState.milestoneKey, mDef.key),
             eq(schema.milestoneState.complete, false),
           ),
         );
     }
   }
-  // Unchecking never un-completes a milestone (spec §5.4) — loose end instead.
 
   const milestones = await tx
     .select()
@@ -374,6 +368,7 @@ export async function setSubtask(
   }
 
   await db.transaction(async (tx) => {
+    // Set target subtask
     const updated = await tx
       .update(schema.subtaskState)
       .set({ checked, updatedAt: new Date() })
@@ -386,7 +381,53 @@ export async function setSubtask(
       )
       .returning();
     if (updated.length === 0) throw new EngineError("Sub-task state missing", 500);
-    await recomputeAfterCheck(tx, row, def, milestoneKey, checked);
+
+    // Dynamic cascade: when a subtask is checked, auto-check preceding automated subtasks
+    if (checked) {
+      const targetMIdx = def.milestones.findIndex((m) => m.key === milestoneKey);
+      if (targetMIdx !== -1) {
+        // 1. All previous milestones' non-humanUsual subtasks
+        for (let m = 0; m < targetMIdx; m++) {
+          const prevM = def.milestones[m];
+          for (const s of prevM.subtasks) {
+            if (!s.humanUsual) {
+              await tx
+                .update(schema.subtaskState)
+                .set({ checked: true, updatedAt: new Date() })
+                .where(
+                  and(
+                    eq(schema.subtaskState.rowId, row.id),
+                    eq(schema.subtaskState.milestoneKey, prevM.key),
+                    eq(schema.subtaskState.subtaskKey, s.key),
+                  ),
+                );
+            }
+          }
+        }
+
+        // 2. All earlier non-humanUsual subtasks in the target milestone
+        const targetSIdx = mDef.subtasks.findIndex((s) => s.key === subtaskKey);
+        if (targetSIdx > 0) {
+          for (let s = 0; s < targetSIdx; s++) {
+            const prevS = mDef.subtasks[s];
+            if (!prevS.humanUsual) {
+              await tx
+                .update(schema.subtaskState)
+                .set({ checked: true, updatedAt: new Date() })
+                .where(
+                  and(
+                    eq(schema.subtaskState.rowId, row.id),
+                    eq(schema.subtaskState.milestoneKey, milestoneKey),
+                    eq(schema.subtaskState.subtaskKey, prevS.key),
+                  ),
+                );
+            }
+          }
+        }
+      }
+    }
+
+    await recomputeAfterCheck(tx, row, def);
   });
 
   return (await getRowView(userId, row.identityRef))!;
@@ -420,7 +461,7 @@ export async function bulkSetSubtasks(
           eq(schema.subtaskState.milestoneKey, milestoneKey),
         ),
       );
-    await recomputeAfterCheck(tx, row, def, milestoneKey, checked);
+    await recomputeAfterCheck(tx, row, def);
   });
 
   return (await getRowView(userId, row.identityRef))!;
@@ -484,7 +525,12 @@ export async function updateSecondaryRefs(
   let refs = row.secondaryRefs.filter((r) => normalizeRef(r.ref) !== norm);
   if (action === "add") {
     if (norm === row.identityRef) throw new EngineError("That ref is the row's identity card");
-    refs = [...refs, { kind: refKind(norm), ref: norm, ...(target.url ? { url: target.url } : {}) }];
+    const kind = refKind(norm);
+    if (kind === "github_pr") {
+      // Enforce 1-to-1 PR mapping
+      refs = refs.filter((r) => r.kind !== "github_pr");
+    }
+    refs = [...refs, { kind, ref: norm, ...(target.url ? { url: target.url } : {}) }];
   }
   await db
     .update(schema.ticketRow)
