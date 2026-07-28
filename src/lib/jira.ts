@@ -17,6 +17,7 @@ export async function fetchJiraIssueStatus(
         Authorization: authHeader,
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return null;
     const data = await res.json();

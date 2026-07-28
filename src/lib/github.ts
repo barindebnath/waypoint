@@ -78,6 +78,7 @@ export async function fetchGithubPrStatus(
 
       const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}`, {
         headers,
+        signal: AbortSignal.timeout(5000),
       });
 
       if (res.ok) {
@@ -93,7 +94,7 @@ export async function fetchGithubPrStatus(
         let reviewDecision: GithubPrDetails["reviewDecision"] = "none";
         const reviewsRes = await fetch(
           `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`,
-          { headers }
+          { headers, signal: AbortSignal.timeout(5000) }
         );
         if (reviewsRes.ok) {
           const reviews = await reviewsRes.json();
