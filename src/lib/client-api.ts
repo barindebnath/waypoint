@@ -77,6 +77,11 @@ export const api = {
     request<{ week: WeekView }>(`/api/v1/timesheet/${weekId}/submit`, { method: "POST" }),
   unsubmitWeek: (weekId: string) =>
     request<{ week: WeekView }>(`/api/v1/timesheet/${weekId}/unsubmit`, { method: "POST" }),
+  autoTempoFill: (dates?: string[]) =>
+    request<{ success: boolean; processedDates: string[]; worklogsCreated: number; totalSecondsLogged: number; messages: string[] }>(
+      "/api/v1/timesheet/autotempo",
+      { method: "POST", body: JSON.stringify({ dates: dates || [] }) }
+    ),
   me: () =>
     request<{
       userId: string;
@@ -90,6 +95,14 @@ export const api = {
       colorTheme: string;
       fontTheme: string;
       showTimesheet: boolean;
+      tempoApiToken: string | null;
+      jiraAccountId: string | null;
+      msClientId: string | null;
+      msClientSecret: string | null;
+      msRefreshToken: string | null;
+      autoTempoDefaultRule: unknown;
+      autoTempoSkipDays: unknown;
+      autoTempoRules: unknown;
     }>("/api/v1/me"),
   updateMe: (patch: {
     timezone?: string;
@@ -102,6 +115,14 @@ export const api = {
     colorTheme?: string;
     fontTheme?: string;
     showTimesheet?: boolean;
+    tempoApiToken?: string | null;
+    jiraAccountId?: string | null;
+    msClientId?: string | null;
+    msClientSecret?: string | null;
+    msRefreshToken?: string | null;
+    autoTempoDefaultRule?: Record<string, unknown> | null;
+    autoTempoSkipDays?: string[] | null;
+    autoTempoRules?: Record<string, unknown>[] | null;
   }) => request<{ ok: true }>("/api/v1/me", { method: "PATCH", body: JSON.stringify(patch) }),
   syncIntegrations: () =>
     request<{ success: true; syncedJiraCount: number; syncedGithubCount: number; messages?: string[] }>(

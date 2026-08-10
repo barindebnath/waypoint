@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { authClient } from "@/lib/auth-client";
+import { OFFICIAL_ACCOUNTS, OFFICIAL_INVESTMENT_CATEGORIES, SYSTEM_COMMON_RULES } from "@/lib/timesheet-shared";
 import { getThemePref, setThemePref, subscribeTheme, type ThemePref } from "@/lib/theme";
 import { getColorThemePref, setColorThemePref, subscribeColorTheme, type ColorThemePref } from "@/lib/color-theme";
 import { getFontThemePref, setFontThemePref, subscribeFontTheme, type FontThemePref } from "@/lib/font-theme";
@@ -244,6 +245,14 @@ function SettingsForm({
     colorTheme: string;
     fontTheme: string;
     showTimesheet: boolean;
+    tempoApiToken: string | null;
+    jiraAccountId: string | null;
+    msClientId: string | null;
+    msClientSecret: string | null;
+    msRefreshToken: string | null;
+    autoTempoDefaultRule: unknown;
+    autoTempoSkipDays: unknown;
+    autoTempoRules: unknown;
   };
 }) {
   const qc = useQueryClient();
@@ -255,6 +264,40 @@ function SettingsForm({
   const [githubPat, setGithubPat] = useState(me.githubPat ?? "");
   const [githubDefaultOrg, setGithubDefaultOrg] = useState(me.githubDefaultOrg ?? "");
   const [showTimesheet, setShowTimesheet] = useState(me.showTimesheet);
+
+  // AutoTempo states
+  const [tempoApiToken, setTempoApiToken] = useState(me.tempoApiToken ?? "");
+  const [jiraAccountId, setJiraAccountId] = useState(me.jiraAccountId ?? "");
+  const [msClientId, setMsClientId] = useState(me.msClientId ?? "");
+  const [msClientSecret, setMsClientSecret] = useState(me.msClientSecret ?? "");
+  const [msRefreshToken, setMsRefreshToken] = useState(me.msRefreshToken ?? "");
+
+
+
+  const [rulesList, setRulesList] = useState<
+    Array<{ id: string; issue: string; account: string; ruleStr: string; type: string; skip: boolean }>
+  >(() => {
+    if (Array.isArray(me.autoTempoRules) && me.autoTempoRules.length > 0) {
+      return me.autoTempoRules.map((r: any, idx: number) => ({
+        id: `rule-${idx}-${Date.now()}`,
+        issue: String(r.issue || ""),
+        account: String(r.account || ""),
+        ruleStr: Array.isArray(r.rule) ? r.rule.join(", ") : String(r.rule || ""),
+        type: String(r.type || "Feature Enhancement"),
+        skip: Boolean(r.skip),
+      }));
+    }
+    return [];
+  });
+
+  const [skipDays, setSkipDays] = useState<string[]>(() => {
+    if (Array.isArray(me.autoTempoSkipDays)) return me.autoTempoSkipDays as string[];
+    return ["Saturday", "Sunday"];
+  });
+
+  const [ruleSearch, setRuleSearch] = useState("");
+  const [showSystemRules, setShowSystemRules] = useState(false);
+
   const [saved, setSaved] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
@@ -277,8 +320,19 @@ function SettingsForm({
   }, [me.fontTheme]);
 
   const saveMut = useMutation({
-    mutationFn: () =>
-      api.updateMe({
+    mutationFn: () => {
+      const formattedRules = rulesList.map((r) => {
+        const parts = r.ruleStr.split(",").map((p) => p.trim()).filter(Boolean);
+        return {
+          issue: r.issue.trim(),
+          account: r.account.trim(),
+          rule: parts.length === 1 ? parts[0] : parts,
+          type: r.type,
+          ...(r.skip ? { skip: true } : {}),
+        };
+      });
+
+      return api.updateMe({
         timezone,
         jiraBaseUrl: jira.trim() || null,
         jiraEmail: jiraEmail.trim() || null,
@@ -286,8 +340,16 @@ function SettingsForm({
         githubBaseUrl: github.trim() || null,
         githubPat: githubPat.trim() || null,
         githubDefaultOrg: githubDefaultOrg.trim() || null,
-        showTimesheet,
-      }),
+        showTimesheet: true,
+        tempoApiToken: tempoApiToken.trim() || null,
+        jiraAccountId: jiraAccountId.trim() || null,
+        msClientId: msClientId.trim() || null,
+        msClientSecret: msClientSecret.trim() || null,
+        msRefreshToken: msRefreshToken.trim() || null,
+        autoTempoSkipDays: skipDays,
+        autoTempoRules: formattedRules,
+      });
+    },
     onSuccess: () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -472,17 +534,7 @@ function SettingsForm({
               />
             </label>
           </div>
-          <label className="flex items-center gap-[7px] cursor-pointer py-1">
-            <input
-              type="checkbox"
-              checked={showTimesheet}
-              onChange={(e) => setShowTimesheet(e.target.checked)}
-              className="accent-accent"
-            />
-            <span className="text-xs text-ink-muted select-none">
-              Enable timesheet panel on dashboard
-            </span>
-          </label>
+
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -512,6 +564,326 @@ function SettingsForm({
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* AutoTempo Integration & Rules */}
+      <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+        <h2 className="mb-1 text-sm font-semibold">AutoTempo Integration &amp; Rules</h2>
+        <p className="mb-3.5 text-xs text-ink-muted">
+          Configure Tempo API token, Jira Account ID, Microsoft Outlook Graph credentials, and matching rules to auto-fill worklogs.
+        </p>
+        <div className="flex flex-col gap-3.5 text-[13px]">
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-ink-muted">Tempo API Token</span>
+              <input
+                type="text"
+                value={tempoApiToken}
+                onChange={(e) => setTempoApiToken(e.target.value)}
+                placeholder="Log into Tempo -> Settings -> API Integration -> New Token"
+                style={{ WebkitTextSecurity: "disc" } as any}
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-ink-muted">Jira Account ID</span>
+              <input
+                type="text"
+                value={jiraAccountId}
+                onChange={(e) => setJiraAccountId(e.target.value)}
+                placeholder="Jira Profile -> grab ID at end of URL"
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-ink-muted">MS Client ID (Optional)</span>
+              <input
+                type="text"
+                value={msClientId}
+                onChange={(e) => setMsClientId(e.target.value)}
+                placeholder="cb1cf73c-ad9a-..."
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-ink-muted">MS Client Secret (Optional)</span>
+              <input
+                type="text"
+                value={msClientSecret}
+                onChange={(e) => setMsClientSecret(e.target.value)}
+                placeholder="Secret value"
+                style={{ WebkitTextSecurity: "disc" } as any}
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </label>
+            <label className="block sm:col-span-1">
+              <span className="mb-1.5 block text-xs text-ink-muted">MS Refresh Token</span>
+              <input
+                type="text"
+                value={msRefreshToken}
+                onChange={(e) => setMsRefreshToken(e.target.value)}
+                placeholder="OAuth Refresh Token"
+                style={{ WebkitTextSecurity: "disc" } as any}
+                className={`${inputCls} font-mono text-xs`}
+              />
+            </label>
+          </div>
+
+          {/* Waypoint Rows Allocation Notice */}
+          <div className="rounded-lg border border-edge bg-surface-2/60 p-3.5 flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-ink">Waypoint Rows Auto-Fill</span>
+            <p className="text-[11px] text-ink-muted">
+              AutoTempo allocates remaining workday hours directly across your active Waypoint rows (cards you worked on), looking up Jira issue IDs and mapping Tempo finance account categories automatically.
+            </p>
+          </div>
+
+          {/* Skip Days Selector */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-ink">Skip Days</span>
+            <p className="text-[11px] text-ink-muted">Days to exclude from AutoTempo logging (e.g. weekends or non-working days).</p>
+            <div className="flex flex-wrap gap-1.5">
+              {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((dayName) => {
+                const isSkipped = skipDays.includes(dayName);
+                return (
+                  <button
+                    key={dayName}
+                    type="button"
+                    onClick={() =>
+                      setSkipDays(
+                        isSkipped ? skipDays.filter((d) => d !== dayName) : [...skipDays, dayName]
+                      )
+                    }
+                    className={`cursor-pointer rounded-md border px-2.5 py-1 text-xs font-semibold transition-all ${
+                      isSkipped
+                        ? "border-accent bg-accent/20 text-accent"
+                        : "border-edge bg-surface-2 text-ink-faint hover:border-edge-strong hover:text-ink"
+                    }`}
+                  >
+                    {dayName} {isSkipped ? "✓" : ""}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Company Common Rules Banner & Personal Overrides */}
+          <div className="flex flex-col gap-3">
+            {/* Company Common Rules Banner */}
+            <div className="rounded-lg border border-done/30 bg-done-soft/20 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-done">✓ Company-Wide Common Rules</span>
+                  <span className="rounded-full bg-done-soft px-2 py-0.5 text-[10px] font-bold text-done">
+                    {SYSTEM_COMMON_RULES.length} Global Rules Active
+                  </span>
+                </div>
+                <p className="text-[11px] text-ink-muted mt-0.5">
+                  Inherited automatically for all employees (1:1s, Standups, Retros, Leave, Public Holidays, Training, etc.).
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSystemRules(!showSystemRules)}
+                className="cursor-pointer rounded-md border border-edge bg-surface px-3 py-1.5 text-xs font-semibold text-ink-muted hover:text-ink transition-all shrink-0"
+              >
+                {showSystemRules ? "Hide System Rules" : `Inspect System Rules (${SYSTEM_COMMON_RULES.length})`}
+              </button>
+            </div>
+
+            {/* Read-Only System Rules Viewer */}
+            {showSystemRules && (
+              <div className="rounded-lg border border-edge bg-surface-2 p-3.5 flex flex-col gap-2.5 animate-fade-in">
+                <div className="flex items-center justify-between gap-2 border-b border-edge/60 pb-2">
+                  <span className="text-xs font-semibold text-ink">System Common Rules Directory</span>
+                  <input
+                    type="text"
+                    value={ruleSearch}
+                    onChange={(e) => setRuleSearch(e.target.value)}
+                    placeholder="🔍 Search system rules..."
+                    className={`${inputCls} w-44 sm:w-56 text-xs py-1`}
+                  />
+                </div>
+
+                <div className="max-h-64 overflow-y-auto flex flex-col gap-1.5 pr-1">
+                  <div className="hidden sm:grid grid-cols-12 gap-2 text-[10px] font-bold text-ink-muted px-2 uppercase tracking-wider sticky top-0 bg-surface-2 py-1 z-10">
+                    <span className="col-span-5">Keywords / Meeting Title</span>
+                    <span className="col-span-2">Issue Key</span>
+                    <span className="col-span-3">Account</span>
+                    <span className="col-span-2">Category</span>
+                  </div>
+
+                  {SYSTEM_COMMON_RULES.filter((r) => {
+                    if (!ruleSearch.trim()) return true;
+                    const search = ruleSearch.toLowerCase();
+                    const ruleText = Array.isArray(r.rule) ? r.rule.join(" ") : r.rule;
+                    return (
+                      ruleText.toLowerCase().includes(search) ||
+                      (r.issue && r.issue.toLowerCase().includes(search)) ||
+                      (r.account && r.account.toLowerCase().includes(search))
+                    );
+                  }).map((r, i) => (
+                    <div key={i} className="rounded border border-edge/60 bg-surface p-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-xs">
+                      <div className="sm:col-span-5 font-mono text-[11.5px] text-ink">
+                        {Array.isArray(r.rule) ? r.rule.join(", ") : r.rule}
+                        {r.skip && <span className="ml-2 text-[10px] text-warn font-semibold">(Skipped)</span>}
+                      </div>
+                      <div className="sm:col-span-2 font-mono text-ink-muted text-[11px]">
+                        {r.issue || "—"}
+                      </div>
+                      <div className="sm:col-span-3 font-mono text-accent text-[11px]">
+                        {r.account || "—"}
+                      </div>
+                      <div className="sm:col-span-2 text-ink-muted text-[11px]">
+                        {r.type || (r.skip ? "Ignored" : "General")}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Personal Overrides Section */}
+            <div className="rounded-lg border border-edge bg-surface-2 p-3.5 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-ink">Personal Custom Overrides</span>
+                  <p className="text-[11px] text-ink-muted mt-0.5">
+                    Add employee-specific or project-specific meeting keyword rules.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRulesList([
+                      {
+                        id: `rule-${Date.now()}`,
+                        issue: "",
+                        account: "CAP_DEV_NEW",
+                        ruleStr: "",
+                        type: "Feature Enhancement",
+                        skip: false,
+                      },
+                      ...rulesList,
+                    ])
+                  }
+                  className="cursor-pointer rounded-md border border-edge bg-surface px-2.5 py-1 text-xs font-semibold text-accent hover:border-accent shrink-0"
+                >
+                  + Add Personal Rule
+                </button>
+              </div>
+
+              {rulesList.length === 0 ? (
+                <div className="rounded-md border border-dashed border-edge/80 p-3 text-center text-xs text-ink-muted font-serif italic">
+                  No personal rules added. All 32 company-wide common rules apply automatically.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="hidden sm:grid grid-cols-12 gap-2 text-[10.5px] font-bold text-ink-muted px-1.5 uppercase tracking-wider">
+                    <span className="col-span-4">Keywords</span>
+                    <span className="col-span-2">Issue Key</span>
+                    <span className="col-span-3">Account</span>
+                    <span className="col-span-2">Category</span>
+                    <span className="col-span-1 text-right">Action</span>
+                  </div>
+
+                  {rulesList.map((r, idx) => (
+                    <div
+                      key={r.id}
+                      className="rounded-md border border-edge/80 bg-surface p-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center"
+                    >
+                      <div className="sm:col-span-4">
+                        <input
+                          type="text"
+                          value={r.ruleStr}
+                          onChange={(e) => {
+                            const updated = [...rulesList];
+                            updated[idx].ruleStr = e.target.value;
+                            setRulesList(updated);
+                          }}
+                          placeholder="e.g. My Team Sync"
+                          className={`${inputCls} font-mono text-xs`}
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <input
+                          type="text"
+                          value={r.issue}
+                          onChange={(e) => {
+                            const updated = [...rulesList];
+                            updated[idx].issue = e.target.value;
+                            setRulesList(updated);
+                          }}
+                          placeholder="197032"
+                          className={`${inputCls} font-mono text-xs`}
+                        />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <select
+                          value={r.account}
+                          onChange={(e) => {
+                            const updated = [...rulesList];
+                            updated[idx].account = e.target.value;
+                            setRulesList(updated);
+                          }}
+                          className={`${inputCls} text-xs font-mono`}
+                        >
+                          {OFFICIAL_ACCOUNTS.map((acc) => (
+                            <option key={acc.key} value={acc.key}>
+                              {acc.key} ({acc.type})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <select
+                          value={r.type}
+                          onChange={(e) => {
+                            const updated = [...rulesList];
+                            updated[idx].type = e.target.value;
+                            setRulesList(updated);
+                          }}
+                          className={`${inputCls} text-xs`}
+                        >
+                          {OFFICIAL_INVESTMENT_CATEGORIES.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="sm:col-span-1 flex items-center justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setRulesList(rulesList.filter((item) => item.id !== r.id))}
+                          className="cursor-pointer text-ink-muted hover:text-danger p-1 text-xs transition-colors"
+                          title="Delete Rule"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => saveMut.mutate()}
+              disabled={saveMut.isPending}
+              className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-bold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+            >
+              <DeferredSpinner isPending={saveMut.isPending} className="h-3.5 w-3.5 text-current" />
+              {saved ? "Saved AutoTempo Config ✓" : "Save AutoTempo Settings"}
+            </button>
+          </div>
         </div>
       </section>
 

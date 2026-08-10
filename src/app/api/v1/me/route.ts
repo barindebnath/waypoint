@@ -22,6 +22,14 @@ export async function GET() {
       colorTheme: user.colorTheme,
       fontTheme: user.fontTheme,
       showTimesheet: user.showTimesheet,
+      tempoApiToken: user.tempoApiToken,
+      jiraAccountId: user.jiraAccountId,
+      msClientId: user.msClientId,
+      msClientSecret: user.msClientSecret,
+      msRefreshToken: user.msRefreshToken,
+      autoTempoDefaultRule: user.autoTempoDefaultRule,
+      autoTempoSkipDays: user.autoTempoSkipDays,
+      autoTempoRules: user.autoTempoRules,
     });
   });
 }
@@ -49,6 +57,14 @@ const patchSchema = z.object({
   colorTheme: z.enum(["paper", "nord", "forest", "royal"]).optional(),
   fontTheme: z.enum(["serif", "sans", "mono"]).optional(),
   showTimesheet: z.boolean().optional(),
+  tempoApiToken: z.string().max(500).nullable().optional(),
+  jiraAccountId: z.string().max(255).nullable().optional(),
+  msClientId: z.string().max(255).nullable().optional(),
+  msClientSecret: z.string().max(500).nullable().optional(),
+  msRefreshToken: z.string().max(4000).nullable().optional(),
+  autoTempoDefaultRule: z.record(z.string(), z.unknown()).nullable().optional(),
+  autoTempoSkipDays: z.array(z.string()).nullable().optional(),
+  autoTempoRules: z.array(z.record(z.string(), z.unknown())).nullable().optional(),
 });
 
 export async function PATCH(req: Request) {

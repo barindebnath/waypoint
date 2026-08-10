@@ -206,8 +206,9 @@ Adjust script names to match your `package.json`. Architecture notes live in [`C
 
 ## Privacy
 
-Email + password hash + timezone only. No trackers, no third-party cookies. Self-serve JSON export and account deletion in Settings.
+Email + password hash + timezone + reference strings only. Integrations (Jira, GitHub, Outlook, Tempo) use user-configured tokens server-side solely for status syncing and requested Tempo logging. No card titles or ticket contents are stored. No trackers or third-party cookies. Self-serve JSON export and account deletion in Settings.
 
 ## License
 
 [MIT](LICENSE)
+

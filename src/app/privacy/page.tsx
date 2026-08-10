@@ -24,6 +24,11 @@ export default function PrivacyPage() {
               can&apos;t end up here.
             </li>
             <li>Personal access tokens you create, stored hashed.</li>
+            <li>
+              Optional integration credentials you configure in Settings (Jira API Token &amp; Email, GitHub PAT,
+              Tempo API Token, and Microsoft Outlook OAuth refresh token). These are stored per-user and used
+              server-side only to look up card/PR statuses and log your Tempo timesheets upon your request.
+            </li>
           </ul>
         </section>
 
@@ -31,8 +36,13 @@ export default function PrivacyPage() {
           <h2 className="mb-1 font-medium">What is not done</h2>
           <ul className="list-disc space-y-1 pl-5 text-ink-muted">
             <li>No analytics trackers, no advertising, no third-party cookies — only a session cookie.</li>
-            <li>No reading from or writing to Jira, GitHub, Teams, or any external tool.</li>
-            <li>No selling, sharing, or profiling. Your rows are visible to your account only.</li>
+            <li>
+              No storing or copying of ticket descriptions, customer data, code diffs, or repository contents — reference keys and status badges only.
+            </li>
+            <li>
+              No automated or unrequested mutations — external tools like Tempo are updated only when you explicitly invoke AutoTempo or trigger a timesheet action.
+            </li>
+            <li>No selling, sharing, or profiling. Your rows and credentials are visible to your account only.</li>
           </ul>
         </section>
 

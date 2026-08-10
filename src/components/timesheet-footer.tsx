@@ -8,38 +8,57 @@ import { inRange, monthTouchedInRange, type InspectRange } from "@/lib/inspect";
 import { useDeferredLoading } from "@/lib/use-deferred-loading";
 import { Spinner } from "./spinner";
 
-function TimesheetDayButton({
+function TimesheetDayBadge({
   dayLabel,
   checked,
   title,
-  disabled,
-  isPending,
-  onClick,
   grayed,
+  canUnfill,
+  isUnfilling,
+  onUnfill,
 }: {
   dayLabel: string;
   checked: boolean;
   title: string;
-  disabled: boolean;
-  isPending: boolean;
-  onClick: () => void;
   grayed: boolean;
+  canUnfill?: boolean;
+  isUnfilling?: boolean;
+  onUnfill?: () => void;
 }) {
-  const showSpinner = useDeferredLoading(isPending);
+  const [hovered, setHovered] = useState(false);
+  const showUndo = checked && canUnfill && hovered && !isUnfilling;
 
   return (
-    <button
-      disabled={disabled || isPending}
-      title={title}
-      onClick={onClick}
-      className={`cursor-pointer flex h-[22px] w-[22px] items-center justify-center rounded-lg border text-[9px] font-semibold transition-all duration-200 hover:scale-105 active:scale-90 ${
-        checked
-          ? "border-accent bg-accent !text-accent-ink shadow-sm"
-          : "border-edge bg-transparent text-ink-faint hover:border-edge-strong hover:text-ink"
-      } ${grayed ? "opacity-25" : ""} disabled:cursor-not-allowed disabled:opacity-40`}
+    <div
+      title={showUndo ? "Click to un-fill this day" : title}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={(e) => {
+        if (showUndo && onUnfill) {
+          e.stopPropagation();
+          onUnfill();
+        }
+      }}
+      className={`flex h-[22px] w-[22px] items-center justify-center rounded-lg border text-[9px] font-semibold select-none transition-all duration-200 ${
+        isUnfilling
+          ? "border-ink-faint/40 bg-surface-2/60 text-ink-faint"
+          : showUndo
+            ? "border-ink-muted/50 bg-surface-3 !text-ink-muted shadow-sm cursor-pointer scale-110"
+            : checked
+              ? "border-accent bg-accent !text-accent-ink shadow-sm"
+              : "border-edge/60 bg-surface-2/40 text-ink-faint/60"
+      } ${grayed ? "opacity-25" : ""}`}
     >
-      {showSpinner ? <Spinner className="h-2 w-2 text-current" /> : dayLabel}
-    </button>
+      {isUnfilling ? (
+        <Spinner className="h-2.5 w-2.5 text-ink-faint" />
+      ) : showUndo ? (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-[11px] h-[11px]">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m9 14-4-4m0 0 4-4m-4 4h11a4 4 0 0 1 0 8h-1" />
+        </svg>
+      ) : (
+        dayLabel
+      )}
+    </div>
   );
 }
 
@@ -116,11 +135,6 @@ export function TimesheetFooter({
   const { data } = useQuery({ queryKey: ["timesheet"], queryFn: () => api.timesheet(6) });
   const invalidate = () => qc.invalidateQueries({ queryKey: ["timesheet"] });
 
-  const tickMut = useMutation({
-    mutationFn: (v: { weekId: string; day: DayKey; checked: boolean }) =>
-      api.tickDay(v.weekId, v.day, v.checked),
-    onSettled: invalidate,
-  });
   const submitMut = useMutation({
     mutationFn: (weekId: string) => api.submitWeek(weekId),
     onSettled: invalidate,
@@ -129,67 +143,84 @@ export function TimesheetFooter({
     mutationFn: (weekId: string) => api.unsubmitWeek(weekId),
     onSettled: invalidate,
   });
+  const tickMut = useMutation({
+    mutationFn: ({ weekId, day }: { weekId: string; day: string }) =>
+      api.tickDay(weekId, day, false),
+    onSettled: invalidate,
+  });
 
+  const [autoTempoStatus, setAutoTempoStatus] = useState<string | null>(null);
+
+  const autoTempoMut = useMutation({
+    mutationFn: (dates?: string[]) => api.autoTempoFill(dates),
+    onSuccess: (res) => {
+      if (res.messages && res.messages.length > 0) {
+        setAutoTempoStatus(res.messages.join(" • "));
+      } else {
+        setAutoTempoStatus(`Logged ${res.worklogsCreated} worklogs (${(res.totalSecondsLogged / 3600).toFixed(1)} hrs total).`);
+      }
+      invalidate();
+    },
+    onError: (err: any) => {
+      setAutoTempoStatus(`AutoTempo Error: ${err.message || "Execution failed"}`);
+    },
+  });
+
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setShowLeftShadow(el.scrollLeft > 0);
-    setShowRightShadow(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
+    if (!scrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    setShowLeftShadow(scrollLeft > 5);
+    setShowRightShadow(scrollLeft < scrollWidth - clientWidth - 5);
   };
 
   useEffect(() => {
-    const el = scrollRef.current;
-    if (el) {
-      handleScroll();
-      el.addEventListener("scroll", handleScroll);
-      window.addEventListener("resize", handleScroll);
-      return () => {
-        el.removeEventListener("scroll", handleScroll);
-        window.removeEventListener("resize", handleScroll);
-      };
-    }
-  }, [activeMonthIndex, data]);
+    handleScroll();
+  }, [data, activeMonthIndex]);
 
-  if (!data) return null;
-
-  let months = data.months;
-  if (inspect) {
-    months = months.filter((m) => monthTouchedInRange(m, inspect));
-  } else if (!showCompleted) {
-    months = months.filter((m) => !m.allSubmitted);
-  }
+  const rawMonths = data?.months ?? [];
+  const months = rawMonths.filter((m) => {
+    if (showCompleted) return true;
+    if (!m.allSubmitted) return true;
+    if (inspect && monthTouchedInRange(m, inspect)) return true;
+    return false;
+  });
 
   const safeIndex = Math.min(activeMonthIndex, Math.max(0, months.length - 1));
   const activeMonth = months[safeIndex];
 
   return (
-    <footer className="sticky bottom-2 sm:bottom-4 z-30 mx-auto w-full max-w-[1100px] mt-4 sm:mt-6">
-      <div className="rounded-xl sm:rounded-2xl border border-edge bg-surface/90 backdrop-blur-md shadow-card px-3 py-2.5 sm:px-4 sm:py-4 md:py-5 flex flex-col gap-2 md:gap-3.5 transition-all">
+    <footer className="footer-panel border-t border-edge bg-surface shadow-card transition-colors duration-200 mt-auto">
+      <div className="mx-auto flex max-w-[1300px] flex-col gap-2 p-3 sm:p-4">
         <div
+          className="flex items-center justify-between cursor-pointer select-none"
           onClick={() => setIsMobileExpanded(!isMobileExpanded)}
-          className={`flex items-center justify-between w-full cursor-pointer md:cursor-default select-none ${
-            isMobileExpanded ? "border-b border-edge/60 pb-2 md:pb-2.5" : "border-b-0 md:border-b md:border-edge/60 md:pb-2.5"
-          }`}
         >
-          {/* Static Header Left */}
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
-            </span>
             <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink select-none">
               Timesheet Attestation
             </span>
-            <span className="hidden sm:inline-flex text-[9px] px-2 py-0.5 rounded-full bg-surface-3 border border-edge text-ink-muted leading-none select-none">
-              Tempo Sync
-            </span>
+
+            <button
+              disabled={readOnly || autoTempoMut.isPending}
+              onClick={(e) => {
+                e.stopPropagation();
+                autoTempoMut.mutate(undefined);
+              }}
+              title="Find last filled day in Tempo and auto-fill missing days up to today"
+              className="cursor-pointer flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold text-accent hover:bg-accent hover:text-accent-ink transition-all disabled:opacity-40"
+            >
+              {autoTempoMut.isPending ? (
+                <Spinner className="h-3 w-3 text-current" />
+              ) : (
+                "⚡ Fill AutoTempo"
+              )}
+            </button>
           </div>
 
-          {/* Navigation Controls on Right */}
           {activeMonth && (
             <div className="flex items-center gap-1.5 sm:gap-2" onClick={(e) => e.stopPropagation()}>
               <button
@@ -223,7 +254,6 @@ export function TimesheetFooter({
                 </svg>
               </button>
 
-              {/* Mobile Collapse Toggle Icon */}
               <button
                 onClick={() => setIsMobileExpanded(!isMobileExpanded)}
                 className="md:hidden flex items-center justify-center p-1 rounded text-ink-muted hover:bg-surface-3 ml-1"
@@ -245,6 +275,13 @@ export function TimesheetFooter({
         </div>
 
         <div className={`max-h-64 flex-col gap-4 overflow-y-auto pr-1 pt-1 ${isMobileExpanded ? "flex" : "hidden md:flex"}`}>
+          {autoTempoStatus && (
+            <div className="mx-2 mb-1 rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs text-accent font-medium flex items-center justify-between animate-fade-in">
+              <span>{autoTempoStatus}</span>
+              <button onClick={() => setAutoTempoStatus(null)} className="text-accent hover:opacity-75 text-[11px] font-bold cursor-pointer ml-2">✕</button>
+            </div>
+          )}
+
           {months.length === 0 && (
             <span className="font-serif text-xs italic text-ink-faint">
               Nothing to show here right now.
@@ -252,13 +289,11 @@ export function TimesheetFooter({
           )}
           {activeMonth && (
             <div className="relative">
-              {/* Left shadow fade */}
               <div
                 className={`absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
                   showLeftShadow ? "opacity-100" : "opacity-0"
                 }`}
               />
-              {/* Right shadow fade */}
               <div
                 className={`absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
                   showRightShadow ? "opacity-100" : "opacity-0"
@@ -273,35 +308,39 @@ export function TimesheetFooter({
                 {[...activeMonth.weeks].reverse().map((week, index, arr) => {
                   const submitted = week.submit.status === "submitted";
                   const submitGrayed = inspect && !inRange(week.submit.submittedAt, inspect);
+
                   return (
                     <Fragment key={week.weekId}>
                       <div
-                        className="flex items-center gap-3 w-fit shrink-0"
+                        className="flex items-center gap-2.5 w-fit shrink-0"
                         title={week.weekId}
                       >
-                        <div className={`flex gap-1 ${submitted ? "pointer-events-none" : ""}`}>
+                        <div className="flex gap-1">
                           {DAY_KEYS.map((d) => {
                             const day = week.days[d];
+                            const dateStr = week.dates[d];
                             const grayed = inspect && !inRange(day.updatedAt, inspect);
-                            const isTicking = tickMut.isPending && tickMut.variables?.weekId === week.weekId && tickMut.variables?.day === d;
-                            const dateNum = week.dates[d] ? parseInt(week.dates[d].split("-")[2], 10) : "";
+                            const dateNum = dateStr ? parseInt(dateStr.split("-")[2], 10) : "";
+
                             return (
-                              <TimesheetDayButton
+                              <TimesheetDayBadge
                                 key={d}
                                 dayLabel={String(dateNum)}
                                 checked={day.checked}
-                                title={`${week.dates[d]}${day.updatedAt ? ` · ${new Date(day.updatedAt).toLocaleString()}` : ""}`}
-                                disabled={readOnly || submitted || tickMut.isPending}
-                                isPending={isTicking}
-                                onClick={() =>
-                                  tickMut.mutate({ weekId: week.weekId, day: d, checked: !day.checked })
-                                }
+                                title={`${dateStr}${day.updatedAt ? ` · Logged ${new Date(day.updatedAt).toLocaleString()}` : ""}`}
                                 grayed={!!grayed}
+                                canUnfill={!readOnly && !submitted && day.checked}
+                                isUnfilling={
+                                  tickMut.isPending &&
+                                  tickMut.variables?.weekId === week.weekId &&
+                                  tickMut.variables?.day === d
+                                }
+                                onUnfill={() => tickMut.mutate({ weekId: week.weekId, day: d })}
                               />
                             );
                           })}
                         </div>
-                        {/* Submit marker sits after Friday */}
+
                         <div className="h-[20px] flex items-center justify-center">
                           <TimesheetSubmitButton
                             disabled={
@@ -335,15 +374,15 @@ export function TimesheetFooter({
                         </div>
                       </div>
                       {index < arr.length - 1 && (
-                        <div className="h-5 w-[1px] bg-edge/40 self-center shrink-0" />
+                        <div className="h-4 w-px bg-edge shrink-0" />
                       )}
                     </Fragment>
                   );
                 })}
               </div>
             </div>
-            )}
-          </div>
+          )}
+        </div>
       </div>
     </footer>
   );

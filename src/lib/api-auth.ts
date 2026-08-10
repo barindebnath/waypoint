@@ -17,6 +17,14 @@ export type AuthedUser = {
   colorTheme: string;
   fontTheme: string;
   showTimesheet: boolean;
+  tempoApiToken: string | null;
+  jiraAccountId: string | null;
+  msClientId: string | null;
+  msClientSecret: string | null;
+  msRefreshToken: string | null;
+  autoTempoDefaultRule: unknown;
+  autoTempoSkipDays: unknown;
+  autoTempoRules: unknown;
 };
 
 export class ApiError extends Error {
@@ -84,6 +92,14 @@ export async function requireUser(opts: { write?: boolean } = {}): Promise<Authe
     colorTheme: settings.colorTheme,
     fontTheme: settings.fontTheme,
     showTimesheet: settings.showTimesheet,
+    tempoApiToken: settings.tempoApiToken,
+    jiraAccountId: settings.jiraAccountId,
+    msClientId: settings.msClientId,
+    msClientSecret: settings.msClientSecret,
+    msRefreshToken: settings.msRefreshToken,
+    autoTempoDefaultRule: settings.autoTempoDefaultRule,
+    autoTempoSkipDays: settings.autoTempoSkipDays,
+    autoTempoRules: settings.autoTempoRules,
   };
 }
 

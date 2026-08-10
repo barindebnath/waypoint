@@ -72,8 +72,13 @@ export async function listTimesheet(userId: string, tz: string, monthCount = 6):
 
   // Walk back from the current week until we've covered `monthCount` months or reached the signup month.
   const weeks: { weekId: string; friday: DateTime }[] = [];
-  let cursor = DateTime.now().setZone(tz).endOf("month").startOf("week");
-  if (cursor.plus({ days: 4 }).month > DateTime.now().setZone(tz).month) {
+  const now = DateTime.now().setZone(tz);
+  let cursor = now.endOf("month").startOf("week");
+  // Only skip back if the Monday itself is beyond the current month
+  // (endOf("month") landed in a week that starts in the next month).
+  // When the last day of the month IS a Monday (e.g. Aug 31), that week
+  // must stay visible even though its Friday falls in the next month.
+  if (cursor.month > now.month || cursor.year > now.year) {
     cursor = cursor.minus({ weeks: 1 });
   }
   const seenMonths = new Set<string>();
@@ -113,16 +118,22 @@ export async function listTimesheet(userId: string, tz: string, monthCount = 6):
   const byId = new Map(stored.map((w) => [w.weekId, w]));
 
   const months = new Map<string, MonthView>();
-  for (const { weekId, friday } of weeks) {
-    const month = friday.toFormat("yyyy-MM");
-    if (!months.has(month)) {
-      months.set(month, {
-        month,
-        label: friday.toFormat("LLLL yyyy"),
+
+  /** Ensure a MonthView bucket exists and return it. */
+  function ensureMonth(dt: DateTime): MonthView {
+    const key = dt.toFormat("yyyy-MM");
+    if (!months.has(key)) {
+      months.set(key, {
+        month: key,
+        label: dt.toFormat("LLLL yyyy"),
         weeks: [],
         allSubmitted: true,
       });
     }
+    return months.get(key)!;
+  }
+
+  for (const { weekId, friday } of weeks) {
     const rec = byId.get(weekId);
     const days = rec?.days ?? emptyDays();
     const submit = rec?.submit ?? emptySubmit();
@@ -136,9 +147,21 @@ export async function listTimesheet(userId: string, tz: string, monthCount = 6):
       ) as Record<DayKey, string>,
       submittable: DAY_KEYS.every((d) => days[d].checked) && submit.status === "open",
     };
-    const mv = months.get(month)!;
-    mv.weeks.push(view);
-    if (submit.status !== "submitted") mv.allSubmitted = false;
+
+    const fridayMonth = friday.toFormat("yyyy-MM");
+    const mondayMonth = monday.toFormat("yyyy-MM");
+
+    // Always add to the Friday-month (primary grouping).
+    const fridayMv = ensureMonth(friday);
+    fridayMv.weeks.push(view);
+    if (submit.status !== "submitted") fridayMv.allSubmitted = false;
+
+    // If the week spans two months, also add to the Monday-month.
+    if (mondayMonth !== fridayMonth) {
+      const mondayMv = ensureMonth(monday);
+      mondayMv.weeks.push(view);
+      if (submit.status !== "submitted") mondayMv.allSubmitted = false;
+    }
   }
   // Newest month first; weeks within a month newest first.
   return [...months.values()];

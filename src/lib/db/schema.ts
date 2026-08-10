@@ -121,6 +121,15 @@ export const userSettings = pgTable("user_settings", {
   githubBaseUrl: text("github_base_url"),
   githubPat: text("github_pat"),
   githubDefaultOrg: text("github_default_org"),
+  /** AutoTempo credentials & config */
+  tempoApiToken: text("tempo_api_token"),
+  jiraAccountId: text("jira_account_id"),
+  msClientId: text("ms_client_id"),
+  msClientSecret: text("ms_client_secret"),
+  msRefreshToken: text("ms_refresh_token"),
+  autoTempoDefaultRule: jsonb("auto_tempo_default_rule"),
+  autoTempoSkipDays: jsonb("auto_tempo_skip_days"),
+  autoTempoRules: jsonb("auto_tempo_rules"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

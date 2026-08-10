@@ -169,12 +169,15 @@ async function buildViews(userId: string, rows: RowRecord[]): Promise<RowView[]>
   });
 }
 
-export async function listRows(userId: string): Promise<RowView[]> {
-  const rows = await db
+export async function listRows(userId: string, limit?: number, offset?: number): Promise<RowView[]> {
+  let query = db
     .select()
     .from(schema.ticketRow)
     .where(eq(schema.ticketRow.userId, userId))
     .orderBy(asc(schema.ticketRow.sortOrder), asc(schema.ticketRow.createdAt));
+  if (limit !== undefined) query = query.limit(limit);
+  if (offset !== undefined) query = query.offset(offset);
+  const rows = await query;
   return buildViews(userId, rows);
 }
 
