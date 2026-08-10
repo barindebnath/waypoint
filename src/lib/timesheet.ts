@@ -70,30 +70,35 @@ export async function listTimesheet(userId: string, tz: string, monthCount = 6):
     ? DateTime.fromJSDate(userRow.createdAt).setZone(tz).startOf("month")
     : null;
 
-  // Walk back from the current week until we've covered `monthCount` months or reached the signup month.
+  // Walk back starting from the last week of the current month
   const weeks: { weekId: string; friday: DateTime }[] = [];
   const now = DateTime.now().setZone(tz);
+  const currentMonthKey = now.toFormat("yyyy-MM");
+
+  // Start cursor at the Monday of the last week of the current month
   let cursor = now.endOf("month").startOf("week");
-  // Only skip back if the Monday itself is beyond the current month
-  // (endOf("month") landed in a week that starts in the next month).
-  // When the last day of the month IS a Monday (e.g. Aug 31), that week
-  // must stay visible even though its Friday falls in the next month.
-  if (cursor.month > now.month || cursor.year > now.year) {
-    cursor = cursor.minus({ weeks: 1 });
-  }
+
   const seenMonths = new Set<string>();
   while (true) {
+    const monday = cursor;
     const friday = cursor.plus({ days: 4 });
-    const month = friday.toFormat("yyyy-MM");
+    const mondayMonth = monday.toFormat("yyyy-MM");
+
+    // Do not show weeks whose Monday starts in a future month (e.g. Sept 7)
+    if (mondayMonth > currentMonthKey) {
+      cursor = cursor.minus({ weeks: 1 });
+      continue;
+    }
 
     // Stop if we walk past the month of signup
     if (signupLimit && friday < signupLimit) {
       break;
     }
 
-    if (!seenMonths.has(month)) {
+    const monthKey = mondayMonth <= currentMonthKey ? mondayMonth : friday.toFormat("yyyy-MM");
+    if (!seenMonths.has(monthKey)) {
       if (seenMonths.size >= monthCount) break;
-      seenMonths.add(month);
+      seenMonths.add(monthKey);
     }
     weeks.push({ weekId: weekIdFor(cursor), friday });
     cursor = cursor.minus({ weeks: 1 });

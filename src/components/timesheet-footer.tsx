@@ -128,7 +128,7 @@ export function TimesheetFooter({
   readOnly: boolean;
   inspect: InspectRange | null;
 }) {
-  const [activeMonthIndex, setActiveMonthIndex] = useState(0);
+  const [activeMonthIndex, setActiveMonthIndex] = useState<number | null>(null);
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const qc = useQueryClient();
 
@@ -182,14 +182,17 @@ export function TimesheetFooter({
   }, [data, activeMonthIndex]);
 
   const rawMonths = data?.months ?? [];
-  const months = rawMonths.filter((m) => {
-    if (showCompleted) return true;
-    if (!m.allSubmitted) return true;
-    if (inspect && monthTouchedInRange(m, inspect)) return true;
-    return false;
-  });
+  const months = rawMonths;
 
-  const safeIndex = Math.min(activeMonthIndex, Math.max(0, months.length - 1));
+  // Find the current month's index in the months list (newest first). Defaults to 0 (current month).
+  const currentMonthKey = new Date().toISOString().slice(0, 7);
+  const currentMonthIdx = months.findIndex((m) => m.month === currentMonthKey);
+  const defaultIndex = currentMonthIdx !== -1 ? currentMonthIdx : 0;
+
+  const safeIndex = Math.min(
+    activeMonthIndex !== null ? activeMonthIndex : defaultIndex,
+    Math.max(0, months.length - 1)
+  );
   const activeMonth = months[safeIndex];
 
   return (
