@@ -193,7 +193,7 @@ export function TimesheetFooter({
   const activeMonth = months[safeIndex];
 
   return (
-    <footer className="footer-panel border-t border-edge bg-surface shadow-card transition-colors duration-200 mt-auto">
+    <footer className="footer-panel rounded-xl border border-edge bg-surface shadow-card transition-colors duration-200 mt-auto">
       <div className="mx-auto flex max-w-[1300px] flex-col gap-2 p-3 sm:p-4">
         <div
           className="flex items-center justify-between cursor-pointer select-none"

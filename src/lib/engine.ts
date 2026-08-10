@@ -174,7 +174,8 @@ export async function listRows(userId: string, limit?: number, offset?: number):
     .select()
     .from(schema.ticketRow)
     .where(eq(schema.ticketRow.userId, userId))
-    .orderBy(asc(schema.ticketRow.sortOrder), asc(schema.ticketRow.createdAt));
+    .orderBy(asc(schema.ticketRow.sortOrder), asc(schema.ticketRow.createdAt))
+    .$dynamic();
   if (limit !== undefined) query = query.limit(limit);
   if (offset !== undefined) query = query.offset(offset);
   const rows = await query;
