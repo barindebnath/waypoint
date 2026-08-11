@@ -82,7 +82,7 @@ export default function DashboardPage() {
 
   const visibleRows = sortedRows.filter((row) => {
     if (inspect) return rowTouchedInRange(row, inspect);
-    if (!effectiveShowCompleted && row.isComplete && !row.hasLooseEnds) return false;
+    if (!effectiveShowCompleted && row.isComplete) return false;
     return true;
   });
 
@@ -300,7 +300,7 @@ export default function DashboardPage() {
       <NewRowForm />
 
       <div
-        className="flex flex-1 flex-col gap-2.5"
+        className="flex flex-1 flex-col gap-2.5 overflow-y-auto pb-4"
         onDragOver={(e) => {
           if (!readOnly && draggedId) {
             e.preventDefault();
@@ -352,7 +352,9 @@ export default function DashboardPage() {
       </div>
 
       {showTimesheet && (
-        <TimesheetFooter showCompleted={effectiveShowCompleted} readOnly={readOnly} inspect={inspect} />
+        <div className="sticky bottom-2 sm:bottom-4 z-30 backdrop-blur-md bg-bg/60">
+          <TimesheetFooter showCompleted={effectiveShowCompleted} readOnly={readOnly} inspect={inspect} />
+        </div>
       )}
     </main>
   );

@@ -126,10 +126,8 @@ function PrRefPill({
 }) {
   const showRemovingLoader = useDeferredLoading(!!isRemoving);
 
-  const paddingClass = prRef.prStatus ? "pl-2.5 pr-[3px]" : "px-2.5";
-
   const innerPill = (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border border-edge bg-surface-2 ${paddingClass} py-[3px] font-mono text-[11px] text-ink-muted hover:border-edge-strong transition-colors cursor-pointer`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border border-edge bg-surface-2 px-2.5 py-[3px] font-mono text-[11px] text-ink-muted hover:border-edge-strong transition-colors cursor-pointer`}>
       <GitPullRequestIcon className="h-3 w-3 text-accent shrink-0" />
       <span className="font-semibold text-ink">{prRef.ref}</span>
       {prRef.prStatus && (
@@ -252,6 +250,8 @@ export function RowCard({
     onSettled: invalidate,
   });
   const deleteMut = useMutation({ mutationFn: () => api.deleteRow(row.identityRef), onSettled: invalidate });
+  const completeMut = useMutation({ mutationFn: () => api.completeRow(row.identityRef), onSettled: invalidate });
+  const wontFixMut = useMutation({ mutationFn: () => api.wontFixRow(row.identityRef), onSettled: invalidate });
 
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
@@ -321,7 +321,7 @@ export function RowCard({
   return (
     <div
       className={`rounded-xl border border-edge bg-surface shadow-card transition-opacity ${
-        row.isComplete && !row.hasLooseEnds ? "opacity-55" : ""
+        row.isComplete ? "opacity-55" : ""
       }`}
     >
       {/* Collapsed line */}
@@ -359,7 +359,7 @@ export function RowCard({
               <button
                 type="button"
                 onClick={() => setShowPrInput(true)}
-                className="inline-flex items-center gap-1 rounded-full border border-dashed border-edge px-2 py-0.5 font-mono text-[11px] text-ink-muted hover:border-accent hover:text-accent transition-colors"
+                className="hidden sm:inline-flex items-center gap-1 rounded-full border border-dashed border-edge px-2 py-0.5 font-mono text-[11px] text-ink-muted hover:border-accent hover:text-accent transition-colors"
                 title="Link a GitHub PR to this card (1 PR limit)"
               >
                 <span>+ Link PR</span>
@@ -407,7 +407,7 @@ export function RowCard({
               row.isComplete ? "text-done" : "text-accent"
             }`}
           >
-            {row.isComplete ? "✓ complete" : current?.label}
+            {row.isComplete ? (row.hasLooseEnds ? "won't fix" : "✓ complete") : current?.label}
           </span>
           <span className="text-[10px] text-ink-faint font-mono leading-none mt-0.5" title={`Card age: ${fmtAge(row.createdAt)}`}>
             {row.isComplete
@@ -705,18 +705,44 @@ export function RowCard({
                   })}
                 </div>
               )}
-              <button
-                disabled={deleteMut.isPending}
-                onClick={() => {
-                  if (window.confirm(`Delete the row for ${row.identityRef}? This cannot be undone.`)) {
-                    deleteMut.mutate();
-                  }
-                }}
-                className="w-full sm:w-auto sm:ml-auto rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-faint hover:border-danger hover:text-danger disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <DeferredSpinner isPending={deleteMut.isPending} className="h-3 w-3 text-current" />
-                Delete row
-              </button>
+              <div className="w-full sm:w-auto sm:ml-auto flex flex-wrap items-center gap-2">
+                {!row.isComplete && (
+                  <button
+                    type="button"
+                    disabled={wontFixMut.isPending || completeMut.isPending || deleteMut.isPending}
+                    onClick={() => wontFixMut.mutate()}
+                    className="flex-1 sm:flex-initial rounded-[7px] border border-edge bg-surface-2 hover:border-warn hover:text-warn px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:bg-warn/10 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    title="Mark row as Won't Fix and hide it"
+                  >
+                    <DeferredSpinner isPending={wontFixMut.isPending} className="h-3 w-3 text-current" />
+                    Won&apos;t fix
+                  </button>
+                )}
+                {!row.isComplete && (
+                  <button
+                    type="button"
+                    disabled={completeMut.isPending || wontFixMut.isPending || deleteMut.isPending}
+                    onClick={() => completeMut.mutate()}
+                    className="flex-1 sm:flex-initial rounded-[7px] border border-done/40 bg-done/10 hover:bg-done hover:text-accent-ink px-3 py-1.5 text-[11.5px] font-semibold text-done disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    title="Tick all remaining milestones & sub-tasks and complete row"
+                  >
+                    <DeferredSpinner isPending={completeMut.isPending} className="h-3 w-3 text-current" />
+                    Mark as complete
+                  </button>
+                )}
+                <button
+                  disabled={deleteMut.isPending}
+                  onClick={() => {
+                    if (window.confirm(`Delete the row for ${row.identityRef}? This cannot be undone.`)) {
+                      deleteMut.mutate();
+                    }
+                  }}
+                  className="flex-1 sm:flex-initial rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-faint hover:border-danger hover:text-danger hover:bg-danger/5 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                >
+                  <DeferredSpinner isPending={deleteMut.isPending} className="h-3 w-3 text-current" />
+                  Delete row
+                </button>
+              </div>
             </div>
           )}
         </div>

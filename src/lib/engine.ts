@@ -390,22 +390,20 @@ export async function setSubtask(
     if (checked) {
       const targetMIdx = def.milestones.findIndex((m) => m.key === milestoneKey);
       if (targetMIdx !== -1) {
-        // 1. All previous milestones' non-humanUsual subtasks
+        // 1. All subtasks in previous milestones (to complete preceding milestones)
         for (let m = 0; m < targetMIdx; m++) {
           const prevM = def.milestones[m];
           for (const s of prevM.subtasks) {
-            if (!s.humanUsual) {
-              await tx
-                .update(schema.subtaskState)
-                .set({ checked: true, updatedAt: new Date() })
-                .where(
-                  and(
-                    eq(schema.subtaskState.rowId, row.id),
-                    eq(schema.subtaskState.milestoneKey, prevM.key),
-                    eq(schema.subtaskState.subtaskKey, s.key),
-                  ),
-                );
-            }
+            await tx
+              .update(schema.subtaskState)
+              .set({ checked: true, updatedAt: new Date() })
+              .where(
+                and(
+                  eq(schema.subtaskState.rowId, row.id),
+                  eq(schema.subtaskState.milestoneKey, prevM.key),
+                  eq(schema.subtaskState.subtaskKey, s.key),
+                ),
+              );
           }
         }
 
@@ -467,6 +465,49 @@ export async function bulkSetSubtasks(
       );
     await recomputeAfterCheck(tx, row, def);
   });
+
+  return (await getRowView(userId, row.identityRef))!;
+}
+
+/**
+ * Mark a row as complete by ticking all milestones & subtasks.
+ */
+export async function completeRow(userId: string, ref: string): Promise<RowView> {
+  const row = await findRowByRef(userId, ref);
+  if (!row) throw new EngineError(`No row found for ${ref}`, 404);
+  const pipelines = await loadPipelines();
+  const def = pipelines[row.pipelineKey];
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(schema.subtaskState)
+      .set({ checked: true, updatedAt: new Date() })
+      .where(eq(schema.subtaskState.rowId, row.id));
+    await tx
+      .update(schema.milestoneState)
+      .set({ complete: true, updatedAt: new Date() })
+      .where(eq(schema.milestoneState.rowId, row.id));
+    const lastMilestone = def.milestones[def.milestones.length - 1].key;
+    await tx
+      .update(schema.ticketRow)
+      .set({ currentMilestone: lastMilestone, isComplete: true, updatedAt: new Date() })
+      .where(eq(schema.ticketRow.id, row.id));
+  });
+
+  return (await getRowView(userId, row.identityRef))!;
+}
+
+/**
+ * Mark a row as "Won't fix": does not check remaining sub-tasks, but marks the row as complete so it is hidden like a completed row.
+ */
+export async function wontFixRow(userId: string, ref: string): Promise<RowView> {
+  const row = await findRowByRef(userId, ref);
+  if (!row) throw new EngineError(`No row found for ${ref}`, 404);
+
+  await db
+    .update(schema.ticketRow)
+    .set({ isComplete: true, updatedAt: new Date() })
+    .where(eq(schema.ticketRow.id, row.id));
 
   return (await getRowView(userId, row.identityRef))!;
 }

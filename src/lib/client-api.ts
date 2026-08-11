@@ -65,6 +65,10 @@ export const api = {
     }),
   deleteRow: (ref: string) =>
     request<{ ok: true }>(`/api/v1/rows/${encodeURIComponent(ref)}`, { method: "DELETE" }),
+  completeRow: (ref: string) =>
+    request<{ row: EnrichedRowView }>(`/api/v1/rows/${encodeURIComponent(ref)}/complete`, { method: "POST" }),
+  wontFixRow: (ref: string) =>
+    request<{ row: EnrichedRowView }>(`/api/v1/rows/${encodeURIComponent(ref)}/wontfix`, { method: "POST" }),
   pipelines: () => request<{ pipelines: Record<PipelineKey, PipelineDef> }>("/api/v1/pipelines"),
   timesheet: (months = 6) =>
     request<{ currentWeekId: string; months: MonthView[] }>(`/api/v1/timesheet?months=${months}`),

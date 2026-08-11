@@ -39,11 +39,9 @@ export function RefPill({
           ? "Support Task"
           : "Secondary Ref";
 
-  const paddingClass = statusBadge ? "pl-2.5 pr-[3px]" : "px-2.5";
-
   const inner = (
     <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border ${bgToneClass} ${paddingClass} py-[3px] font-mono text-[11px] hover:border-edge-strong transition-colors cursor-pointer`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border ${bgToneClass} px-2.5 py-[3px] font-mono text-[11px] hover:border-edge-strong transition-colors cursor-pointer`}
     >
       <span className="font-semibold text-ink">{refText}</span>
       {statusBadge && <span className="inline-flex items-center ml-0.5">{statusBadge}</span>}

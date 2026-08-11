@@ -43,52 +43,24 @@ export function PlusIcon({ className = "h-3.5 w-3.5" }: { className?: string }) 
 
 export function GithubPrBadge({ state, mergeableState, reviewDecision }: GithubPrBadgeProps) {
   if (state === "merged") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold rounded-full border border-purple-800/40 bg-purple-500/10 text-purple-400">
-        Merged
-      </span>
-    );
+    return <span className="text-[11px] font-semibold text-purple-400">Merged</span>;
   }
   if (state === "draft") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-medium rounded-full border border-edge bg-surface text-ink-faint">
-        Draft
-      </span>
-    );
+    return <span className="text-[11px] font-medium text-ink-faint">Draft</span>;
   }
   if (mergeableState === "dirty") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold rounded-full border border-warn/40 bg-warn/10 text-warn animate-pulse">
-        ⚠️ Conflicts
-      </span>
-    );
+    return <span className="text-[11px] font-semibold text-warn animate-pulse">Conflicts</span>;
   }
   if (reviewDecision === "approved") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold rounded-full border border-done/40 bg-done/10 text-done">
-        Approved
-      </span>
-    );
+    return <span className="text-[11px] font-semibold text-done">Approved</span>;
   }
   if (reviewDecision === "changes_requested") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold rounded-full border border-danger/40 bg-danger/10 text-danger">
-        Changes Requested
-      </span>
-    );
+    return <span className="text-[11px] font-semibold text-danger">Changes Requested</span>;
   }
   if (state === "closed") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold rounded-full border border-danger/40 bg-danger/10 text-danger">
-        Closed
-      </span>
-    );
+    return <span className="text-[11px] font-semibold text-danger">Closed</span>;
   }
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold rounded-full border border-done/40 bg-done/10 text-done">
-      Open
-    </span>
-  );
+  return <span className="text-[11px] font-semibold text-done">Open</span>;
 }
 
 export interface JiraStatusBadgeProps {
@@ -99,29 +71,13 @@ export interface JiraStatusBadgeProps {
 export function JiraStatusBadge({ statusName, statusCategory }: JiraStatusBadgeProps) {
   const lower = statusName.toLowerCase();
   if (statusCategory === "done") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 text-[10.5px] font-semibold rounded-full border border-done/40 bg-done/10 text-done">
-        {statusName}
-      </span>
-    );
+    return <span className="text-[11px] font-semibold text-done">{statusName}</span>;
   }
   if (lower.includes("review") || lower.includes("qa")) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 text-[10.5px] font-semibold rounded-full border border-warn/40 bg-warn/10 text-warn">
-        {statusName}
-      </span>
-    );
+    return <span className="text-[11px] font-semibold text-warn">{statusName}</span>;
   }
   if (statusCategory === "inprogress" || lower.includes("progress")) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 text-[10.5px] font-semibold rounded-full border border-accent/40 bg-accent/10 text-accent">
-        {statusName}
-      </span>
-    );
+    return <span className="text-[11px] font-semibold text-accent">{statusName}</span>;
   }
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 text-[10.5px] font-medium rounded-full border border-edge bg-surface text-ink-faint">
-      {statusName}
-    </span>
-  );
+  return <span className="text-[11px] font-medium text-ink-faint">{statusName}</span>;
 }
