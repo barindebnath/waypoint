@@ -21,7 +21,6 @@ import {
   CalendarIcon,
   BarChart3Icon,
   PaletteIcon,
-  CheckCircleIcon,
 } from "@/components/landing/icons";
 
 export const metadata = {
@@ -30,61 +29,72 @@ export const metadata = {
     "A personal status tracker your AI updates for you: deterministic milestone pipelines, GitHub/Jira auto-sync, weekly Tempo timesheets, and zero customer data stored.",
 };
 
+const INTEGRATION_PILLS = [
+  { name: "Claude Code", category: "AI Pair" },
+  { name: "Cursor", category: "IDE" },
+  { name: "Windsurf", category: "IDE" },
+  { name: "Antigravity", category: "Agent" },
+  { name: "GitHub", category: "Code & PRs" },
+  { name: "Jira", category: "Tracking" },
+  { name: "Tempo", category: "Timesheet" },
+];
+
 export default async function LandingPage() {
   // Signed-in users land straight in the app.
   const session = await auth.api.getSession({ headers: await headers() });
   if (session) redirect("/dashboard");
 
   return (
-    <div className="flex min-h-screen flex-1 flex-col bg-bg text-ink">
+    <div className="flex min-h-screen flex-1 flex-col bg-bg text-ink selection:bg-accent selection:text-accent-ink">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b-[3px] border-double border-edge-strong bg-surface/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1160px] items-center justify-between px-6 py-3.5 sm:px-8">
           <div className="flex items-center gap-7">
-            <Link href="/" className="flex items-center gap-2.5">
-              <Logo className="h-6 w-6 -mt-0.5" />
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <Logo className="h-6 w-6 -mt-0.5 transition-transform group-hover:scale-105" />
               <span className="font-serif text-[21px] font-semibold tracking-tight">Waypoint</span>
             </Link>
 
-            <nav className="hidden lg:flex items-center gap-6 text-[13px] text-ink-muted">
-              <a href="#pipelines" className="hover:text-ink transition">
+            <nav className="hidden lg:flex items-center gap-1 text-[13px] text-ink-muted">
+              <a href="#pipelines" className="px-2.5 py-1 rounded-md hover:text-ink hover:bg-surface-2 transition">
                 Pipelines
               </a>
-              <a href="#ai-agent" className="hover:text-ink transition">
+              <a href="#ai-agent" className="px-2.5 py-1 rounded-md hover:text-ink hover:bg-surface-2 transition">
                 AI / llms.txt
               </a>
-              <a href="#integrations" className="hover:text-ink transition">
+              <a href="#integrations" className="px-2.5 py-1 rounded-md hover:text-ink hover:bg-surface-2 transition">
                 Integrations
               </a>
-              <a href="#timesheet" className="hover:text-ink transition">
+              <a href="#timesheet" className="px-2.5 py-1 rounded-md hover:text-ink hover:bg-surface-2 transition">
                 Timesheet
               </a>
-              <a href="#analytics" className="hover:text-ink transition">
+              <a href="#analytics" className="px-2.5 py-1 rounded-md hover:text-ink hover:bg-surface-2 transition">
                 Analytics
               </a>
-              <a href="#themes" className="hover:text-ink transition">
+              <a href="#themes" className="px-2.5 py-1 rounded-md hover:text-ink hover:bg-surface-2 transition">
                 Themes
               </a>
-              <Link href="/docs" className="hover:text-ink transition">
+              <Link href="/docs" className="px-2.5 py-1 rounded-md hover:text-ink hover:bg-surface-2 transition">
                 Docs
               </Link>
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <ThemeToggle />
             <a
               href="/llms.txt"
-              className="hidden sm:inline-block rounded-md border border-edge bg-surface-2 px-2.5 py-1 text-xs font-mono text-ink-muted hover:border-edge-strong hover:text-ink transition"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-edge bg-surface-2 px-2.5 py-1 text-xs font-mono text-ink-muted hover:border-edge-strong hover:text-ink transition"
             >
-              /llms.txt
+              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-live" />
+              <span>/llms.txt</span>
             </a>
             <Link href="/login" className="text-[13px] text-ink-muted hover:text-ink transition px-2">
               Sign in
             </Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold !text-accent-ink hover:opacity-90 transition shadow-xs"
+              className="rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold !text-accent-ink hover:opacity-90 transition shadow-xs cursor-pointer"
             >
               Get started
             </Link>
@@ -98,7 +108,7 @@ export default async function LandingPage() {
         <section className="text-center space-y-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent-soft px-3.5 py-1 font-mono text-[11.5px] font-semibold uppercase tracking-wider text-accent">
             <span className="h-1.5 w-1.5 rounded-full bg-accent animate-live" />
-            <span>Personal Status Tracker</span>
+            <span>Personal Status Tracker & External Memory</span>
           </div>
 
           <h1 className="mx-auto max-w-[840px] font-serif text-4xl sm:text-6xl font-medium leading-[1.08] tracking-tight text-balance">
@@ -112,14 +122,14 @@ export default async function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold !text-accent-ink hover:opacity-90 transition shadow-card"
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold !text-accent-ink hover:opacity-90 transition shadow-card cursor-pointer"
             >
               <span>Start tracking free</span>
               <ArrowRightIcon className="h-4 w-4" />
             </Link>
             <Link
               href="/docs"
-              className="rounded-xl border border-edge bg-surface px-6 py-3 text-sm font-medium text-ink hover:bg-surface-2 transition shadow-2xs"
+              className="rounded-xl border border-edge bg-surface px-6 py-3 text-sm font-medium text-ink hover:bg-surface-2 transition shadow-2xs cursor-pointer"
             >
               Read the docs
             </Link>
@@ -129,6 +139,19 @@ export default async function LandingPage() {
             >
               llms.txt
             </a>
+          </div>
+
+          {/* Social Proof / Ecosystem Strip */}
+          <div className="pt-3 flex flex-wrap items-center justify-center gap-2 text-xs font-mono text-ink-faint">
+            <span className="text-ink-muted uppercase tracking-wider text-[10.5px] mr-1">Pairs with:</span>
+            {INTEGRATION_PILLS.map((pill) => (
+              <span
+                key={pill.name}
+                className="inline-flex items-center gap-1 rounded-full border border-edge bg-surface-2/60 px-2.5 py-0.5 text-[11px] text-ink-muted"
+              >
+                <span>{pill.name}</span>
+              </span>
+            ))}
           </div>
 
           {/* Interactive Hero Sandbox */}
@@ -366,14 +389,14 @@ export default async function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold !text-accent-ink hover:opacity-90 transition shadow-card"
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold !text-accent-ink hover:opacity-90 transition shadow-card cursor-pointer"
             >
               <span>Get started free</span>
               <ArrowRightIcon className="h-4 w-4" />
             </Link>
             <Link
               href="/docs"
-              className="rounded-xl border border-edge bg-surface px-6 py-3 text-sm font-medium text-ink hover:bg-surface-3/50 transition shadow-2xs"
+              className="rounded-xl border border-edge bg-surface px-6 py-3 text-sm font-medium text-ink hover:bg-surface-3/50 transition shadow-2xs cursor-pointer"
             >
               Explore API reference
             </Link>

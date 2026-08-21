@@ -1,11 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { PaletteIcon, SparklesIcon, CheckCircleIcon } from "./icons";
+import {
+  getColorThemePref,
+  setColorThemePref,
+  subscribeColorTheme,
+  type ColorThemePref,
+} from "@/lib/color-theme";
+import {
+  getFontThemePref,
+  setFontThemePref,
+  subscribeFontTheme,
+  type FontThemePref,
+} from "@/lib/font-theme";
 
 type ThemePalette = "paper" | "nord" | "forest" | "royal";
 type ThemeMode = "light" | "dark";
-type FontTheme = "serif" | "sans" | "mono";
 
 const PALETTES: {
   key: ThemePalette;
@@ -85,9 +96,25 @@ const PALETTES: {
 ];
 
 export function ThemeShowcase() {
-  const [selectedPalette, setSelectedPalette] = useState<ThemePalette>("paper");
+  const activeColorTheme = useSyncExternalStore(
+    subscribeColorTheme,
+    getColorThemePref,
+    () => "paper" as ColorThemePref
+  );
+  const activeFontTheme = useSyncExternalStore(
+    subscribeFontTheme,
+    getFontThemePref,
+    () => "serif" as FontThemePref
+  );
+
+  const [selectedPalette, setSelectedPalette] = useState<ThemePalette>(
+    (activeColorTheme as ThemePalette) || "paper"
+  );
   const [selectedMode, setSelectedMode] = useState<ThemeMode>("light");
-  const [selectedFont, setSelectedFont] = useState<FontTheme>("serif");
+  const [selectedFont, setSelectedFont] = useState<FontThemePref>(
+    activeFontTheme || "serif"
+  );
+  const [appliedGlobal, setAppliedGlobal] = useState(false);
 
   const palette = PALETTES.find((p) => p.key === selectedPalette)!;
 
@@ -104,6 +131,13 @@ export function ThemeShowcase() {
       : selectedFont === "mono"
       ? "font-mono"
       : "font-sans";
+
+  const handleApplyGlobal = () => {
+    setColorThemePref(selectedPalette);
+    setFontThemePref(selectedFont);
+    setAppliedGlobal(true);
+    setTimeout(() => setAppliedGlobal(false), 2500);
+  };
 
   return (
     <div className="w-full rounded-2xl border border-edge bg-surface p-5 sm:p-7 shadow-card space-y-5">
@@ -123,28 +157,40 @@ export function ThemeShowcase() {
           </p>
         </div>
 
-        {/* Mode Toggle */}
-        <div className="flex items-center gap-1 rounded-lg border border-edge bg-surface-2 p-1 self-start sm:self-auto">
+        {/* Action button to apply theme to entire site */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setSelectedMode("light")}
-            className={`rounded px-2.5 py-1 text-xs transition cursor-pointer ${
-              selectedMode === "light"
-                ? "bg-surface font-semibold text-ink shadow-xs"
-                : "text-ink-muted hover:text-ink"
-            }`}
+            onClick={handleApplyGlobal}
+            className="flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent-soft px-3 py-1 text-xs font-semibold text-accent hover:bg-accent/20 transition cursor-pointer"
+            title="Applies the selected palette and typography to the live page"
           >
-            ☀ Light
+            <SparklesIcon className="h-3 w-3" />
+            <span>{appliedGlobal ? "Applied to Page!" : "Apply to Page"}</span>
           </button>
-          <button
-            onClick={() => setSelectedMode("dark")}
-            className={`rounded px-2.5 py-1 text-xs transition cursor-pointer ${
-              selectedMode === "dark"
-                ? "bg-surface font-semibold text-ink shadow-xs"
-                : "text-ink-muted hover:text-ink"
-            }`}
-          >
-            ☾ Dark
-          </button>
+
+          {/* Light/Dark Toggle */}
+          <div className="flex items-center gap-1 rounded-lg border border-edge bg-surface-2 p-1">
+            <button
+              onClick={() => setSelectedMode("light")}
+              className={`rounded px-2.5 py-1 text-xs transition cursor-pointer ${
+                selectedMode === "light"
+                  ? "bg-surface font-semibold text-ink shadow-xs"
+                  : "text-ink-muted hover:text-ink"
+              }`}
+            >
+              ☀ Light
+            </button>
+            <button
+              onClick={() => setSelectedMode("dark")}
+              className={`rounded px-2.5 py-1 text-xs transition cursor-pointer ${
+                selectedMode === "dark"
+                  ? "bg-surface font-semibold text-ink shadow-xs"
+                  : "text-ink-muted hover:text-ink"
+              }`}
+            >
+              ☾ Dark
+            </button>
+          </div>
         </div>
       </div>
 
@@ -189,7 +235,7 @@ export function ThemeShowcase() {
       {/* Font Switcher */}
       <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-edge">
         <span className="text-xs text-ink-muted">Typography:</span>
-        {(["serif", "sans", "mono"] as FontTheme[]).map((f) => (
+        {(["serif", "sans", "mono"] as FontThemePref[]).map((f) => (
           <button
             key={f}
             onClick={() => setSelectedFont(f)}
