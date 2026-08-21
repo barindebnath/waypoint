@@ -6,6 +6,7 @@ import {
   RotateCcwIcon,
   FastForwardIcon,
   CheckCircleIcon,
+  RefreshIcon,
 } from "./icons";
 
 type Subtask = {
@@ -23,9 +24,9 @@ type Milestone = {
 const DEMO_MILESTONES: Milestone[] = [
   {
     id: "triage",
-    name: "Triage & Setup",
+    name: "Triage",
     subtasks: [
-      { id: "root_cause", label: "Root cause verified in logs" },
+      { id: "root_cause", label: "Root cause verified in telemetry" },
       { id: "repro_test", label: "Reproduction test case added" },
     ],
   },
@@ -42,7 +43,7 @@ const DEMO_MILESTONES: Milestone[] = [
     name: "Staging",
     subtasks: [
       { id: "staging_deploy", label: "Branch deployed to Staging" },
-      { id: "staging_verify", label: "Staging smoke test verified", humanUsual: true },
+      { id: "staging_verify", label: "Staging verification", humanUsual: true },
     ],
   },
   {
@@ -50,15 +51,15 @@ const DEMO_MILESTONES: Milestone[] = [
     name: "QA & Review",
     subtasks: [
       { id: "code_approved", label: "Code review approved by peer" },
-      { id: "qa_signoff", label: "QA verification sign-off", humanUsual: true },
+      { id: "qa_signoff", label: "QA sign-off & acceptance", humanUsual: true },
     ],
   },
   {
     id: "production",
-    name: "Production & Close",
+    name: "Production",
     subtasks: [
-      { id: "prod_deploy", label: "Shipped to Production canary", humanUsual: true },
-      { id: "jira_close", label: "Jira support card resolved" },
+      { id: "prod_deploy", label: "Canary release deployed", humanUsual: true },
+      { id: "jira_close", label: "Support ticket resolved" },
     ],
   },
 ];
@@ -80,7 +81,6 @@ export function InteractivePipelineDemo() {
   const [checked, setChecked] = useState<Record<string, boolean>>(INITIAL_CHECKED);
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string>("staging");
 
-  // Determine milestone completion
   const isMilestoneComplete = (m: Milestone) =>
     m.subtasks.every((st) => checked[st.id]);
 
@@ -94,28 +94,28 @@ export function InteractivePipelineDemo() {
     setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleMilestoneCircleClick = (milestoneIndex: number) => {
-    const targetMilestone = DEMO_MILESTONES[milestoneIndex];
-    const isComplete = isMilestoneComplete(targetMilestone);
+  const handleMilestoneClick = (milestoneIndex: number) => {
+    const target = DEMO_MILESTONES[milestoneIndex];
+    const isComplete = isMilestoneComplete(target);
 
     setChecked((prev) => {
       const next = { ...prev };
       if (isComplete) {
-        // Regress target milestone and all subsequent milestones
+        // Regress
         for (let i = milestoneIndex; i < DEMO_MILESTONES.length; i++) {
           DEMO_MILESTONES[i].subtasks.forEach((st) => {
             next[st.id] = false;
           });
         }
       } else {
-        // Check all subtasks in this milestone
-        targetMilestone.subtasks.forEach((st) => {
+        // Complete all subtasks in this milestone
+        target.subtasks.forEach((st) => {
           next[st.id] = true;
         });
       }
       return next;
     });
-    setSelectedMilestoneId(targetMilestone.id);
+    setSelectedMilestoneId(target.id);
   };
 
   const handleFastComplete = () => {
@@ -157,30 +157,32 @@ export function InteractivePipelineDemo() {
   const progressPercent = Math.round((checkedSubtasks / totalSubtasks) * 100);
 
   return (
-    <div className="w-full rounded-2xl border border-edge bg-surface p-5 shadow-card transition-all duration-300 sm:p-7">
-      {/* Header bar / interactive hint */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-edge pb-4">
+    <div className="w-full rounded-2xl border border-edge bg-surface p-5 sm:p-7 shadow-card text-left transition-all">
+      {/* Top Bar / Meta */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-edge pb-4">
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 rounded-full bg-accent animate-live" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-accent">
-            Live Interactive Pipeline
+          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-accent">
+            Live Sandbox
           </span>
-          <span className="text-xs text-ink-muted hidden sm:inline">· Try clicking sub-tasks or nodes</span>
+          <span className="text-xs text-ink-muted hidden md:inline">
+            · Click subtasks or milestones to see real-time state transitions
+          </span>
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 text-xs">
+        {/* Sandbox Actions */}
+        <div className="flex items-center gap-1.5 self-end sm:self-auto">
           <button
             onClick={handleFastComplete}
-            className="flex items-center gap-1 rounded-md border border-edge bg-surface-2 px-2.5 py-1 font-mono text-[11.5px] text-ink-muted transition hover:border-edge-strong hover:text-ink cursor-pointer"
-            title="Atomically check every milestone"
+            className="inline-flex items-center gap-1 rounded-md border border-edge bg-surface-2 px-2.5 py-1 font-mono text-[11px] text-ink-muted hover:border-edge-strong hover:text-ink transition cursor-pointer"
+            title="Complete all remaining tasks"
           >
             <FastForwardIcon className="h-3 w-3 text-done" />
             <span>Fast-complete</span>
           </button>
           <button
             onClick={handleRegressToDev}
-            className="flex items-center gap-1 rounded-md border border-edge bg-surface-2 px-2.5 py-1 font-mono text-[11.5px] text-ink-muted transition hover:border-edge-strong hover:text-ink cursor-pointer"
+            className="inline-flex items-center gap-1 rounded-md border border-edge bg-surface-2 px-2.5 py-1 font-mono text-[11px] text-ink-muted hover:border-edge-strong hover:text-ink transition cursor-pointer"
             title="Demonstrate destructive regression"
           >
             <RotateCcwIcon className="h-3 w-3 text-warn" />
@@ -188,42 +190,46 @@ export function InteractivePipelineDemo() {
           </button>
           <button
             onClick={handleReset}
-            className="rounded-md border border-edge bg-surface-2 px-2.5 py-1 font-mono text-[11.5px] text-ink-muted transition hover:border-edge-strong hover:text-ink cursor-pointer"
+            className="rounded-md border border-edge bg-surface-2 px-2 py-1 font-mono text-[11px] text-ink-muted hover:text-ink transition cursor-pointer"
           >
             Reset
           </button>
         </div>
       </div>
 
-      {/* Row Identity & Pipeline Strip */}
-      <div className="mt-5 rounded-xl border border-edge-strong bg-surface-2 p-4 sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          {/* Card Reference Pills */}
+      {/* Row Container */}
+      <div className="mt-5 rounded-xl border border-edge bg-surface-2 p-4 sm:p-5">
+        {/* Row Header with Ref Pills & Current Stage */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full border border-support bg-surface px-2.5 py-0.5 font-mono text-[12px] font-semibold text-support shadow-xs">
+            {/* Identity Ref Pill */}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-support bg-support/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-support">
               <span>ZT-4821</span>
-              <span className="text-[10px] uppercase opacity-75 font-sans font-medium">bug</span>
+              <span className="text-[9.5px] uppercase tracking-wider opacity-75 font-sans">bug</span>
             </span>
+
+            {/* Secondary Project Ref */}
             <span className="inline-flex items-center rounded-full border border-edge bg-surface px-2.5 py-0.5 font-mono text-[11.5px] text-ink-muted">
               PES-1032
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-surface px-2.5 py-0.5 font-mono text-[11.5px] text-accent">
+
+            {/* Secondary PR Ref */}
+            <span className="inline-flex items-center gap-1 rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-0.5 font-mono text-[11px] text-purple-600 dark:text-purple-400">
               <GitPullRequestIcon className="h-3 w-3" />
               <span>web-client#142</span>
             </span>
           </div>
 
-          {/* Current Milestone Status */}
-          <div className="flex items-center gap-2 text-right">
+          <div className="text-right">
             {isAllComplete ? (
-              <span className="inline-flex items-center gap-1.5 font-serif text-sm font-semibold text-done">
-                <CheckCircleIcon className="h-4 w-4" />
-                <span>Shipped & Closed</span>
+              <span className="inline-flex items-center gap-1 font-serif text-xs font-semibold text-done">
+                <CheckCircleIcon className="h-3.5 w-3.5" />
+                <span>Production Complete</span>
               </span>
             ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-ink-muted">Current:</span>
-                <span className="font-serif text-sm font-medium italic text-accent">
+              <div className="flex items-center sm:justify-end gap-1.5 font-serif text-xs">
+                <span className="text-ink-muted">Current:</span>
+                <span className="font-semibold italic text-accent">
                   {currentActiveMilestone?.name}
                 </span>
               </div>
@@ -231,76 +237,73 @@ export function InteractivePipelineDemo() {
           </div>
         </div>
 
-        {/* Interactive Pipeline Bar */}
-        <div className="mt-6 flex items-center justify-between">
+        {/* Milestone Node Progress Strip */}
+        <div className="mt-6 grid grid-cols-5 items-center gap-1 sm:gap-2">
           {DEMO_MILESTONES.map((m, idx) => {
             const complete = isMilestoneComplete(m);
             const isCurrent = !complete && idx === activeMilestoneIndex;
             const isSelected = selectedMilestoneId === m.id;
 
             return (
-              <div key={m.id} className="flex flex-1 items-center last:flex-none">
-                {/* Milestone Node */}
-                <button
-                  onClick={() => handleMilestoneCircleClick(idx)}
-                  className="group relative flex flex-col items-center focus:outline-none cursor-pointer"
-                  title={`${m.name} (Click to ${complete ? "regress" : "check all"})`}
-                >
-                  <span
-                    className={`flex h-6 w-6 items-center justify-center rounded-full border-[2px] transition-all duration-200 ${
-                      complete
-                        ? "border-done bg-done text-surface"
-                        : isCurrent
-                        ? "border-accent bg-surface ring-4 ring-accent-soft"
-                        : "border-edge-strong bg-surface text-ink-faint group-hover:border-ink-muted"
-                    } ${isSelected ? "scale-110 shadow-xs" : ""}`}
-                  >
-                    {complete ? (
-                      <span className="text-xs font-bold leading-none">✓</span>
-                    ) : isCurrent ? (
-                      <span className="h-2 w-2 rounded-full bg-accent animate-live" />
-                    ) : (
-                      <span className="h-1.5 w-1.5 rounded-full bg-edge-strong" />
-                    )}
-                  </span>
-
-                  {/* Milestone Name */}
-                  <span
-                    className={`absolute -bottom-6 whitespace-nowrap text-[11px] font-medium transition-colors ${
-                      isSelected
-                        ? "font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4"
-                        : complete
-                        ? "text-ink-muted"
-                        : isCurrent
-                        ? "text-accent font-semibold"
-                        : "text-ink-faint"
+              <div key={m.id} className="relative flex flex-col items-center">
+                {/* Connecting Line between nodes */}
+                {idx > 0 && (
+                  <div
+                    className={`absolute top-3 right-1/2 w-full h-[2px] -z-0 transition-colors duration-300 ${
+                      complete || (isCurrent && idx === activeMilestoneIndex)
+                        ? "bg-done"
+                        : "bg-edge-strong"
                     }`}
-                  >
-                    {m.name}
-                  </span>
+                  />
+                )}
+
+                {/* Node Circle */}
+                <button
+                  onClick={() => handleMilestoneClick(idx)}
+                  className={`relative z-10 flex h-6 w-6 items-center justify-center rounded-full border-[2px] transition-all cursor-pointer ${
+                    complete
+                      ? "border-done bg-done text-surface shadow-xs"
+                      : isCurrent
+                      ? "border-accent bg-surface ring-4 ring-accent-soft"
+                      : "border-edge-strong bg-surface text-ink-faint hover:border-ink-muted"
+                  } ${isSelected ? "scale-110" : ""}`}
+                  title={`${m.name} (click to ${complete ? "regress" : "complete"})`}
+                >
+                  {complete ? (
+                    <span className="text-[11px] font-bold leading-none text-surface">✓</span>
+                  ) : isCurrent ? (
+                    <span className="h-2 w-2 rounded-full bg-accent animate-live" />
+                  ) : (
+                    <span className="h-1.5 w-1.5 rounded-full bg-edge-strong" />
+                  )}
                 </button>
 
-                {/* Connecting Line */}
-                {idx < DEMO_MILESTONES.length - 1 && (
-                  <div className="relative mx-1.5 h-[2.5px] flex-1 bg-edge">
-                    <div
-                      className={`h-full transition-all duration-300 ${
-                        complete ? "bg-done" : isCurrent ? "bg-accent/40" : "bg-transparent"
-                      }`}
-                    />
-                  </div>
-                )}
+                {/* Node Label */}
+                <button
+                  onClick={() => setSelectedMilestoneId(m.id)}
+                  className={`mt-2 text-center text-[10.5px] sm:text-[11.5px] font-medium transition cursor-pointer truncate max-w-full ${
+                    isSelected
+                      ? "font-semibold text-accent underline decoration-accent decoration-2 underline-offset-4"
+                      : complete
+                      ? "text-ink-muted"
+                      : isCurrent
+                      ? "font-semibold text-ink"
+                      : "text-ink-faint"
+                  }`}
+                >
+                  {m.name}
+                </button>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Interactive Subtask Checklist Drawer */}
-      <div className="mt-10 rounded-xl border border-edge bg-surface-3/30 p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-edge pb-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-serif text-sm font-semibold text-ink">
+      {/* Subtask Interactive Checklist Drawer */}
+      <div className="mt-5 rounded-xl border border-edge bg-surface-3/30 p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-edge pb-3">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span className="font-serif text-xs sm:text-sm font-semibold text-ink">
               Milestone Checklist:
             </span>
             <div className="flex flex-wrap gap-1">
@@ -311,7 +314,7 @@ export function InteractivePipelineDemo() {
                   <button
                     key={m.id}
                     onClick={() => setSelectedMilestoneId(m.id)}
-                    className={`rounded-md px-2.5 py-0.5 text-xs transition cursor-pointer ${
+                    className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition cursor-pointer ${
                       isSelected
                         ? "bg-accent font-semibold text-accent-ink shadow-xs"
                         : complete
@@ -327,39 +330,39 @@ export function InteractivePipelineDemo() {
           </div>
 
           <span className="font-mono text-xs text-ink-muted">
-            {progressPercent}% total progress
+            {checkedSubtasks}/{totalSubtasks} tasks ({progressPercent}%)
           </span>
         </div>
 
-        {/* Active Milestone Checklist items */}
-        <div className="mt-3.5 space-y-2">
+        {/* Active Checklist Items */}
+        <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2">
           {activeInspectMilestone.subtasks.map((st) => {
             const isChecked = !!checked[st.id];
             return (
               <label
                 key={st.id}
-                className={`flex cursor-pointer items-center justify-between rounded-lg border p-2.5 text-sm transition-colors ${
+                className={`flex cursor-pointer items-center justify-between rounded-lg border p-3 text-xs transition ${
                   isChecked
-                    ? "border-done/30 bg-done-soft/40 text-ink"
+                    ? "border-done/30 bg-done-soft/30 text-ink"
                     : "border-edge bg-surface text-ink hover:border-edge-strong"
                 }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <input
                     type="checkbox"
                     checked={isChecked}
                     onChange={() => toggleSubtask(st.id)}
-                    className="h-4 w-4 rounded border-edge-strong accent-done cursor-pointer"
+                    className="h-3.5 w-3.5 rounded border-edge-strong accent-done cursor-pointer"
                   />
-                  <span className={isChecked ? "line-through text-ink-muted" : "font-medium"}>
+                  <span className={isChecked ? "line-through text-ink-muted" : "font-medium text-ink"}>
                     {st.label}
                   </span>
                 </div>
 
                 {st.humanUsual && (
                   <span
-                    className="rounded bg-surface-2 px-2 py-0.5 font-mono text-[10.5px] text-ink-muted"
-                    title="This task is verified by the developer, not guessed by AI"
+                    className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-muted"
+                    title="User confirmation required — AI never guesses"
                   >
                     humanUsual
                   </span>
@@ -369,9 +372,10 @@ export function InteractivePipelineDemo() {
           })}
         </div>
 
-        <p className="mt-3 text-xs italic text-ink-faint">
-          💡 <strong>Server calculates progress:</strong> When every sub-task in a milestone is checked, the pipeline automatically advances to the next stage.
-        </p>
+        <div className="mt-3 flex items-center justify-between text-[11px] italic text-ink-faint">
+          <span>💡 Server auto-advances milestone when all sub-tasks in a phase are complete.</span>
+          <span className="font-mono text-[10.5px]">POST /api/v1/rows/{`{ref}`}/subtasks</span>
+        </div>
       </div>
     </div>
   );
