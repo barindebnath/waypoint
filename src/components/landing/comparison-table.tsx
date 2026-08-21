@@ -78,7 +78,7 @@ export function ComparisonTable() {
                 </td>
                 <td className="p-4 sm:px-6 bg-accent-soft/20 font-medium text-ink align-top">
                   <div className="flex items-start gap-2">
-                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink text-[10px] mt-0.5">
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent !text-accent-ink text-[10px] mt-0.5 font-bold">
                       ✓
                     </span>
                     <span>{r.waypoint}</span>

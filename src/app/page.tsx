@@ -84,7 +84,7 @@ export default async function LandingPage() {
             </Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold text-accent-ink hover:opacity-90 transition shadow-xs"
+              className="rounded-lg bg-accent px-4 py-1.5 text-[13px] font-semibold !text-accent-ink hover:opacity-90 transition shadow-xs"
             >
               Get started
             </Link>
@@ -112,7 +112,7 @@ export default async function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-accent-ink hover:opacity-90 transition shadow-card"
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold !text-accent-ink hover:opacity-90 transition shadow-card"
             >
               <span>Start tracking free</span>
               <ArrowRightIcon className="h-4 w-4" />
@@ -366,7 +366,7 @@ export default async function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-accent-ink hover:opacity-90 transition shadow-card"
+              className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold !text-accent-ink hover:opacity-90 transition shadow-card"
             >
               <span>Get started free</span>
               <ArrowRightIcon className="h-4 w-4" />

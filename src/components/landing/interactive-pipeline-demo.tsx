@@ -316,7 +316,7 @@ export function InteractivePipelineDemo() {
                     onClick={() => setSelectedMilestoneId(m.id)}
                     className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition cursor-pointer ${
                       isSelected
-                        ? "bg-accent font-semibold text-accent-ink shadow-xs"
+                        ? "bg-accent font-semibold !text-accent-ink shadow-xs"
                         : complete
                         ? "bg-done-soft text-done hover:bg-done/20"
                         : "bg-surface-2 text-ink-muted hover:text-ink"
