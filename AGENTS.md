@@ -90,6 +90,11 @@ response — respect that flag per hard rule #3.
 | User says they logged time in Tempo today | `POST /timesheet {day: "mon".."fri", checked: true}` (current week default; pass `weekId: "2026-W29"` for another week) |
 | All five days ticked and user confirms the Tempo week is submitted | `POST /timesheet/{weekId}/submit` |
 | User wants to reopen a submitted week | `POST /timesheet/{weekId}/unsubmit` |
+| User wants to auto-log Tempo from rules | `POST /timesheet/autotempo {dates?: ["YYYY-MM-DD"]}` — uses the user's configured auto-tempo rules |
+| User reorders rows on the board | `POST /rows/reorder {rowIds: [uuid, …]}` — full ordered list of row UUIDs |
+| A row shipped fully and user wants to close it out | `POST /rows/{ref}/complete` — checks every remaining sub-task and advances to done |
+| A row is abandoned / won't be fixed | `POST /rows/{ref}/wontfix` — marks complete without checking remaining sub-tasks |
+| User wants to pull latest Jira/GitHub statuses | `POST /integrations/sync` — fans out across all active rows; auto-advances matching sub-tasks |
 
 ## Endpoints
 
@@ -99,19 +104,26 @@ All paths are prefixed with `/api/v1`.
 | :-- | :-- | :-- | :-- |
 | GET | `/rows` | List rows (full milestone/sub-task state) | — |
 | POST | `/rows` | Create a row | `{identityRef, origin, subType?, pipelineKey?, secondaryRefs?, identityUrl?}` |
+| POST | `/rows/reorder` | Persist a new display order | `{rowIds: uuid[]}` |
 | GET | `/rows/{ref}` | Fetch one row by any of its refs | — |
 | DELETE | `/rows/{ref}` | Delete a row (rare — prefer completing it) | — |
 | POST | `/rows/{ref}/subtasks` | Tick a sub-task, or bulk-check every sub-task in a milestone | `{milestone, subtask?, checked}` |
 | POST | `/rows/{ref}/regress` | Clear a milestone + everything after | `{milestone}` |
 | POST | `/rows/{ref}/refs` | Add or remove a secondary ref | `{action: "add"\|"remove", ref, url?}` |
+| POST | `/rows/{ref}/complete` | Fast-complete a row (all remaining sub-tasks checked) | — |
+| POST | `/rows/{ref}/wontfix` | Close a row as won't-fix (complete, sub-tasks left unchecked) | — |
 | GET | `/pipelines` | Live pipeline definitions | — |
 | GET | `/timesheet` | Months → weeks → days | — |
 | POST | `/timesheet` | Tick a day | `{weekId?, day, checked}` |
 | POST | `/timesheet/{weekId}/submit` | Submit a fully-checked week | — |
 | POST | `/timesheet/{weekId}/unsubmit` | Reopen a submitted week | — |
+| POST | `/timesheet/autotempo` | Auto-log Tempo days from configured rules | `{dates?: ["YYYY-MM-DD"]}` |
 | GET | `/analytics?from&to` | Throughput, velocity delta, breakdown, loose ends | — |
 | GET | `/me` | Caller identity + settings | — |
+| PATCH | `/me` | Update settings | `{timezone?, jiraBaseUrl?, jiraEmail?, jiraApiToken?, jiraAccountId?, githubBaseUrl?, githubPat?, githubDefaultOrg?, tempoApiToken?, colorTheme?, fontTheme?, showTimesheet?, autoTempoDefaultRule?, autoTempoSkipDays?, autoTempoRules?}` |
 | GET | `/export` | Full JSON export of the user's data | — |
+| DELETE | `/account` | Delete account (session-only — tokens get 403) | `{confirm: "DELETE"}` |
+| POST | `/integrations/sync` | Pull latest Jira/GitHub statuses for all active rows | — |
 
 ## Conventions
 

@@ -116,6 +116,7 @@ const NAV = [
       { id: "ep-subtasks", label: "Sub-tasks & regression" },
       { id: "ep-timesheet", label: "Timesheet" },
       { id: "ep-misc", label: "Analytics, me, export" },
+      { id: "ep-integrations", label: "Integrations" },
     ],
   },
   {
@@ -312,6 +313,24 @@ export default async function DocsPage() {
             <p>The live pipeline definitions — milestone and sub-task keys, labels, and{" "}
             <code className="font-mono">humanUsual</code>{" "}flags. Fetch these; don&apos;t hardcode keys.</p>
           </Ep>
+          <Ep v="POST" path="/api/v1/rows/reorder">
+            <p>Persist a new display order for all rows on the board.</p>
+            <Fields
+              rows={[
+                ["rowIds*", "uuid[]", "Ordered array of every row UUID the user owns. Missing or extra ids are rejected."],
+              ]}
+            />
+          </Ep>
+          <Ep v="POST" path="/api/v1/rows/{ref}/complete">
+            <p>Fast-complete a row — checks every remaining sub-task across all milestones in one
+            transaction, advancing the bar to done. Useful when a piece of work shipped outside the
+            normal milestone flow and you want to close it out cleanly.</p>
+          </Ep>
+          <Ep v="POST" path="/api/v1/rows/{ref}/wontfix">
+            <p>Close a row as won&apos;t-fix — marks it complete without checking any remaining sub-tasks.
+            The row is done, but the unchecked items stay unchecked as an honest record that those
+            steps were skipped.</p>
+          </Ep>
 
           <H2 id="ep-subtasks">Endpoints · Sub-tasks &amp; regression</H2>
           <p className="max-w-2xl text-sm text-ink-muted">The workhorse. Report a sub-task the moment the underlying action really happened. Omit <code className="font-mono">subtask</code> to bulk-check the whole milestone atomically in one transaction:</p>
@@ -347,6 +366,19 @@ export default async function DocsPage() {
           <Ep v="POST" path="/api/v1/timesheet/{weekId}/submit">
             <p>Submit the week. 409 unless all five days are checked.</p>
           </Ep>
+          <Ep v="POST" path="/api/v1/timesheet/{weekId}/unsubmit">
+            <p>Reopen a previously submitted week so days can be changed. The week returns to
+            the &ldquo;checked but not submitted&rdquo; state.</p>
+          </Ep>
+          <Ep v="POST" path="/api/v1/timesheet/autotempo">
+            <p>Auto-log Tempo days based on the user&apos;s configured auto-tempo rules. Optionally
+            pass specific dates to process; omit to use the default date range.</p>
+            <Fields
+              rows={[
+                ["dates", "string[]", "Optional array of YYYY-MM-DD date strings to process. Omit for the default range."],
+              ]}
+            />
+          </Ep>
           <Note tone="warn" title="◷ Timezones">
             Timestamps are stored in UTC; day and week bucketing happens in your account&apos;s timezone
             (default <code className="font-mono">Asia/Kolkata</code>). Set it once in Settings or via{" "}
@@ -363,14 +395,57 @@ export default async function DocsPage() {
             <p>Who am I: user id, auth method, scopes, timezone, link templates.</p>
           </Ep>
           <Ep v="PATCH" path="/api/v1/me">
-            <p><code className="font-mono">{`{"timezone?", "jiraBaseUrl?", "githubBaseUrl?"}`}</code> — the link
-            templates that turn bare refs into one-click links (<code className="font-mono">PES-1032</code> →{" "}
+            <p>Update user settings. All fields are optional — send only what you want to change.
+            Link templates turn bare refs into one-click links (<code className="font-mono">PES-1032</code> →{" "}
             <code className="font-mono">{`{jiraBaseUrl}/browse/PES-1032`}</code>).</p>
+            <Fields
+              rows={[
+                ["timezone", "string", "IANA timezone (e.g. Asia/Kolkata)."],
+                ["jiraBaseUrl", "string | null", "Jira instance URL for link templates."],
+                ["jiraEmail", "string | null", "Jira account email for API access."],
+                ["jiraApiToken", "string | null", "Jira API token."],
+                ["jiraAccountId", "string | null", "Jira account ID (for Tempo)."],
+                ["githubBaseUrl", "string | null", "GitHub instance URL."],
+                ["githubPat", "string | null", "GitHub personal access token for PR status sync."],
+                ["githubDefaultOrg", "string | null", "Default GitHub org for short-form PR refs (repo#123)."],
+                ["tempoApiToken", "string | null", "Tempo API token for auto-tempo."],
+                ["colorTheme", '"paper" | "nord" | "forest" | "royal"', "Dashboard colour theme."],
+                ["fontTheme", '"serif" | "sans" | "mono"', "Dashboard font family."],
+                ["showTimesheet", "boolean", "Show or hide the timesheet sidebar."],
+                ["autoTempoDefaultRule", "object | null", "Default auto-tempo logging rule."],
+                ["autoTempoSkipDays", "string[] | null", "Days to skip during auto-tempo (e.g. public holidays)."],
+                ["autoTempoRules", "object[] | null", "Per-project auto-tempo rule overrides."],
+              ]}
+            />
           </Ep>
           <Ep v="GET" path="/api/v1/export">
             <p>Everything you own as one JSON document — settings, rows with full state, timesheet weeks.
             This is also the privacy-portability mechanism.</p>
           </Ep>
+          <Ep v="DELETE" path="/api/v1/account">
+            <p>Permanently delete your account and all associated data. This is a privacy self-serve
+            erasure endpoint. <b>Session-only</b> — tokens cannot perform this action (403).</p>
+            <Fields
+              rows={[
+                ["confirm*", '"DELETE"', "Safety latch — must be the literal string DELETE."],
+              ]}
+            />
+          </Ep>
+
+          <H2 id="ep-integrations">Endpoints · Integrations</H2>
+          <Ep v="POST" path="/api/v1/integrations/sync">
+            <p>Pull the latest statuses from Jira and GitHub for every active row you own. Jira issue
+            statuses are cached and, where possible, matching sub-tasks are auto-advanced (e.g. a card
+            moving to &ldquo;Code Review&rdquo; ticks <code className="font-mono">card_code_review</code>).
+            GitHub PR state, mergeable status, and review decision are synced similarly.</p>
+            <p>No request body. Requires Jira/GitHub credentials configured via{" "}
+            <code className="font-mono">PATCH /api/v1/me</code>.</p>
+          </Ep>
+          <Note tone="info" title="▣ Integration credentials">
+            Configure Jira and GitHub credentials in Settings or via <code className="font-mono">PATCH /api/v1/me</code>{" "}
+            before calling sync. The sync endpoint reads your stored credentials and fans out requests
+            across all active rows.
+          </Note>
 
           <H2 id="agents">Automate with agents &amp; llms.txt</H2>
           <p className="max-w-2xl text-sm text-ink-muted">
