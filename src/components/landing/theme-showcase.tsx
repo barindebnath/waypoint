@@ -99,20 +99,20 @@ export function ThemeShowcase() {
   const activeColorTheme = useSyncExternalStore(
     subscribeColorTheme,
     getColorThemePref,
-    () => "paper" as ColorThemePref
+    () => "forest" as ColorThemePref
   );
   const activeFontTheme = useSyncExternalStore(
     subscribeFontTheme,
     getFontThemePref,
-    () => "serif" as FontThemePref
+    () => "mono" as FontThemePref
   );
 
   const [selectedPalette, setSelectedPalette] = useState<ThemePalette>(
-    (activeColorTheme as ThemePalette) || "paper"
+    (activeColorTheme as ThemePalette) || "forest"
   );
-  const [selectedMode, setSelectedMode] = useState<ThemeMode>("light");
+  const [selectedMode, setSelectedMode] = useState<ThemeMode>("dark");
   const [selectedFont, setSelectedFont] = useState<FontThemePref>(
-    activeFontTheme || "serif"
+    activeFontTheme || "mono"
   );
   const [appliedGlobal, setAppliedGlobal] = useState(false);
 

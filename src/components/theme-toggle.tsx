@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { cycleThemePref, getThemePref, subscribeTheme, THEME_GLYPHS } from "@/lib/theme";
 
 export function ThemeToggle() {
-  const pref = useSyncExternalStore(subscribeTheme, getThemePref, () => "system" as const);
+  const pref = useSyncExternalStore(subscribeTheme, getThemePref, () => "dark" as const);
   return (
     <button
       onClick={() => cycleThemePref()}

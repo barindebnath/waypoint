@@ -6,9 +6,9 @@ const KEY = "wp-font-theme";
 const listeners = new Set<() => void>();
 
 export function getFontThemePref(): FontThemePref {
-  if (typeof window === "undefined") return "serif";
+  if (typeof window === "undefined") return "mono";
   const v = localStorage.getItem(KEY);
-  return v === "sans" || v === "mono" ? v : "serif";
+  return v === "serif" || v === "sans" || v === "mono" ? v : "mono";
 }
 
 export function applyFontTheme(pref: FontThemePref) {

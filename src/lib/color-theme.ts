@@ -6,9 +6,9 @@ const KEY = "wp-color-theme";
 const listeners = new Set<() => void>();
 
 export function getColorThemePref(): ColorThemePref {
-  if (typeof window === "undefined") return "paper";
+  if (typeof window === "undefined") return "forest";
   const v = localStorage.getItem(KEY);
-  return v === "nord" || v === "forest" || v === "royal" ? v : "paper";
+  return v === "paper" || v === "nord" || v === "forest" || v === "royal" ? v : "forest";
 }
 
 export function applyColorTheme(pref: ColorThemePref) {

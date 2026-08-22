@@ -48,7 +48,7 @@ const THEME_CARDS: {
 ];
 
 function AppearanceSection() {
-  const pref = useSyncExternalStore(subscribeTheme, getThemePref, () => "system" as const);
+  const pref = useSyncExternalStore(subscribeTheme, getThemePref, () => "dark" as const);
   return (
     <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
       <h2 className="mb-1 text-sm font-semibold">Appearance</h2>
@@ -100,7 +100,7 @@ const COLOR_THEME_CARDS: {
 ];
 
 function ColorPaletteSection() {
-  const pref = useSyncExternalStore(subscribeColorTheme, getColorThemePref, () => "paper" as const);
+  const pref = useSyncExternalStore(subscribeColorTheme, getColorThemePref, () => "forest" as const);
   const qc = useQueryClient();
 
   const themeMut = useMutation({
@@ -162,7 +162,7 @@ const FONT_THEME_CARDS: {
 ];
 
 function FontStyleSection() {
-  const pref = useSyncExternalStore(subscribeFontTheme, getFontThemePref, () => "serif" as const);
+  const pref = useSyncExternalStore(subscribeFontTheme, getFontThemePref, () => "mono" as const);
   const qc = useQueryClient();
 
   const fontMut = useMutation({

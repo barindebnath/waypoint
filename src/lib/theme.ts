@@ -13,9 +13,9 @@ const listeners = new Set<() => void>();
 let mqBound = false;
 
 export function getThemePref(): ThemePref {
-  if (typeof window === "undefined") return "system";
+  if (typeof window === "undefined") return "dark";
   const v = localStorage.getItem(KEY);
-  return v === "light" || v === "dark" ? v : "system";
+  return v === "light" || v === "system" || v === "dark" ? v : "dark";
 }
 
 export function applyTheme(pref: ThemePref) {
