@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { rowTouchedInRange, type InspectRange } from "@/lib/inspect";
@@ -10,8 +10,21 @@ import { DateRangePicker } from "@/components/date-range-picker";
 import { TimesheetFooter } from "@/components/timesheet-footer";
 import { DeferredSpinner } from "@/components/deferred-spinner";
 import { FilterIcon, RefreshIcon } from "@/components/status-badge";
+import { AdvanceSuggestionBanner } from "@/components/advance-suggestion-banner";
 
 export type SortOption = "custom" | "newest" | "oldest" | "longest_in_stage" | "recently_updated";
+
+function formatRelativeSyncTime(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (isNaN(ms) || ms < 0) return "Synced just now";
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "Synced just now";
+  if (mins < 60) return `Synced ${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `Synced ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `Synced ${days}d ago`;
+}
 
 export default function DashboardPage() {
   const { data, isLoading } = useQuery({ queryKey: ["rows"], queryFn: api.rows });
@@ -23,10 +36,30 @@ export default function DashboardPage() {
   const [sortBy, setSortBy] = useState<SortOption>("custom");
   const [showFilterPopover, setShowFilterPopover] = useState(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("waypoint_last_synced");
+    }
+    return null;
+  });
+  const [, setTimeTick] = useState(0);
+
+  useEffect(() => {
+    // Update relative time display every 30 seconds
+    const interval = setInterval(() => {
+      setTimeTick((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const syncMut = useMutation({
     mutationFn: () => api.syncIntegrations(),
     onSuccess: (res) => {
+      const now = new Date().toISOString();
+      if (typeof window !== "undefined") {
+        localStorage.setItem("waypoint_last_synced", now);
+      }
+      setLastSyncedAt(now);
       setSyncToast(`Synced ${res.syncedJiraCount} Jira & ${res.syncedGithubCount} GitHub PR(s) ✓`);
       queryClient.invalidateQueries({ queryKey: ["rows"] });
       setTimeout(() => setSyncToast(null), 4000);
@@ -154,6 +187,15 @@ export default function DashboardPage() {
             </span>
           )}
 
+          {lastSyncedAt && !syncToast && (
+            <span
+              className="hidden lg:inline text-[11px] font-mono text-ink-faint"
+              title={`Last synced at ${new Date(lastSyncedAt).toLocaleString()}`}
+            >
+              {formatRelativeSyncTime(lastSyncedAt)}
+            </span>
+          )}
+
           {/* Sync integrations shortcut button */}
           <button
             type="button"
@@ -251,6 +293,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <AdvanceSuggestionBanner rows={rows} readOnly={readOnly} />
 
       <NewRowForm />
 

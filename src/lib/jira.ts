@@ -39,6 +39,31 @@ export async function fetchJiraIssueStatus(
   }
 }
 
+export async function fetchJiraIssueSummary(
+  jiraBaseUrl: string,
+  email: string,
+  apiToken: string,
+  issueKey: string
+): Promise<string | null> {
+  try {
+    const cleanUrl = jiraBaseUrl.replace(/\/+$/, '');
+    const authHeader = 'Basic ' + Buffer.from(`${email}:${apiToken}`).toString('base64');
+    const res = await fetch(`${cleanUrl}/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=summary`, {
+      headers: {
+        Authorization: authHeader,
+        Accept: 'application/json',
+      },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.fields?.summary ? String(data.fields.summary) : null;
+  } catch (err) {
+    console.error(`Failed to fetch Jira summary for ${issueKey}:`, err);
+    return null;
+  }
+}
+
 export async function fetchJiraIssueId(
   jiraBaseUrl: string,
   email: string,
@@ -63,4 +88,6 @@ export async function fetchJiraIssueId(
     return null;
   }
 }
+
+
 

@@ -237,6 +237,10 @@ export const api = {
       body: JSON.stringify({ rowIds }),
       headers: { "Idempotency-Key": `reorder-${Date.now()}-${Math.random()}` },
     }),
+  previewRef: (ref: string) =>
+    request<{ ref: string; title: string | null }>(
+      `/api/v1/integrations/preview?ref=${encodeURIComponent(ref)}`
+    ),
   deleteAccount: () =>
     request<{ ok: true }>("/api/v1/account", {
       method: "DELETE",

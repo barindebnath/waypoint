@@ -139,3 +139,42 @@ export async function fetchGithubPrStatus(
     };
   }
 }
+
+export async function fetchGithubPrTitle(
+  pat: string | null | undefined,
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<string | null> {
+  try {
+    const token = pat?.trim() || "";
+    const authHeadersToTry: (string | null)[] = token
+      ? token.startsWith("github_pat_")
+        ? [`Bearer ${token}`, `token ${token}`]
+        : [`token ${token}`, `Bearer ${token}`]
+      : [null];
+
+    for (const authHeader of authHeadersToTry) {
+      const headers: Record<string, string> = {
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "Waypoint-App",
+      };
+      if (authHeader) headers.Authorization = authHeader;
+
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}`, {
+        headers,
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        return data.title ? String(data.title) : null;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error(`Failed to fetch GitHub PR title for ${owner}/${repo}#${pullNumber}:`, err);
+    return null;
+  }
+}
+

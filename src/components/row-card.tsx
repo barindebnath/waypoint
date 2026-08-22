@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Fragment, useRef, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type EnrichedRowView } from "@/lib/client-api";
 import { inRange, type InspectRange } from "@/lib/inspect";
 import { RefPill } from "./ref-pill";
@@ -124,7 +124,16 @@ function PrRefPill({
   isRemoving?: boolean;
   className?: string;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
   const showRemovingLoader = useDeferredLoading(!!isRemoving);
+
+  const { data: preview, isLoading: isLoadingPreview } = useQuery({
+    queryKey: ["preview", prRef.ref],
+    queryFn: () => api.previewRef(prRef.ref),
+    enabled: isHovered && Boolean(prRef.ref),
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
 
   const innerPill = (
     <span className={`inline-flex items-center gap-1.5 rounded-full border border-edge bg-surface-2 px-2.5 py-[3px] font-mono text-[11px] text-ink-muted hover:border-edge-strong transition-colors cursor-pointer`}>
@@ -141,7 +150,11 @@ function PrRefPill({
   );
 
   return (
-    <span className={`relative group/pr items-center ${className || "inline-flex"}`}>
+    <span
+      className={`relative group/pr items-center ${className || "inline-flex"}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {prRef.resolvedUrl ? (
         <a
           href={prRef.resolvedUrl}
@@ -184,6 +197,23 @@ function PrRefPill({
           </span>
           <span className="text-[10px] text-ink-faint">GitHub PR</span>
         </div>
+
+        {/* Ephemeral PR title preview */}
+        {preview?.title ? (
+          <div className="mb-2 pb-2 border-b border-edge/60">
+            <p className="text-[11.5px] font-medium text-ink leading-snug line-clamp-2" title={preview.title}>
+              &ldquo;{preview.title}&rdquo;
+            </p>
+          </div>
+        ) : isLoadingPreview ? (
+          <div className="mb-2 pb-1.5 border-b border-edge/60">
+            <p className="text-[10.5px] text-ink-faint italic flex items-center gap-1.5">
+              <Spinner className="h-2.5 w-2.5 text-accent shrink-0" />
+              <span>Loading PR title…</span>
+            </p>
+          </div>
+        ) : null}
+
         {prRef.prStatus ? (
           <div className="space-y-1.5 text-[11.5px]">
             <div className="flex justify-between">
@@ -317,6 +347,8 @@ export function RowCard({
       ? "identity-support"
       : "identity-product";
   const current = row.milestones.find((m) => m.isCurrent);
+  const currentMilestone = current || row.milestones.find((m) => !m.complete);
+  const nextSubtask = currentMilestone?.subtasks.find((s) => !s.checked);
 
   return (
     <div
@@ -401,7 +433,37 @@ export function RowCard({
           })}
         </span>
 
-        <div className="hidden sm:flex flex-col items-end shrink-0 w-[150px]">
+        {/* 1-Click Fast-Advance "Next Action" Button */}
+        {!readOnly && !row.isComplete && nextSubtask && currentMilestone && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              subtaskMut.mutate({
+                milestone: currentMilestone.key,
+                subtask: nextSubtask.key,
+                checked: true,
+              });
+            }}
+            disabled={subtaskMut.isPending}
+            title={`Click to tick "${nextSubtask.label}" in ${currentMilestone.label}${nextSubtask.humanUsual ? " · (Done by you)" : ""}`}
+            className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 hover:bg-accent hover:text-accent-ink px-2.5 py-1 text-[11px] font-medium text-accent transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95 disabled:opacity-50 shrink-0 select-none"
+          >
+            <DeferredSpinner
+              isPending={
+                subtaskMut.isPending &&
+                subtaskMut.variables?.milestone === currentMilestone.key &&
+                subtaskMut.variables?.subtask === nextSubtask.key
+              }
+              className="h-3 w-3 text-current"
+            />
+            <span className="font-mono text-[10px] opacity-75">Next:</span>
+            <span className="truncate max-w-[110px] font-medium">{nextSubtask.label}</span>
+            <span className="font-bold">✓</span>
+          </button>
+        )}
+
+        <div className="hidden sm:flex flex-col items-end shrink-0 w-[140px]">
           <span
             className={`w-full truncate text-right font-serif text-sm italic ${
               row.isComplete ? "text-done" : "text-accent"
