@@ -372,19 +372,33 @@ export async function setSubtask(
   }
 
   await db.transaction(async (tx) => {
-    // Set target subtask
-    const updated = await tx
-      .update(schema.subtaskState)
-      .set({ checked, updatedAt: new Date() })
+    const currentSubtask = await tx
+      .select()
+      .from(schema.subtaskState)
       .where(
         and(
           eq(schema.subtaskState.rowId, row.id),
           eq(schema.subtaskState.milestoneKey, milestoneKey),
           eq(schema.subtaskState.subtaskKey, subtaskKey),
         ),
-      )
-      .returning();
-    if (updated.length === 0) throw new EngineError("Sub-task state missing", 500);
+      );
+    if (currentSubtask.length === 0) throw new EngineError("Sub-task state missing", 500);
+
+    let stateChanged = currentSubtask[0].checked !== checked;
+
+    // Set target subtask only if changed
+    if (stateChanged) {
+      await tx
+        .update(schema.subtaskState)
+        .set({ checked, updatedAt: new Date() })
+        .where(
+          and(
+            eq(schema.subtaskState.rowId, row.id),
+            eq(schema.subtaskState.milestoneKey, milestoneKey),
+            eq(schema.subtaskState.subtaskKey, subtaskKey),
+          ),
+        );
+    }
 
     // Dynamic cascade: when a subtask is checked, auto-check preceding automated subtasks
     if (checked) {
@@ -394,7 +408,7 @@ export async function setSubtask(
         for (let m = 0; m < targetMIdx; m++) {
           const prevM = def.milestones[m];
           for (const s of prevM.subtasks) {
-            await tx
+            const res = await tx
               .update(schema.subtaskState)
               .set({ checked: true, updatedAt: new Date() })
               .where(
@@ -402,8 +416,11 @@ export async function setSubtask(
                   eq(schema.subtaskState.rowId, row.id),
                   eq(schema.subtaskState.milestoneKey, prevM.key),
                   eq(schema.subtaskState.subtaskKey, s.key),
+                  eq(schema.subtaskState.checked, false),
                 ),
-              );
+              )
+              .returning();
+            if (res.length > 0) stateChanged = true;
           }
         }
 
@@ -413,7 +430,7 @@ export async function setSubtask(
           for (let s = 0; s < targetSIdx; s++) {
             const prevS = mDef.subtasks[s];
             if (!prevS.humanUsual) {
-              await tx
+              const res = await tx
                 .update(schema.subtaskState)
                 .set({ checked: true, updatedAt: new Date() })
                 .where(
@@ -421,15 +438,20 @@ export async function setSubtask(
                     eq(schema.subtaskState.rowId, row.id),
                     eq(schema.subtaskState.milestoneKey, milestoneKey),
                     eq(schema.subtaskState.subtaskKey, prevS.key),
+                    eq(schema.subtaskState.checked, false),
                   ),
-                );
+                )
+                .returning();
+              if (res.length > 0) stateChanged = true;
             }
           }
         }
       }
     }
 
-    await recomputeAfterCheck(tx, row, def);
+    if (stateChanged) {
+      await recomputeAfterCheck(tx, row, def);
+    }
   });
 
   return (await getRowView(userId, row.identityRef))!;
@@ -454,16 +476,20 @@ export async function bulkSetSubtasks(
   if (!mDef) throw new EngineError(`Unknown milestone ${milestoneKey} for ${row.pipelineKey}`);
 
   await db.transaction(async (tx) => {
-    await tx
+    const res = await tx
       .update(schema.subtaskState)
       .set({ checked, updatedAt: new Date() })
       .where(
         and(
           eq(schema.subtaskState.rowId, row.id),
           eq(schema.subtaskState.milestoneKey, milestoneKey),
+          eq(schema.subtaskState.checked, !checked),
         ),
-      );
-    await recomputeAfterCheck(tx, row, def);
+      )
+      .returning();
+    if (res.length > 0) {
+      await recomputeAfterCheck(tx, row, def);
+    }
   });
 
   return (await getRowView(userId, row.identityRef))!;

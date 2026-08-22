@@ -381,7 +381,7 @@ export function RowCard({
           aria-label={`${doneCount}/${row.milestones.length} milestones`}
         >
           {row.milestones.map((m, i) => {
-            const grayed = inspect && !inRange(m.updatedAt, inspect);
+            const grayed = inspect && (!m.complete || !inRange(m.updatedAt, inspect));
             const nodeColor = m.complete ? "text-done" : m.isCurrent ? "text-accent" : "text-ink-faint";
             return (
               <Fragment key={m.key}>
@@ -465,7 +465,7 @@ export function RowCard({
               style={{ gridTemplateColumns: `repeat(${row.milestones.length}, minmax(180px, 1fr))` }}
             >
               {row.milestones.map((m) => {
-                const grayed = inspect && !inRange(m.updatedAt, inspect);
+                const grayed = inspect && (!m.complete || !inRange(m.updatedAt, inspect));
                 return (
                   <div
                     key={m.key}
@@ -514,7 +514,7 @@ export function RowCard({
                     </div>
                     <ul className="flex flex-col gap-[7px]">
                       {m.subtasks.map((s) => {
-                        const sGrayed = inspect && !inRange(s.updatedAt, inspect);
+                        const sGrayed = inspect && (!s.checked || !inRange(s.updatedAt, inspect));
                         return (
                           <li key={s.key} className={sGrayed ? "opacity-30" : ""}>
                             <label

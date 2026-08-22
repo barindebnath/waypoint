@@ -6,6 +6,7 @@ import { api } from "@/lib/client-api";
 import { rowTouchedInRange, type InspectRange } from "@/lib/inspect";
 import { NewRowForm } from "@/components/new-row-form";
 import { RowCard } from "@/components/row-card";
+import { DateRangePicker } from "@/components/date-range-picker";
 import { TimesheetFooter } from "@/components/timesheet-footer";
 import { DeferredSpinner } from "@/components/deferred-spinner";
 import { FilterIcon, RefreshIcon } from "@/components/status-badge";
@@ -38,8 +39,6 @@ export default function DashboardPage() {
 
   // Date-range inspection (spec §8): read-only; filter forced ON and disabled.
   const [inspect, setInspect] = useState<InspectRange | null>(null);
-  const [draftFrom, setDraftFrom] = useState("");
-  const [draftTo, setDraftTo] = useState("");
   const readOnly = inspect !== null;
   const effectiveShowCompleted = inspect ? true : showCompleted;
 
@@ -234,58 +233,17 @@ export default function DashboardPage() {
                   {/* Date Range Inspection */}
                   <div className="border-t border-edge/60 pt-3">
                     <label className="block text-[11px] font-medium text-ink-muted mb-1.5">Date Range Inspection:</label>
-                    {inspect ? (
-                      <div className="flex items-center justify-between rounded-[7px] border border-accent bg-accent/10 p-2 text-accent">
-                        <span className="font-serif italic text-[11.5px]">
-                          {inspect.from} → {inspect.to}
-                        </span>
-                        <button
-                          onClick={() => setInspect(null)}
-                          className="font-sans text-xs font-semibold hover:underline cursor-pointer"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    ) : (
-                      <form
-                        className="space-y-2.5"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          if (draftFrom && draftTo && draftFrom <= draftTo) {
-                            setInspect({ from: draftFrom, to: draftTo });
-                            setShowFilterPopover(false);
-                          }
-                        }}
-                      >
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10px] text-ink-faint mb-0.5">From:</label>
-                            <input
-                              type="date"
-                              value={draftFrom}
-                              onChange={(e) => setDraftFrom(e.target.value)}
-                              className="w-full rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink outline-none focus:border-accent"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] text-ink-faint mb-0.5">To:</label>
-                            <input
-                              type="date"
-                              value={draftTo}
-                              onChange={(e) => setDraftTo(e.target.value)}
-                              className="w-full rounded-[7px] border border-edge bg-surface-2 px-1.5 py-1 text-xs text-ink outline-none focus:border-accent"
-                            />
-                          </div>
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={!draftFrom || !draftTo || draftFrom > draftTo}
-                          className="w-full rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-edge-strong disabled:opacity-40 cursor-pointer"
-                        >
-                          Inspect Date Range
-                        </button>
-                      </form>
-                    )}
+                    <DateRangePicker
+                      value={inspect}
+                      onApply={(range) => {
+                        setInspect(range);
+                        setShowFilterPopover(false);
+                      }}
+                      onClear={() => {
+                        setInspect(null);
+                        setShowFilterPopover(false);
+                      }}
+                    />
                   </div>
                 </div>
               </div>

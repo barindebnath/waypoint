@@ -15,16 +15,23 @@ export function inRange(iso: string | null | undefined, r: InspectRange): boolea
 
 /** Last-touch limitation: matches "most recent change in window", by design. */
 export function rowTouchedInRange(row: EnrichedRowView, r: InspectRange): boolean {
-  if (inRange(row.updatedAt, r)) return true;
-  return row.milestones.some(
-    (m) => inRange(m.updatedAt, r) || m.subtasks.some((s) => inRange(s.updatedAt, r)),
-  );
+  if (inRange(row.createdAt, r)) return true;
+  if (row.isComplete && inRange(row.updatedAt, r)) return true;
+  if (row.milestones.some((m) => m.complete && inRange(m.updatedAt, r))) return true;
+  if (
+    row.milestones.some((m) =>
+      m.subtasks.some((s) => s.checked && inRange(s.updatedAt, r)),
+    )
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function monthTouchedInRange(month: MonthView, r: InspectRange): boolean {
   return month.weeks.some(
     (w) =>
-      Object.values(w.days).some((d) => inRange(d.updatedAt, r)) ||
-      inRange(w.submit.submittedAt, r),
+      Object.values(w.days).some((d) => d.checked && inRange(d.updatedAt, r)) ||
+      (w.submit.status === "submitted" && inRange(w.submit.submittedAt, r)),
   );
 }
