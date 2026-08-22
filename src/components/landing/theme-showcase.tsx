@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { PaletteIcon, SparklesIcon, CheckCircleIcon } from "./icons";
+import { SparklesIcon } from "./icons";
 import {
   getColorThemePref,
   setColorThemePref,
@@ -119,7 +119,6 @@ export function ThemeShowcase() {
   const palette = PALETTES.find((p) => p.key === selectedPalette)!;
 
   const isDark = selectedMode === "dark";
-  const bg = isDark ? palette.bgDark : palette.bgLight;
   const surface = isDark ? palette.surfaceDark : palette.surfaceLight;
   const accent = isDark ? palette.accentDark : palette.accentLight;
   const ink = isDark ? palette.inkDark : palette.inkLight;

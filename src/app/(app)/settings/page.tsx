@@ -262,8 +262,7 @@ function SettingsForm({
   const [jiraApiToken, setJiraApiToken] = useState(me.jiraApiToken ?? "");
   const [github, setGithub] = useState(me.githubBaseUrl ?? "");
   const [githubPat, setGithubPat] = useState(me.githubPat ?? "");
-  const [githubDefaultOrg, setGithubDefaultOrg] = useState(me.githubDefaultOrg ?? "");
-  const [showTimesheet, setShowTimesheet] = useState(me.showTimesheet);
+  const [githubDefaultOrg] = useState(me.githubDefaultOrg ?? "");
 
   // AutoTempo states
   const [tempoApiToken, setTempoApiToken] = useState(me.tempoApiToken ?? "");
@@ -272,20 +271,21 @@ function SettingsForm({
   const [msClientSecret, setMsClientSecret] = useState(me.msClientSecret ?? "");
   const [msRefreshToken, setMsRefreshToken] = useState(me.msRefreshToken ?? "");
 
-
-
   const [rulesList, setRulesList] = useState<
     Array<{ id: string; issue: string; account: string; ruleStr: string; type: string; skip: boolean }>
   >(() => {
     if (Array.isArray(me.autoTempoRules) && me.autoTempoRules.length > 0) {
-      return me.autoTempoRules.map((r: any, idx: number) => ({
-        id: `rule-${idx}-${Date.now()}`,
-        issue: String(r.issue || ""),
-        account: String(r.account || ""),
-        ruleStr: Array.isArray(r.rule) ? r.rule.join(", ") : String(r.rule || ""),
-        type: String(r.type || "Feature Enhancement"),
-        skip: Boolean(r.skip),
-      }));
+      return me.autoTempoRules.map((r: unknown, idx: number) => {
+        const item = (r && typeof r === "object" ? r : {}) as Record<string, unknown>;
+        return {
+          id: `rule-${idx}-${Date.now()}`,
+          issue: String(item.issue || ""),
+          account: String(item.account || ""),
+          ruleStr: Array.isArray(item.rule) ? item.rule.join(", ") : String(item.rule || ""),
+          type: String(item.type || "Feature Enhancement"),
+          skip: Boolean(item.skip),
+        };
+      });
     }
     return [];
   });
@@ -489,7 +489,7 @@ function SettingsForm({
                 type="text"
                 name="jira_api_token_setting"
                 autoComplete="off"
-                style={{ WebkitTextSecurity: "disc" } as any}
+                style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
                 data-lpignore="true"
                 data-1p-ignore="true"
                 data-bwignore="true"
@@ -523,7 +523,7 @@ function SettingsForm({
                 type="text"
                 name="github_pat_setting"
                 autoComplete="off"
-                style={{ WebkitTextSecurity: "disc" } as any}
+                style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
                 data-lpignore="true"
                 data-1p-ignore="true"
                 data-bwignore="true"
@@ -582,7 +582,7 @@ function SettingsForm({
                 value={tempoApiToken}
                 onChange={(e) => setTempoApiToken(e.target.value)}
                 placeholder="Log into Tempo -> Settings -> API Integration -> New Token"
-                style={{ WebkitTextSecurity: "disc" } as any}
+                style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
                 className={`${inputCls} font-mono text-xs`}
               />
             </label>
@@ -616,7 +616,7 @@ function SettingsForm({
                 value={msClientSecret}
                 onChange={(e) => setMsClientSecret(e.target.value)}
                 placeholder="Secret value"
-                style={{ WebkitTextSecurity: "disc" } as any}
+                style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
                 className={`${inputCls} font-mono text-xs`}
               />
             </label>
@@ -627,7 +627,7 @@ function SettingsForm({
                 value={msRefreshToken}
                 onChange={(e) => setMsRefreshToken(e.target.value)}
                 placeholder="OAuth Refresh Token"
-                style={{ WebkitTextSecurity: "disc" } as any}
+                style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
                 className={`${inputCls} font-mono text-xs`}
               />
             </label>

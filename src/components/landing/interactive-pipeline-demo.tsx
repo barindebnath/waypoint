@@ -6,7 +6,6 @@ import {
   RotateCcwIcon,
   FastForwardIcon,
   CheckCircleIcon,
-  RefreshIcon,
 } from "./icons";
 
 type Subtask = {

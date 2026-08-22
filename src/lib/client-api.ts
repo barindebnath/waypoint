@@ -4,7 +4,103 @@ import type { EnrichedRowView } from "./links";
 import type { MonthView, WeekView } from "./timesheet";
 import type { PipelineDef, PipelineKey } from "./pipelines";
 
-export type { EnrichedRowView, MonthView, WeekView, PipelineDef, PipelineKey };
+export type {
+  EnrichedRowView,
+  MonthView,
+  WeekView,
+  PipelineDef,
+  PipelineKey,
+};
+
+export interface AnalyticsRange {
+  from: string;
+  to: string;
+  bucket: "day" | "week";
+  days: number;
+}
+
+export type AnalyticsOrigin = "all" | "support_bug" | "support_task" | "product";
+
+export interface AnalyticsFilter {
+  origin: AnalyticsOrigin;
+}
+
+export interface AnalyticsVelocity {
+  completed: number;
+  previous: number;
+  deltaPct: number | null;
+}
+
+export interface AnalyticsLeadTimeItem {
+  ref: string;
+  days: number;
+}
+
+export interface AnalyticsLeadTime {
+  avgDays: number | null;
+  medianDays: number | null;
+  prevAvgDays: number | null;
+  deltaPct: number | null;
+  fastest: AnalyticsLeadTimeItem | null;
+  slowest: AnalyticsLeadTimeItem | null;
+}
+
+export interface AnalyticsWipAgingItem {
+  identityRef: string;
+  origin: "support" | "product";
+  subType: "bug" | "task" | null;
+  currentMilestone: string | null;
+  ageDays: number;
+  isStalled: boolean;
+}
+
+export interface AnalyticsWip {
+  total: number;
+  stalledCount: number;
+  agingList: AnalyticsWipAgingItem[];
+}
+
+export interface AnalyticsDiscipline {
+  looseEndsCount: number;
+  looseEndsRefs: string[];
+  subtaskVerificationRatePct: number;
+}
+
+export interface AnalyticsStageDwellTime {
+  milestoneKey: string;
+  label: string;
+  avgHours: number;
+  avgDays: number;
+  percentage: number;
+  isBottleneck: boolean;
+}
+
+export interface AnalyticsThroughputBucket {
+  bucket: string;
+  count: number;
+  supportBugCount: number;
+  supportTaskCount: number;
+  productCount: number;
+}
+
+export interface AnalyticsBreakdown {
+  support_bug: number;
+  support_task: number;
+  product: number;
+  total: number;
+}
+
+export interface AnalyticsData {
+  range: AnalyticsRange;
+  filter: AnalyticsFilter;
+  velocity: AnalyticsVelocity;
+  leadTime: AnalyticsLeadTime;
+  wip: AnalyticsWip;
+  discipline: AnalyticsDiscipline;
+  stageDwellTimes: AnalyticsStageDwellTime[];
+  throughput: AnalyticsThroughputBucket[];
+  breakdown: AnalyticsBreakdown;
+}
 
 export class RequestError extends Error {
   constructor(
@@ -133,15 +229,8 @@ export const api = {
       "/api/v1/integrations/sync",
       { method: "POST" }
     ),
-  analytics: (from: string, to: string) =>
-    request<{
-      range: { from: string; to: string; bucket: "day" | "week" };
-      throughput: { bucket: string; count: number }[];
-      velocity: { completed: number; previous: number; deltaPct: number | null };
-      breakdown: { support_bug: number; support_task: number; product: number };
-      looseEnds: { count: number; refs: string[] };
-      wip: number;
-    }>(`/api/v1/analytics?from=${from}&to=${to}`),
+  analytics: (from: string, to: string, origin = "all") =>
+    request<AnalyticsData>(`/api/v1/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&origin=${encodeURIComponent(origin)}`),
   reorderRows: (rowIds: string[]) =>
     request<{ ok: true }>("/api/v1/rows/reorder", {
       method: "POST",

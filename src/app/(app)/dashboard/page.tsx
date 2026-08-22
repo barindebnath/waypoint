@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { rowTouchedInRange, type InspectRange } from "@/lib/inspect";
@@ -47,16 +47,12 @@ export default function DashboardPage() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [localRowIds, setLocalRowIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (rows.length > 0 && !draggedId) {
-      setLocalRowIds(rows.map((r) => r.id));
-    }
-  }, [rows, draggedId]);
-
   const getActiveStageTime = (r: (typeof rows)[number]) => {
     const current = r.milestones.find((m) => m.isCurrent);
     return current ? new Date(current.updatedAt || current.createdAt).getTime() : new Date(r.updatedAt).getTime();
   };
+
+  const effectiveRowIds = localRowIds.length === rows.length ? localRowIds : rows.map((r) => r.id);
 
   // Sort rows based on selected sort option
   const sortedRows = [...rows].sort((a, b) => {
@@ -73,8 +69,8 @@ export default function DashboardPage() {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     }
     // Default: Custom order (drag & drop)
-    const aIdx = localRowIds.indexOf(a.id);
-    const bIdx = localRowIds.indexOf(b.id);
+    const aIdx = effectiveRowIds.indexOf(a.id);
+    const bIdx = effectiveRowIds.indexOf(b.id);
     if (aIdx === -1) return 1;
     if (bIdx === -1) return -1;
     return aIdx - bIdx;
@@ -91,6 +87,7 @@ export default function DashboardPage() {
     if (sortBy !== "custom") {
       setSortBy("custom");
     }
+    setLocalRowIds(effectiveRowIds);
     setDraggedId(id);
     e.dataTransfer.effectAllowed = "move";
     e.currentTarget.classList.add("opacity-40");
@@ -101,7 +98,7 @@ export default function DashboardPage() {
     e.currentTarget.classList.remove("opacity-40");
 
     // Optimistically update React Query cache with new order
-    queryClient.setQueryData(["rows"], (old: any) => {
+    queryClient.setQueryData(["rows"], (old: { rows?: typeof rows } | undefined) => {
       if (!old) return old;
       return {
         ...old,
@@ -110,7 +107,7 @@ export default function DashboardPage() {
     });
 
     try {
-      await api.reorderRows(localRowIds);
+      await api.reorderRows(effectiveRowIds);
     } catch (err) {
       console.error("Failed to save reordered ticket rows:", err);
       // Revert cache to trigger refetch / reset state
@@ -123,7 +120,7 @@ export default function DashboardPage() {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
 
-    const currentOrder = [...localRowIds];
+    const currentOrder = [...effectiveRowIds];
     const fromIndex = currentOrder.indexOf(draggedId);
     const toIndex = currentOrder.indexOf(targetId);
 

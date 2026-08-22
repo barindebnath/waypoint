@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3Icon } from "./icons";
 
 type OriginFilter = "all" | "bugs" | "features";
 

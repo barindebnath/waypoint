@@ -7,7 +7,6 @@ export function useDeferredLoading(isPending: boolean, delayMs = 200) {
 
   useEffect(() => {
     if (!isPending) {
-      setShowLoading(false);
       return;
     }
 
@@ -15,8 +14,11 @@ export function useDeferredLoading(isPending: boolean, delayMs = 200) {
       setShowLoading(true);
     }, delayMs);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      setShowLoading(false);
+    };
   }, [isPending, delayMs]);
 
-  return showLoading;
+  return isPending && showLoading;
 }

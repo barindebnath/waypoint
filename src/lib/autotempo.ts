@@ -382,12 +382,6 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
     return { success: true, processedDates: [], worklogsCreated: 0, totalSecondsLogged: 0, messages: ["All days up to today are already filled in Tempo!"] };
   }
 
-  const defaultRule = (settings.autoTempoDefaultRule as AutoTempoDefaultRule | null) || {
-    issue: "197349",
-    account: "CAP_DEV_NEW",
-    rule: "Development / Feature Work",
-  };
-
   const customRules = (settings.autoTempoRules as AutoTempoRule[] | null) || [];
   const rules = [...customRules, ...BASE_RULES];
 
@@ -645,7 +639,7 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
       const wId = weekIdFor(dt);
       try {
         await tickDay(userId, wId, dayKey, true, settings.timezone);
-      } catch (err) {
+      } catch {
         // Ignore if already submitted error
       }
     }

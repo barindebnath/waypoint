@@ -131,10 +131,11 @@ export async function fetchGithubPrStatus(
       success: false,
       error: `GitHub API error ${status}: ${lastRes?.statusText ?? "Unknown error"}`,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     return {
       success: false,
-      error: `GitHub network request failed: ${err.message ?? err}`,
+      error: `GitHub network request failed: ${message}`,
     };
   }
 }

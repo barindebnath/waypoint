@@ -466,7 +466,6 @@ export function RowCard({
             >
               {row.milestones.map((m) => {
                 const grayed = inspect && !inRange(m.updatedAt, inspect);
-                const nodeColor = m.complete ? "text-done" : m.isCurrent ? "text-accent" : "text-ink-faint";
                 return (
                   <div
                     key={m.key}

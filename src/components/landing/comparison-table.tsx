@@ -1,7 +1,5 @@
 "use client";
 
-import { CheckIcon } from "./icons";
-
 type ComparisonRow = {
   feature: string;
   waypoint: string;

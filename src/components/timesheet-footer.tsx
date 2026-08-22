@@ -3,8 +3,8 @@
 import { useState, Fragment, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
-import { DAY_KEYS, type DayKey } from "@/lib/timesheet-shared";
-import { inRange, monthTouchedInRange, type InspectRange } from "@/lib/inspect";
+import { DAY_KEYS } from "@/lib/timesheet-shared";
+import { inRange, type InspectRange } from "@/lib/inspect";
 import { useDeferredLoading } from "@/lib/use-deferred-loading";
 import { Spinner } from "./spinner";
 
@@ -120,11 +120,10 @@ function TimesheetSubmitButton({
 }
 
 export function TimesheetFooter({
-  showCompleted,
   readOnly,
   inspect,
 }: {
-  showCompleted: boolean;
+  showCompleted?: boolean;
   readOnly: boolean;
   inspect: InspectRange | null;
 }) {
@@ -161,8 +160,9 @@ export function TimesheetFooter({
       }
       invalidate();
     },
-    onError: (err: any) => {
-      setAutoTempoStatus(`AutoTempo Error: ${err.message || "Execution failed"}`);
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Execution failed";
+      setAutoTempoStatus(`AutoTempo Error: ${message}`);
     },
   });
 

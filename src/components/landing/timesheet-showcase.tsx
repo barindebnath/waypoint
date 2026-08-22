@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircleIcon, CalendarIcon, SparklesIcon } from "./icons";
+import { CheckCircleIcon, SparklesIcon } from "./icons";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri";
 

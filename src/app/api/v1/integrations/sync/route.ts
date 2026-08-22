@@ -86,11 +86,11 @@ export async function POST() {
                     await setSubtask(userId, row.identityRef, "prod_close", "comment_project_card", true).catch(() => {});
                   }
                 }
-              } catch (e) {
+              } catch {
                 // Ignore subtask auto-advance errors if subtask key doesn't exist on this row's pipeline
               }
             }
-          } catch (e) {
+          } catch {
             // Ignore single row Jira sync failure
           }
         }
@@ -168,13 +168,13 @@ export async function POST() {
                   if (githubDetails.state === "merged") {
                     await setSubtask(userId, row.identityRef, "prod_close", "merged_main", true).catch(() => {});
                   }
-                } catch (e) {
+                } catch {
                   // Ignore if pipeline sub-task isn't present
                 }
               } else {
                 messages.push(`PR ${prRefObj.ref}: ${res.error}`);
               }
-            } catch (e) {
+            } catch {
               // Ignore single row GitHub sync failure
             }
           }

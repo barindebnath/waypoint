@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GitPullRequestIcon, RefreshIcon, CheckCircleIcon } from "./icons";
+import { GitPullRequestIcon, RefreshIcon } from "./icons";
 
 type SyncItem = {
   id: string;

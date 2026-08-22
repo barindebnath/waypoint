@@ -6,7 +6,6 @@ import {
   BugIcon,
   WrenchIcon,
   SparklesIcon,
-  ArrowRightIcon,
 } from "./icons";
 
 type PipelineFamily = {
@@ -84,7 +83,6 @@ export function PipelineFamilyShowcase() {
   const [selectedKey, setSelectedKey] = useState<"support_full" | "support_light" | "feature">("support_full");
 
   const selected = PIPELINE_FAMILIES.find((p) => p.key === selectedKey)!;
-  const Icon = selected.icon;
 
   return (
     <div className="w-full space-y-4">

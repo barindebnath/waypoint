@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TerminalIcon, CopyIcon, CheckIcon, SparklesIcon } from "./icons";
+import { CopyIcon, CheckIcon, SparklesIcon } from "./icons";
 
 type CodeTab = "prompt" | "api" | "llmstxt";
 
