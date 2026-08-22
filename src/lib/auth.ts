@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { apiKey } from "@better-auth/api-key";
+import { dash } from "@better-auth/infra";
 import { db, schema } from "./db";
 
 /**
@@ -50,6 +51,10 @@ export const auth = betterAuth({
     minPasswordLength: 10,
   },
   plugins: [
+    // Connect this deployment to the Better Auth dashboard. The plugin reads
+    // BETTER_AUTH_API_KEY, which must be configured in each deployed
+    // environment (never expose that key to the client).
+    dash(),
     apiKey({
       // PAT scopes live in metadata ({ scopes: ["read","write"] }) and are
       // enforced in src/lib/api-auth.ts on every API request.
