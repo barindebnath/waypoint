@@ -291,6 +291,7 @@ export function RowCard({
   const [prError, setPrError] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prInputRef = useRef<HTMLInputElement>(null);
 
   const prRef = row.secondaryRefs.find((r) => r.kind === "github_pr");
   const otherRefs = row.secondaryRefs.filter((r) => r.kind !== "github_pr");
@@ -338,6 +339,13 @@ export function RowCard({
       }
     }
   }, [open]);
+
+  useEffect(() => {
+    if (showPrInput && open) {
+      prInputRef.current?.focus();
+      prInputRef.current?.select();
+    }
+  }, [showPrInput, open]);
 
   const doneCount = row.milestones.filter((m) => m.complete).length;
   const isSupportLight = row.pipelineKey === "support_light";
@@ -390,7 +398,11 @@ export function RowCard({
             !readOnly && (
               <button
                 type="button"
-                onClick={() => setShowPrInput(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(true);
+                  setShowPrInput(true);
+                }}
                 className="hidden sm:inline-flex items-center gap-1 rounded-full border border-dashed border-edge px-2 py-0.5 font-mono text-[11px] text-ink-muted hover:border-accent hover:text-accent transition-colors"
                 title="Link a GitHub PR to this card (1 PR limit)"
               >
@@ -645,6 +657,8 @@ export function RowCard({
                 className="flex flex-col sm:flex-row gap-2"
               >
                 <input
+                  ref={prInputRef}
+                  autoFocus
                   type="text"
                   value={prRefValue}
                   onChange={(e) => setPrRefValue(e.target.value)}
