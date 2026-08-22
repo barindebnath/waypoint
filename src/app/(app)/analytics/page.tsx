@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { api, type AnalyticsData, type AnalyticsOrigin } from "@/lib/client-api";
+import { DateRangePicker } from "@/components/date-range-picker";
 
 /* Palette definitions matching Waypoint design system tokens */
 const SERIES = {
@@ -144,6 +145,7 @@ export default function AnalyticsPage() {
   const [preset, setPreset] = useState("30d");
   const [origin, setOrigin] = useState<AnalyticsOrigin>("all");
   const [copied, setCopied] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["analytics", from, to, origin],
@@ -216,37 +218,48 @@ export default function AnalyticsPage() {
                     </button>
                   );
                 })}
-                {preset === "" && (
-                  <span className="rounded-full border border-accent bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-semibold text-accent shadow-xs">
-                    Custom
-                  </span>
-                )}
               </div>
 
-              <div className="flex items-center gap-1.5 text-xs text-ink-faint w-full sm:w-auto">
-                <input
-                  type="date"
-                  value={from}
-                  max={to}
-                  onChange={(e) => {
-                    setFrom(e.target.value);
-                    setPreset("");
-                  }}
-                  className="flex-1 min-w-0 sm:w-[130px] rounded-[7px] border border-edge bg-surface-2 px-2 py-1 text-xs text-center text-ink"
-                  aria-label="From Date"
-                />
-                <span>→</span>
-                <input
-                  type="date"
-                  value={to}
-                  min={from}
-                  onChange={(e) => {
-                    setTo(e.target.value);
-                    setPreset("");
-                  }}
-                  className="flex-1 min-w-0 sm:w-[130px] rounded-[7px] border border-edge bg-surface-2 px-2 py-1 text-xs text-center text-ink"
-                  aria-label="To Date"
-                />
+              {/* Single Date Range Picker Popover */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className={`rounded-[7px] border px-2.5 py-1 text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors ${
+                    showDatePicker || preset === ""
+                      ? "border-accent bg-accent/10 text-accent font-semibold"
+                      : "border-edge bg-surface-2 text-ink hover:border-edge-strong"
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" className="w-3.5 h-3.5 text-accent">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                  </svg>
+                  <span>{from} → {to}</span>
+                </button>
+
+                {showDatePicker && (
+                  <div className="absolute right-0 top-full mt-1.5 z-40 w-72 max-w-[calc(100vw-24px)] rounded-xl border border-edge bg-surface p-3.5 shadow-2xl text-xs text-ink animate-fade-in">
+                    <div className="flex items-center justify-between border-b border-edge/60 pb-1.5 mb-2.5">
+                      <span className="font-semibold text-xs text-ink">Select Date Range</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowDatePicker(false)}
+                        className="text-ink-faint hover:text-ink text-xs font-bold cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <DateRangePicker
+                      value={{ from, to }}
+                      onApply={(range) => {
+                        setFrom(range.from);
+                        setTo(range.to);
+                        setPreset("");
+                        setShowDatePicker(false);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
             <span className="font-serif text-[12px] italic text-ink-faint">
