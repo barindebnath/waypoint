@@ -64,30 +64,56 @@ export async function fetchJiraIssueSummary(
   }
 }
 
-export async function fetchJiraIssueId(
+export interface JiraIssueDetails {
+  id: string;
+  summary?: string;
+  investmentCategory?: string;
+  issueType?: string;
+}
+
+export async function fetchJiraIssueDetails(
   jiraBaseUrl: string,
   email: string,
   apiToken: string,
   issueKey: string
-): Promise<string | null> {
+): Promise<JiraIssueDetails | null> {
   try {
     const cleanUrl = jiraBaseUrl.replace(/\/+$/, '');
     const authHeader = 'Basic ' + Buffer.from(`${email}:${apiToken}`).toString('base64');
-    const res = await fetch(`${cleanUrl}/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=id`, {
-      headers: {
-        Authorization: authHeader,
-        Accept: 'application/json',
-      },
-      signal: AbortSignal.timeout(5000),
-    });
+    const res = await fetch(
+      `${cleanUrl}/rest/api/3/issue/${encodeURIComponent(issueKey)}?fields=id,summary,customfield_11663,issuetype`,
+      {
+        headers: {
+          Authorization: authHeader,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(5000),
+      }
+    );
     if (!res.ok) return null;
     const data = await res.json();
-    return data.id ? String(data.id) : null;
+    if (!data.id) return null;
+
+    let investmentCategory: string | undefined;
+    const rawCat = data.fields?.customfield_11663;
+    if (typeof rawCat === 'string') {
+      investmentCategory = rawCat;
+    } else if (rawCat && typeof rawCat === 'object' && 'value' in rawCat) {
+      investmentCategory = String(rawCat.value);
+    }
+
+    return {
+      id: String(data.id),
+      summary: data.fields?.summary ? String(data.fields.summary) : undefined,
+      investmentCategory,
+      issueType: data.fields?.issuetype?.name ? String(data.fields.issuetype.name) : undefined,
+    };
   } catch (err) {
-    console.error(`Failed to fetch Jira issue ID for ${issueKey}:`, err);
+    console.error(`Failed to fetch Jira issue details for ${issueKey}:`, err);
     return null;
   }
 }
+
 
 
 

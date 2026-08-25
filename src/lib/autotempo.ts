@@ -3,7 +3,7 @@ import { and, eq, gte, lte } from "drizzle-orm";
 import { db, schema } from "./db";
 import { tickDay, weekIdFor } from "./timesheet";
 import { EngineError } from "./engine";
-import { fetchJiraIssueId } from "./jira";
+import { fetchJiraIssueDetails } from "./jira";
 
 export interface AutoTempoRule {
   issue?: string;
@@ -71,7 +71,7 @@ export {
 /** System common rules inherited automatically by all users */
 export const BASE_RULES: AutoTempoRule[] = SYSTEM_COMMON_RULES;
 
-/** Map row origin and subType to Tempo account */
+/** Map row origin and subType to Tempo account fallback */
 function mapOriginToAccount(origin: "support" | "product", subType: "bug" | "task" | null): string {
   if (origin === "product") {
     return "CAP_DEV_NEW";
@@ -83,20 +83,37 @@ function mapOriginToAccount(origin: "support" | "product", subType: "bug" | "tas
   return "CAP_DEV_NEW";
 }
 
-/** Resolve numeric Jira issue ID from card ref or secondary refs */
-async function resolveJiraIssueIdForRef(
+/** Map Investment Category or fallback origin/subType to Tempo account per rules.json */
+function resolveAccountForCandidate(
+  investmentCategory: string | undefined,
+  origin: "support" | "product",
+  subType: "bug" | "task" | null,
+): string {
+  if (investmentCategory && INVESTMENT_CATEGORY_ACCOUNTS[investmentCategory]?.length > 0) {
+    return INVESTMENT_CATEGORY_ACCOUNTS[investmentCategory][0];
+  }
+  return mapOriginToAccount(origin, subType);
+}
+
+export interface ResolvedJiraInfo {
+  issueId: string;
+  investmentCategory?: string;
+}
+
+/** Resolve numeric Jira issue ID and investment category from card ref or secondary refs */
+async function resolveJiraIssueInfoForRef(
   jiraBaseUrl: string | null,
   jiraEmail: string | null,
   jiraApiToken: string | null,
   identityRef: string,
   secondaryRefs: schema.ExternalRef[],
-  cache: Map<string, string>
-): Promise<string | null> {
+  cache: Map<string, ResolvedJiraInfo>,
+): Promise<ResolvedJiraInfo | null> {
   const cleanRef = identityRef.trim();
 
   // If purely numeric digits, e.g. "197349"
   if (/^\d+$/.test(cleanRef)) {
-    return cleanRef;
+    return { issueId: cleanRef };
   }
 
   // Check cache for identityRef
@@ -108,12 +125,16 @@ async function resolveJiraIssueIdForRef(
     return null;
   }
 
-  // Try resolving identityRef if it looks like Jira key (e.g. OFF-13294, AT-16)
+  // Try resolving identityRef if it looks like Jira key (e.g. OFF-13294, AT-16, PES-11780)
   if (/^[A-Z0-9]+-\d+$/i.test(cleanRef)) {
-    const issueId = await fetchJiraIssueId(jiraBaseUrl, jiraEmail, jiraApiToken, cleanRef);
-    if (issueId) {
-      cache.set(cleanRef, issueId);
-      return issueId;
+    const details = await fetchJiraIssueDetails(jiraBaseUrl, jiraEmail, jiraApiToken, cleanRef);
+    if (details?.id) {
+      const info: ResolvedJiraInfo = {
+        issueId: details.id,
+        investmentCategory: details.investmentCategory,
+      };
+      cache.set(cleanRef, info);
+      return info;
     }
   }
 
@@ -122,15 +143,19 @@ async function resolveJiraIssueIdForRef(
     if (s.ref && /^[A-Z0-9]+-\d+$/i.test(s.ref.trim())) {
       const sRef = s.ref.trim();
       if (cache.has(sRef)) {
-        const id = cache.get(sRef)!;
-        cache.set(cleanRef, id);
-        return id;
+        const info = cache.get(sRef)!;
+        cache.set(cleanRef, info);
+        return info;
       }
-      const issueId = await fetchJiraIssueId(jiraBaseUrl, jiraEmail, jiraApiToken, sRef);
-      if (issueId) {
-        cache.set(sRef, issueId);
-        cache.set(cleanRef, issueId);
-        return issueId;
+      const details = await fetchJiraIssueDetails(jiraBaseUrl, jiraEmail, jiraApiToken, sRef);
+      if (details?.id) {
+        const info: ResolvedJiraInfo = {
+          issueId: details.id,
+          investmentCategory: details.investmentCategory,
+        };
+        cache.set(sRef, info);
+        cache.set(cleanRef, info);
+        return info;
       }
     }
   }
@@ -237,20 +262,64 @@ function matchRule(rules: AutoTempoRule[], subject: string): AutoTempoRule | nul
   return null;
 }
 
-/** Delete existing worklogs on Tempo for user & date range */
-async function cleanTempoWorklogs(tempoToken: string, jiraAccountId: string, startDateStr: string, endDateStr: string): Promise<void> {
-  const listUrl = `${TEMPO_BASE_URL}/worklogs/user/${jiraAccountId}?from=${startDateStr}&to=${endDateStr}`;
-  const res = await fetch(listUrl, {
-    headers: { Authorization: `Bearer ${tempoToken}` },
-  });
+interface TempoWorklogItem {
+  tempoWorklogId: string | number;
+  startDate: string;
+  timeSpentSeconds: number;
+}
 
-  if (!res.ok) return;
+/** Fetch all user worklogs from Tempo with pagination across the date range */
+async function fetchTempoUserWorklogs(
+  tempoToken: string,
+  jiraAccountId: string,
+  fromStr: string,
+  toStr: string,
+): Promise<TempoWorklogItem[]> {
+  const allWorklogs: TempoWorklogItem[] = [];
+  const limit = 500;
+  let offset = 0;
 
-  const data = await res.json();
-  const worklogs = (data.results || data || []) as Array<{ tempoWorklogId: string | number }>;
+  while (true) {
+    const listUrl = `${TEMPO_BASE_URL}/worklogs/user/${jiraAccountId}?from=${fromStr}&to=${toStr}&limit=${limit}&offset=${offset}`;
+    const res = await fetch(listUrl, {
+      headers: { Authorization: `Bearer ${tempoToken}`, Accept: "application/json" },
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`Tempo fetch worklogs failed (HTTP ${res.status}): ${errText}`);
+      break;
+    }
+
+    const data = await res.json();
+    const results = (data.results || data || []) as TempoWorklogItem[];
+    allWorklogs.push(...results);
+
+    if (results.length < limit || !data.metadata?.next) {
+      break;
+    }
+    offset += limit;
+  }
+
+  return allWorklogs;
+}
+
+/** Delete existing worklogs on Tempo for specific target dates */
+async function cleanTempoWorklogs(
+  tempoToken: string,
+  jiraAccountId: string,
+  targetDates: string[],
+): Promise<void> {
+  if (targetDates.length === 0) return;
+  const sortedDates = [...targetDates].sort();
+  const fromStr = sortedDates[0];
+  const toStr = sortedDates[sortedDates.length - 1];
+  const targetDateSet = new Set(targetDates);
+
+  const worklogs = await fetchTempoUserWorklogs(tempoToken, jiraAccountId, fromStr, toStr);
 
   for (const log of worklogs) {
-    if (log.tempoWorklogId) {
+    if (log.tempoWorklogId && targetDateSet.has(log.startDate)) {
       await fetch(`${TEMPO_BASE_URL}/worklogs/${log.tempoWorklogId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${tempoToken}` },
@@ -295,8 +364,9 @@ async function createTempoWorklog(
   return true;
 }
 
-/** Find last filled date in Tempo (8h logged, skipping non-working days) and return unfilled dates up to today */
+/** Find unfilled dates up to today in Tempo (8h logged, skipping non-working days and submitted weeks) */
 async function findTargetDatesForResume(
+  userId: string,
   tempoToken: string,
   jiraAccountId: string,
   userTz: string,
@@ -307,20 +377,25 @@ async function findTargetDatesForResume(
   const fromStr = thirtyDaysAgo.toFormat("yyyy-MM-dd");
   const toStr = today.toFormat("yyyy-MM-dd");
 
-  const listUrl = `${TEMPO_BASE_URL}/worklogs/user/${jiraAccountId}?from=${fromStr}&to=${toStr}`;
-  const res = await fetch(listUrl, {
-    headers: { Authorization: `Bearer ${tempoToken}` },
-  });
+  // Query Waypoint submitted weeks for this user
+  const storedWeeks = await db
+    .select()
+    .from(schema.timesheetWeek)
+    .where(eq(schema.timesheetWeek.userId, userId));
 
+  const submittedWeekIds = new Set<string>();
+  for (const w of storedWeeks) {
+    if (w.submit?.status === "submitted") {
+      submittedWeekIds.add(w.weekId);
+    }
+  }
+
+  const worklogs = await fetchTempoUserWorklogs(tempoToken, jiraAccountId, fromStr, toStr);
   const loggedSecondsByDate: Record<string, number> = {};
 
-  if (res.ok) {
-    const data = await res.json();
-    const worklogs = (data.results || data || []) as Array<{ startDate: string; timeSpentSeconds: number }>;
-    for (const log of worklogs) {
-      if (log.startDate && log.timeSpentSeconds) {
-        loggedSecondsByDate[log.startDate] = (loggedSecondsByDate[log.startDate] || 0) + log.timeSpentSeconds;
-      }
+  for (const log of worklogs) {
+    if (log.startDate && log.timeSpentSeconds) {
+      loggedSecondsByDate[log.startDate] = (loggedSecondsByDate[log.startDate] || 0) + log.timeSpentSeconds;
     }
   }
 
@@ -330,10 +405,12 @@ async function findTargetDatesForResume(
   while (cursor >= thirtyDaysAgo) {
     const dStr = cursor.toFormat("yyyy-MM-dd");
     const dayName = cursor.toFormat("EEEE");
+    const wId = weekIdFor(cursor);
 
     if (!skipDays.includes(dayName)) {
+      const isSubmitted = submittedWeekIds.has(wId);
       const logged = loggedSecondsByDate[dStr] || 0;
-      if (logged >= DEFAULT_WORK_DAY_SECONDS) {
+      if (isSubmitted || logged >= DEFAULT_WORK_DAY_SECONDS) {
         latestFilledDt = cursor;
         break;
       }
@@ -344,13 +421,19 @@ async function findTargetDatesForResume(
   // Determine start date
   const startDt = latestFilledDt ? latestFilledDt.plus({ days: 1 }) : today.startOf("week");
 
-  // Collect target dates from startDt up to today, excluding skipDays
+  // Collect target dates from startDt up to today, excluding skipDays, submitted weeks, and already full days
   const dates: string[] = [];
   let curr = startDt;
   while (curr <= today) {
     const dayName = curr.toFormat("EEEE");
-    if (!skipDays.includes(dayName)) {
-      dates.push(curr.toFormat("yyyy-MM-dd"));
+    const dStr = curr.toFormat("yyyy-MM-dd");
+    const wId = weekIdFor(curr);
+
+    if (!skipDays.includes(dayName) && !submittedWeekIds.has(wId)) {
+      const logged = loggedSecondsByDate[dStr] || 0;
+      if (logged < DEFAULT_WORK_DAY_SECONDS) {
+        dates.push(dStr);
+      }
     }
     curr = curr.plus({ days: 1 });
   }
@@ -392,7 +475,7 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
   let datesToProcess = targetDates && targetDates.length > 0 ? targetDates : [];
   if (datesToProcess.length === 0) {
     messages.push("Auto-detecting last filled day in Tempo...");
-    datesToProcess = await findTargetDatesForResume(tempoToken, jiraAccountId, settings.timezone, skipDays);
+    datesToProcess = await findTargetDatesForResume(userId, tempoToken, jiraAccountId, settings.timezone, skipDays);
     messages.push(`Found ${datesToProcess.length} unfilled date(s) to process up to today.`);
   }
 
@@ -414,9 +497,9 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
   const msAccessToken = await getMsAccessToken(msClientId, msClientSecret || undefined, msRefreshToken);
   const userEmail = await getMsUserEmail(msAccessToken);
 
-  // Clean existing Tempo worklogs for range
-  await cleanTempoWorklogs(tempoToken, jiraAccountId, minDate, maxDate);
-  messages.push(`Cleaned previous Tempo worklogs between ${minDate} and ${maxDate}`);
+  // Clean existing Tempo worklogs for target dates
+  await cleanTempoWorklogs(tempoToken, jiraAccountId, sortedDates);
+  messages.push(`Cleaned previous Tempo worklogs for: ${sortedDates.join(", ")}`);
 
   // Fetch MS Calendar events
   const events = await getMsCalendarEvents(msAccessToken, minDate, maxDate, settings.timezone);
@@ -424,7 +507,7 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
 
   let totalWorklogsCreated = 0;
   let totalSeconds = 0;
-  const jiraIssueIdCache = new Map<string, string>();
+  const jiraIssueCache = new Map<string, ResolvedJiraInfo>();
 
   for (const dateStr of sortedDates) {
     const dt = DateTime.fromISO(dateStr, { zone: settings.timezone });
@@ -569,7 +652,7 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
         }
       }
 
-      // 3. Resolve Jira issue IDs for candidate Waypoint rows
+      // 3. Resolve Jira issue IDs and accounts for candidate Waypoint rows
       interface CandidateRow {
         identityRef: string;
         issueId: string;
@@ -579,19 +662,20 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
       const candidateRows: CandidateRow[] = [];
 
       for (const item of rowActivityMap.values()) {
-        const issueId = await resolveJiraIssueIdForRef(
+        const jiraInfo = await resolveJiraIssueInfoForRef(
           jiraBaseUrl,
           jiraEmail,
           jiraApiToken,
           item.identityRef,
           item.secondaryRefs,
-          jiraIssueIdCache
+          jiraIssueCache
         );
-        if (issueId) {
+        if (jiraInfo?.issueId) {
+          const account = resolveAccountForCandidate(jiraInfo.investmentCategory, item.origin, item.subType);
           candidateRows.push({
             identityRef: item.identityRef,
-            issueId,
-            account: mapOriginToAccount(item.origin, item.subType),
+            issueId: jiraInfo.issueId,
+            account,
             tickCount: item.tickCount,
           });
         } else {
