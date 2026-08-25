@@ -65,12 +65,12 @@ export const ADMIN_ISSUES: AdminIssueRule[] = [
   { summary_contains: "Public Holiday", allowed: ["OPX_PTO"] },
   { summary_contains: "Company or Department Meeting", allowed: ["OPX_ADMIN"] },
   { summary_contains: "General Administrative Time", allowed: ["OPX_TRAINING", "OPX_ADMIN"] },
-  { summary_equals: "Training", key: "AT-4", allowed: ["OPX_TRAINING"] },
-  { summary_contains: "Agile Processes", key: "EN-1179", allowed: ["OPX_PLAN", "OPX_ADMIN"] },
-  { summary_contains: "Support Tickets", key: "OFF-419", allowed: ["OPX_SUPPORT"] },
+  { summary_contains: "Training", allowed: ["OPX_TRAINING"] },
+  { summary_contains: "Agile Processes", allowed: ["OPX_PLAN", "OPX_ADMIN"] },
+  { summary_contains: "Support Tickets", allowed: ["OPX_SUPPORT"] },
 ];
 
-export const ADMIN_PROJECT_KEYS = ["AT"] as const;
+export const ADMIN_PROJECT_KEYS = ["AT", "ADMIN"] as const;
 
 export const ALWAYS_ALLOWED_ON_PROJECT_ISSUES = ["OPX_PLAN", "OPX_RESEARCH"] as const;
 
@@ -84,29 +84,26 @@ export interface AutoTempoRule {
   skip?: boolean;
 }
 
-/** Company-wide Common Rules inherited by all employees by default */
+/** Default common meeting rules for auto-tempo classification */
 export const SYSTEM_COMMON_RULES: AutoTempoRule[] = [
-  { account: "OPX_PTO", issue: "39593", rule: "Out of office", type: "PTO" },
+  { account: "OPX_PTO", issue: "39593", rule: ["Out of office", "Leave", "Annual Leave", "Unpaid Leave", "Sick Leave", "PTO", "Give Back day"], type: "PTO" },
   { account: "OPX_PTO", issue: "39600", rule: "Public Holiday", type: "PTO" },
-  { account: "OPX_PTO", issue: "39593", rule: ["Leave", "Annual Leave", "Unpaid Leave", "Sick Leave", "Give Back day"], type: "PTO" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["Town Hall", "Showcase", "Engineering Monthly"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["1-on-1", "1:1", "1-1", "PDP", "Goals", "Goals chat"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: "197608", rule: ["Town Hall", "All Hands", "Showcase", "Company Meeting", "Department Meeting", "Engineering Monthly"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: "197608", rule: ["1-on-1", "1:1", "1-1", "Check-in", "Sync", "PDP", "Goals", "Goals chat"], type: "Admin" },
   { account: "OPX_ADMIN", issue: "197608", rule: ["Meet and greet", "Chat with", "Intro", "Weekly goal setting", "Fun day", "Virtual Lunch"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["Education Engineering leads", "Leaders", "Education tech leadership"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["Wow Group Meeting", "EDU SLT Meeting", "SLT"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: "197608", rule: ["Education Engineering leads", "Leaders", "Education tech leadership", "Wow Group Meeting", "EDU SLT Meeting", "SLT"], type: "Admin" },
   { account: "OPX_ADMIN", issue: "197608", rule: ["Weekly program update", "Weekly milestone", "Weekly Engineering - Product Sync", "Elixir weekly updates", "Product / Eng - Heads"], type: "Admin" },
   { account: "OPX_ADMIN", issue: "197608", rule: ["PIR", "Internal PIR Review", "ITSM Review", "Working Group", "Incident Management", "discussion", "Discuss", "investigation", "Prioritisation", "Gravity DB Storage optimisation", "plan", "UK shenanigans", "GG Posts chat", "Common services strategy"], type: "Admin" },
   { account: "OPX_ADMIN", issue: "197608", rule: ["Interview", "EOY", "Roadmap"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "158608", rule: ["Standup", "Stand-up", "Stand up", "Tech lead standup", "Catch up", "Catch-up", "Catchup", "Tech lead catchup"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: "158608", rule: ["Standup", "Stand-up", "Stand up", "Tech lead standup", "Catch up", "Catch-up", "Catchup", "Team Sync", "Tech lead catchup"], type: "Admin" },
   { account: "OPX_ADMIN", issue: "158608", rule: ["Retro", "Retrospective", "Firewarden Retro"], type: "Admin" },
-  { account: "OPX_PLAN", issue: "158608", rule: ["Story Time", "Sprint planning", "Backlog refinement", "Tech Feasibility", "Tech Feasability"], type: "Planning" },
-  { account: "OPX_ADMIN", issue: "158634", rule: ["Timesheets", "Autotempo", "Time entry"], type: "Admin" },
-  { account: "OPX_TRAINING", issue: "39597", rule: ["10% time", "Education Tech Meetup", "L&L", "Lunch & Learn", "Elixir and Frontend Upskilling", "CCS and PES Upskilling", "Training"], type: "Training" },
-  { account: "OPX_SUPPORT", issue: "40814", rule: ["JIRA time", "Firewarden", "Firewarden handover", "Firewarden / Support chat"], type: "BAU" },
+  { account: "OPX_PLAN", issue: "158608", rule: ["Sprint Planning", "Backlog Refinement", "Planning", "Roadmap", "Estimation", "Tech Feasibility", "Tech Feasability", "Story Time"], type: "Planning" },
+  { account: "OPX_ADMIN", issue: "158634", rule: ["Timesheet", "Timesheets", "Time Tracking", "Autotempo", "Time entry", "Admin"], type: "Admin" },
+  { account: "OPX_TRAINING", issue: "39597", rule: ["Training", "Workshop", "Lunch & Learn", "Upskilling", "Conference", "10% time", "Education Tech Meetup", "L&L", "Elixir and Frontend Upskilling", "CCS and PES Upskilling"], type: "Training" },
+  { account: "OPX_SUPPORT", issue: "40814", rule: ["On-Call", "Support Handover", "Triage", "BAU", "JIRA time", "Firewarden", "Firewarden handover", "Firewarden / Support chat"], type: "BAU" },
   { rule: "Update 1:1 spreadsheet", skip: true },
   { rule: "Funky Bunch Trivia", skip: true },
   { rule: "Buffer", skip: true },
-  { rule: "Donut", skip: true },
-  { rule: "New Starter Olympics", skip: true },
-  { rule: "#donut-dates", skip: true },
+  { rule: "Focus Time", skip: true },
 ];
+

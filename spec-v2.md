@@ -224,7 +224,7 @@ Because the API acts only on the user's own data with the user's own token, the 
 5. **Privacy page** stating what's stored, where hosted, and the self-serve delete/export.
 6. **Minimal log retention** — platform-default short-lived logs; no IPs persisted into app tables.
 
-**Confidentiality by design:** ticket rows have **no title / free-text field** — a row is identified solely by its external card refs (e.g. `PES-11929`). Xplor-confidential or customer content structurally cannot be stored. The AI instruction file must still tell agents to never paste card contents, customer data, or credentials into Waypoint.
+**Confidentiality by design:** ticket rows have **no title / free-text field** — a row is identified solely by its external card refs (e.g. `PES-11929`). Proprietary or customer content structurally cannot be stored. The AI instruction file must still tell agents to never paste card contents, customer data, or credentials into Waypoint.
 
 ---
 

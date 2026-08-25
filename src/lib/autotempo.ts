@@ -39,7 +39,6 @@ export interface AutoTempoResult {
   messages: string[];
 }
 
-const DEFAULT_MS_CLIENT_ID = "cb1cf73c-ad9a-4f3f-b7b5-19627fd53a9f";
 const MS_TOKEN_URL = "https://login.microsoftonline.com/organizations/oauth2/v2.0/token";
 const MS_CALENDAR_URL = "https://graph.microsoft.com/v1.0/me/calendarview";
 const MS_WHO_AM_I_URL = "https://graph.microsoft.com/v1.0/me";
@@ -167,7 +166,7 @@ async function resolveJiraIssueInfoForRef(
 async function getMsAccessToken(clientId: string, clientSecret: string | undefined, refreshToken: string): Promise<string> {
   const body = new URLSearchParams();
   body.append("refresh_token", refreshToken);
-  body.append("client_id", clientId || DEFAULT_MS_CLIENT_ID);
+  body.append("client_id", clientId);
   if (clientSecret) body.append("client_secret", clientSecret);
   body.append("grant_type", "refresh_token");
 
@@ -243,7 +242,10 @@ function didAttend(event: MsCalendarEvent, userEmail: string): boolean {
     return event.attendees.some((att) => {
       const addr = (att.emailAddress?.address || "").toLowerCase();
       const resp = (att.status?.response || "").toLowerCase();
-      return addr === userEmail && resp === "accepted";
+      return (
+        addr === userEmail &&
+        (resp === "accepted" || resp === "organizer" || resp === "tentativelyaccepted")
+      );
     });
   }
   return false;
@@ -459,7 +461,7 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
   const tempoToken = settings.tempoApiToken || process.env.TEMPO_API_TOKEN;
   const jiraAccountId = settings.jiraAccountId || process.env.JIRA_ACCOUNT_ID;
   const msRefreshToken = settings.msRefreshToken || process.env.MS_REFRESH_TOKEN;
-  const msClientId = settings.msClientId || process.env.MS_CLIENT_ID || DEFAULT_MS_CLIENT_ID;
+  const msClientId = settings.msClientId || process.env.MS_CLIENT_ID;
   const msClientSecret = settings.msClientSecret || process.env.MS_CLIENT_SECRET;
 
   const jiraBaseUrl = settings.jiraBaseUrl || process.env.JIRA_BASE_URL || null;
@@ -469,6 +471,7 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
   if (!tempoToken) throw new EngineError("Tempo API Token is missing. Please configure it in Settings.", 400);
   if (!jiraAccountId) throw new EngineError("Jira Account ID is missing. Please configure it in Settings.", 400);
   if (!msRefreshToken) throw new EngineError("Microsoft Refresh Token is missing. Please configure Microsoft Outlook auth in Settings.", 400);
+  if (!msClientId) throw new EngineError("Microsoft Client ID is missing. Please configure it in Settings or MS_CLIENT_ID environment variable.", 400);
 
   const skipDays = (settings.autoTempoSkipDays as string[] | null) || ["Saturday", "Sunday"];
 
@@ -533,6 +536,20 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
       const ruleMatch = matchRule(rules, evt.subject);
       if (!ruleMatch || ("skip" in ruleMatch && ruleMatch.skip) || !ruleMatch.issue || !ruleMatch.account) continue;
 
+      const resolvedIssue = await resolveJiraIssueInfoForRef(
+        jiraBaseUrl,
+        jiraEmail,
+        jiraApiToken,
+        ruleMatch.issue,
+        [],
+        jiraIssueCache
+      );
+      const issueId = resolvedIssue?.issueId || (/^\d+$/.test(ruleMatch.issue) ? ruleMatch.issue : null);
+      if (!issueId) {
+        messages.push(`Warning: Could not resolve Jira issue ID for meeting rule "${evt.subject}" (issue: ${ruleMatch.issue}).`);
+        continue;
+      }
+
       const startDt = DateTime.fromISO(evt.start.dateTime);
       const endDt = DateTime.fromISO(evt.end.dateTime);
       let durationSec = Math.round(endDt.diff(startDt, "seconds").seconds);
@@ -543,7 +560,7 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
       const success = await createTempoWorklog(
         tempoToken,
         jiraAccountId,
-        ruleMatch.issue,
+        issueId,
         ruleMatch.account,
         dateStr,
         durationSec,
@@ -554,6 +571,7 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
         totalWorklogsCreated++;
         dayLoggedSeconds += durationSec;
         totalSeconds += durationSec;
+        messages.push(`Logged ${(durationSec / 3600).toFixed(1)}h for meeting "${evt.subject}" (${issueId})`);
       }
     }
 

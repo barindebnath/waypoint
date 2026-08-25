@@ -113,11 +113,11 @@ export const userSettings = pgTable("user_settings", {
   colorTheme: text("color_theme").notNull().default("forest"),
   fontTheme: text("font_theme").notNull().default("mono"),
   showTimesheet: boolean("show_timesheet").notNull().default(true),
-  /** e.g. https://myxplorinfo.atlassian.net — Jira refs auto-link as {base}/browse/{ref} */
+  /** e.g. https://yourorg.atlassian.net — Jira refs auto-link as {base}/browse/{ref} */
   jiraBaseUrl: text("jira_base_url"),
   jiraEmail: text("jira_email"),
   jiraApiToken: text("jira_api_token"),
-  /** e.g. https://github.com/xplor — PR refs `repo#123` auto-link as {base}/{repo}/pull/{123} */
+  /** e.g. https://github.com/yourorg — PR refs `repo#123` auto-link as {base}/{repo}/pull/{123} */
   githubBaseUrl: text("github_base_url"),
   githubPat: text("github_pat"),
   githubDefaultOrg: text("github_default_org"),
