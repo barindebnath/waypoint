@@ -31,11 +31,33 @@ export interface AutoTempoConfig {
   rules?: AutoTempoRule[];
 }
 
+export interface AutoTempoWorklogItem {
+  id: string;
+  date: string;
+  type: "meeting" | "card";
+  title: string;
+  ref?: string;
+  issueId: string;
+  account: string;
+  accountName?: string;
+  seconds: number;
+  hours: number;
+}
+
+export interface AutoTempoDaySummary {
+  date: string;
+  totalSeconds: number;
+  totalHours: number;
+  worklogs: AutoTempoWorklogItem[];
+}
+
 export interface AutoTempoResult {
   success: boolean;
   processedDates: string[];
   worklogsCreated: number;
   totalSecondsLogged: number;
+  days: AutoTempoDaySummary[];
+  diagnostics: string[];
   messages: string[];
 }
 
@@ -47,6 +69,8 @@ const DEFAULT_WORK_DAY_SECONDS = 8 * 60 * 60;
 const FIVE_MIN_SECONDS = 5 * 60;
 
 import {
+  DAY_KEYS,
+  type DayKey,
   OFFICIAL_ACCOUNTS,
   OFFICIAL_INVESTMENT_CATEGORIES,
   SYSTEM_COMMON_RULES,
@@ -54,9 +78,12 @@ import {
   ADMIN_ISSUES,
   ADMIN_PROJECT_KEYS,
   ALWAYS_ALLOWED_ON_PROJECT_ISSUES,
+  ALWAYS_ALLOWED_EXCLUDED_CATEGORIES,
   MAX_DAILY_HOURS,
 } from "./timesheet-shared";
 export {
+  DAY_KEYS,
+  type DayKey,
   OFFICIAL_ACCOUNTS,
   OFFICIAL_INVESTMENT_CATEGORIES,
   SYSTEM_COMMON_RULES,
@@ -64,6 +91,7 @@ export {
   ADMIN_ISSUES,
   ADMIN_PROJECT_KEYS,
   ALWAYS_ALLOWED_ON_PROJECT_ISSUES,
+  ALWAYS_ALLOWED_EXCLUDED_CATEGORIES,
   MAX_DAILY_HOURS,
 };
 
@@ -86,12 +114,17 @@ function mapOriginToAccount(origin: "support" | "product", subType: "bug" | "tas
 function resolveAccountForCandidate(
   investmentCategory: string | undefined,
   origin: "support" | "product",
-  subType: "bug" | "task" | null,
+  subType: "bug" | "task" | null
 ): string {
   if (investmentCategory && INVESTMENT_CATEGORY_ACCOUNTS[investmentCategory]?.length > 0) {
     return INVESTMENT_CATEGORY_ACCOUNTS[investmentCategory][0];
   }
   return mapOriginToAccount(origin, subType);
+}
+
+export function getAccountName(key: string): string {
+  const acc = OFFICIAL_ACCOUNTS.find((a) => a.key === key);
+  return acc ? acc.name : key;
 }
 
 export interface ResolvedJiraInfo {
@@ -401,6 +434,27 @@ async function findTargetDatesForResume(
     }
   }
 
+  // Sync all days with >= 8h in Tempo into Waypoint timesheet
+  for (const [dStr, seconds] of Object.entries(loggedSecondsByDate)) {
+    if (seconds >= DEFAULT_WORK_DAY_SECONDS) {
+      const dDt = DateTime.fromISO(dStr, { zone: userTz });
+      const dayName = dDt.toFormat("EEEE");
+      if (!skipDays.includes(dayName)) {
+        const dayKey = dDt.toFormat("ccc").toLowerCase() as DayKey;
+        if (DAY_KEYS.includes(dayKey)) {
+          const wId = weekIdFor(dDt);
+          if (!submittedWeekIds.has(wId)) {
+            try {
+              await tickDay(userId, wId, dayKey, true, userTz);
+            } catch {
+              // Ignore if already submitted
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Walk backwards from today to find latest filled day
   let latestFilledDt: DateTime | null = null;
   let cursor = today;
@@ -443,6 +497,65 @@ async function findTargetDatesForResume(
   return dates;
 }
 
+/** Sync days with >= 8h in Tempo for the last 30 days into Waypoint timesheet */
+export async function syncFilledTempoDaysToTimesheet(
+  userId: string,
+  tempoToken: string,
+  jiraAccountId: string,
+  userTz: string,
+  skipDays: string[] = ["Saturday", "Sunday"],
+): Promise<number> {
+  const today = DateTime.now().setZone(userTz);
+  const thirtyDaysAgo = today.minus({ days: 30 });
+  const fromStr = thirtyDaysAgo.toFormat("yyyy-MM-dd");
+  const toStr = today.toFormat("yyyy-MM-dd");
+
+  const storedWeeks = await db
+    .select()
+    .from(schema.timesheetWeek)
+    .where(eq(schema.timesheetWeek.userId, userId));
+
+  const submittedWeekIds = new Set<string>();
+  for (const w of storedWeeks) {
+    if (w.submit?.status === "submitted") {
+      submittedWeekIds.add(w.weekId);
+    }
+  }
+
+  const worklogs = await fetchTempoUserWorklogs(tempoToken, jiraAccountId, fromStr, toStr);
+  const loggedSecondsByDate: Record<string, number> = {};
+
+  for (const log of worklogs) {
+    if (log.startDate && log.timeSpentSeconds) {
+      loggedSecondsByDate[log.startDate] = (loggedSecondsByDate[log.startDate] || 0) + log.timeSpentSeconds;
+    }
+  }
+
+  let syncedCount = 0;
+  for (const [dStr, seconds] of Object.entries(loggedSecondsByDate)) {
+    if (seconds >= DEFAULT_WORK_DAY_SECONDS) {
+      const dDt = DateTime.fromISO(dStr, { zone: userTz });
+      const dayName = dDt.toFormat("EEEE");
+      if (!skipDays.includes(dayName)) {
+        const dayKey = dDt.toFormat("ccc").toLowerCase() as DayKey;
+        if (DAY_KEYS.includes(dayKey)) {
+          const wId = weekIdFor(dDt);
+          if (!submittedWeekIds.has(wId)) {
+            try {
+              await tickDay(userId, wId, dayKey, true, userTz);
+              syncedCount++;
+            } catch {
+              // Ignore if already submitted
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return syncedCount;
+}
+
 /** Run main AutoTempo pipeline for given user and date list (or auto-resume if omitted) */
 export async function runAutoTempo(userId: string, targetDates?: string[]): Promise<AutoTempoResult> {
   const messages: string[] = [];
@@ -475,15 +588,34 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
 
   const skipDays = (settings.autoTempoSkipDays as string[] | null) || ["Saturday", "Sunday"];
 
+  // Sync any days already filled in Tempo into Waypoint timesheet
+  await syncFilledTempoDaysToTimesheet(userId, tempoToken, jiraAccountId, settings.timezone, skipDays);
+
+  const diagnostics: string[] = [];
+  const days: AutoTempoDaySummary[] = [];
+
   let datesToProcess = targetDates && targetDates.length > 0 ? targetDates : [];
   if (datesToProcess.length === 0) {
-    messages.push("Auto-detecting last filled day in Tempo...");
+    const msg = "Auto-detecting last filled day in Tempo...";
+    diagnostics.push(msg);
+    messages.push(msg);
     datesToProcess = await findTargetDatesForResume(userId, tempoToken, jiraAccountId, settings.timezone, skipDays);
-    messages.push(`Found ${datesToProcess.length} unfilled date(s) to process up to today.`);
+    const foundMsg = `Found ${datesToProcess.length} unfilled date(s) to process up to today.`;
+    diagnostics.push(foundMsg);
+    messages.push(foundMsg);
   }
 
   if (datesToProcess.length === 0) {
-    return { success: true, processedDates: [], worklogsCreated: 0, totalSecondsLogged: 0, messages: ["All days up to today are already filled in Tempo!"] };
+    const noDatesMsg = "All days up to today are already filled in Tempo!";
+    return {
+      success: true,
+      processedDates: [],
+      worklogsCreated: 0,
+      totalSecondsLogged: 0,
+      days: [],
+      diagnostics: [noDatesMsg],
+      messages: [noDatesMsg],
+    };
   }
 
   const customRules = (settings.autoTempoRules as AutoTempoRule[] | null) || [];
@@ -494,7 +626,9 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
   const minDate = sortedDates[0];
   const maxDate = sortedDates[sortedDates.length - 1];
 
-  messages.push(`Processing AutoTempo for dates: ${minDate} to ${maxDate}`);
+  const procMsg = `Processing AutoTempo for dates: ${minDate} to ${maxDate}`;
+  diagnostics.push(procMsg);
+  messages.push(procMsg);
 
   // Fetch MS Graph access token & user info
   const msAccessToken = await getMsAccessToken(msClientId, msClientSecret || undefined, msRefreshToken);
@@ -502,11 +636,15 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
 
   // Clean existing Tempo worklogs for target dates
   await cleanTempoWorklogs(tempoToken, jiraAccountId, sortedDates);
-  messages.push(`Cleaned previous Tempo worklogs for: ${sortedDates.join(", ")}`);
+  const cleanMsg = `Cleaned previous Tempo worklogs for: ${sortedDates.join(", ")}`;
+  diagnostics.push(cleanMsg);
+  messages.push(cleanMsg);
 
   // Fetch MS Calendar events
   const events = await getMsCalendarEvents(msAccessToken, minDate, maxDate, settings.timezone);
-  messages.push(`Fetched ${events.length} calendar events from Microsoft Outlook`);
+  const fetchEvtMsg = `Fetched ${events.length} calendar events from Microsoft Outlook`;
+  diagnostics.push(fetchEvtMsg);
+  messages.push(fetchEvtMsg);
 
   let totalWorklogsCreated = 0;
   let totalSeconds = 0;
@@ -515,9 +653,12 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
   for (const dateStr of sortedDates) {
     const dt = DateTime.fromISO(dateStr, { zone: settings.timezone });
     const dayName = dt.toFormat("EEEE");
+    const dayWorklogs: AutoTempoWorklogItem[] = [];
 
     if (skipDays.includes(dayName)) {
-      messages.push(`Skipping ${dateStr} (${dayName}) per skip_days rule`);
+      const skipMsg = `Skipping ${dateStr} (${dayName}) per skip_days rule`;
+      diagnostics.push(skipMsg);
+      messages.push(skipMsg);
       continue;
     }
 
@@ -546,7 +687,9 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
       );
       const issueId = resolvedIssue?.issueId || (/^\d+$/.test(ruleMatch.issue) ? ruleMatch.issue : null);
       if (!issueId) {
-        messages.push(`Warning: Could not resolve Jira issue ID for meeting rule "${evt.subject}" (issue: ${ruleMatch.issue}).`);
+        const warnMsg = `Warning: Could not resolve Jira issue ID for meeting rule "${evt.subject}" (issue: ${ruleMatch.issue}).`;
+        diagnostics.push(warnMsg);
+        messages.push(warnMsg);
         continue;
       }
 
@@ -571,7 +714,19 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
         totalWorklogsCreated++;
         dayLoggedSeconds += durationSec;
         totalSeconds += durationSec;
-        messages.push(`Logged ${(durationSec / 3600).toFixed(1)}h for meeting "${evt.subject}" (${issueId})`);
+        const msg = `Logged ${(durationSec / 3600).toFixed(1)}h for meeting "${evt.subject}" (${issueId})`;
+        messages.push(msg);
+        dayWorklogs.push({
+          id: `meeting-${dateStr}-${issueId}-${dayWorklogs.length}`,
+          date: dateStr,
+          type: "meeting",
+          title: evt.subject || "Meeting",
+          issueId,
+          account: ruleMatch.account,
+          accountName: getAccountName(ruleMatch.account),
+          seconds: durationSec,
+          hours: Number((durationSec / 3600).toFixed(2)),
+        });
       }
     }
 
@@ -697,7 +852,9 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
             tickCount: item.tickCount,
           });
         } else {
-          messages.push(`Warning: Could not resolve Jira Issue ID for ${item.identityRef}. Make sure Jira credentials are configured in Settings.`);
+          const warnRefMsg = `Warning: Could not resolve Jira Issue ID for ${item.identityRef}. Make sure Jira credentials are configured in Settings.`;
+          diagnostics.push(warnRefMsg);
+          messages.push(warnRefMsg);
         }
       }
 
@@ -744,14 +901,37 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
           );
           if (success) {
             totalWorklogsCreated++;
+            dayLoggedSeconds += row.allocatedSec;
             totalSeconds += row.allocatedSec;
-            messages.push(`Logged ${(row.allocatedSec / 3600).toFixed(1)}h for Waypoint card ${row.identityRef} (${row.issueId})`);
+            const msg = `Logged ${(row.allocatedSec / 3600).toFixed(1)}h for Waypoint card ${row.identityRef} (${row.issueId})`;
+            messages.push(msg);
+            dayWorklogs.push({
+              id: `card-${dateStr}-${row.identityRef}-${dayWorklogs.length}`,
+              date: dateStr,
+              type: "card",
+              title: `Waypoint card ${row.identityRef}`,
+              ref: row.identityRef,
+              issueId: row.issueId,
+              account: row.account,
+              accountName: getAccountName(row.account),
+              seconds: row.allocatedSec,
+              hours: Number((row.allocatedSec / 3600).toFixed(2)),
+            });
           }
         }
       } else {
-        messages.push(`No Waypoint rows with valid Jira issue IDs found for ${dateStr}.`);
+        const noRowsMsg = `No Waypoint rows with valid Jira issue IDs found for ${dateStr}.`;
+        diagnostics.push(noRowsMsg);
+        messages.push(noRowsMsg);
       }
     }
+
+    days.push({
+      date: dateStr,
+      totalSeconds: dayLoggedSeconds,
+      totalHours: Number((dayLoggedSeconds / 3600).toFixed(2)),
+      worklogs: dayWorklogs,
+    });
 
     // Mark day as checked in Waypoint timesheet
     const dayKey = dt.toFormat("ccc").toLowerCase() as "mon" | "tue" | "wed" | "thu" | "fri";
@@ -765,13 +945,16 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
     }
   }
 
-  messages.push(`AutoTempo complete: Created ${totalWorklogsCreated} worklogs (${(totalSeconds / 3600).toFixed(1)} hrs total)`);
+  const completeMsg = `AutoTempo complete: Created ${totalWorklogsCreated} worklogs (${(totalSeconds / 3600).toFixed(1)} hrs total)`;
+  messages.push(completeMsg);
 
   return {
     success: true,
     processedDates: sortedDates,
     worklogsCreated: totalWorklogsCreated,
     totalSecondsLogged: totalSeconds,
+    days,
+    diagnostics,
     messages,
   };
 }

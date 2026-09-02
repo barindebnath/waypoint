@@ -4,12 +4,17 @@ import type { EnrichedRowView } from "./links";
 import type { MonthView, WeekView } from "./timesheet";
 import type { PipelineDef, PipelineKey } from "./pipelines";
 
+import type { AutoTempoResult, AutoTempoDaySummary, AutoTempoWorklogItem } from "./timesheet-shared";
+
 export type {
   EnrichedRowView,
   MonthView,
   WeekView,
   PipelineDef,
   PipelineKey,
+  AutoTempoResult,
+  AutoTempoDaySummary,
+  AutoTempoWorklogItem,
 };
 
 export interface AnalyticsRange {
@@ -178,7 +183,7 @@ export const api = {
   unsubmitWeek: (weekId: string) =>
     request<{ week: WeekView }>(`/api/v1/timesheet/${weekId}/unsubmit`, { method: "POST" }),
   autoTempoFill: (dates?: string[]) =>
-    request<{ success: boolean; processedDates: string[]; worklogsCreated: number; totalSecondsLogged: number; messages: string[] }>(
+    request<AutoTempoResult>(
       "/api/v1/timesheet/autotempo",
       { method: "POST", body: JSON.stringify({ dates: dates || [] }) }
     ),

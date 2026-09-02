@@ -64,7 +64,7 @@ export const ADMIN_ISSUES: AdminIssueRule[] = [
   { summary_contains: "Leave / PTO", allowed: ["OPX_PTO"] },
   { summary_contains: "Public Holiday", allowed: ["OPX_PTO"] },
   { summary_contains: "Company or Department Meeting", allowed: ["OPX_ADMIN"] },
-  { summary_contains: "General Administrative Time", allowed: ["OPX_TRAINING", "OPX_ADMIN"] },
+  { summary_contains: "General Administrative Time", allowed: ["OPX_ADMIN"] },
   { summary_contains: "Training", allowed: ["OPX_TRAINING"] },
   { summary_contains: "Agile Processes", allowed: ["OPX_PLAN", "OPX_ADMIN"] },
   { summary_contains: "Support Tickets", allowed: ["OPX_SUPPORT"] },
@@ -73,6 +73,7 @@ export const ADMIN_ISSUES: AdminIssueRule[] = [
 export const ADMIN_PROJECT_KEYS = ["AT", "ADMIN"] as const;
 
 export const ALWAYS_ALLOWED_ON_PROJECT_ISSUES = ["OPX_PLAN", "OPX_RESEARCH"] as const;
+export const ALWAYS_ALLOWED_EXCLUDED_CATEGORIES = ["Admin", "Interview"] as const;
 
 export const MAX_DAILY_HOURS = 12;
 
@@ -106,4 +107,35 @@ export const SYSTEM_COMMON_RULES: AutoTempoRule[] = [
   { rule: "Buffer", skip: true },
   { rule: "Focus Time", skip: true },
 ];
+
+export interface AutoTempoWorklogItem {
+  id: string;
+  date: string;
+  type: "meeting" | "card";
+  title: string;
+  ref?: string;
+  issueId: string;
+  account: string;
+  accountName?: string;
+  seconds: number;
+  hours: number;
+}
+
+export interface AutoTempoDaySummary {
+  date: string;
+  totalSeconds: number;
+  totalHours: number;
+  worklogs: AutoTempoWorklogItem[];
+}
+
+export interface AutoTempoResult {
+  success: boolean;
+  processedDates: string[];
+  worklogsCreated: number;
+  totalSecondsLogged: number;
+  days: AutoTempoDaySummary[];
+  diagnostics: string[];
+  messages: string[];
+}
+
 

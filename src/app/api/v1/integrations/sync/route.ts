@@ -5,6 +5,7 @@ import { db, schema } from "@/lib/db";
 import { listRows, setSubtask } from "@/lib/engine";
 import { fetchGithubPrStatus, parseGithubOrg, parsePrRef } from "@/lib/github";
 import { fetchJiraIssueStatus } from "@/lib/jira";
+import { syncFilledTempoDaysToTimesheet } from "@/lib/autotempo";
 import { eq } from "drizzle-orm";
 
 export async function POST() {
@@ -182,10 +183,27 @@ export async function POST() {
       })
     );
 
+    // 3. Sync Tempo worklog days into timesheet
+    let syncedTempoCount = 0;
+    if (settings.tempoApiToken && settings.jiraAccountId) {
+      try {
+        syncedTempoCount = await syncFilledTempoDaysToTimesheet(
+          userId,
+          settings.tempoApiToken,
+          settings.jiraAccountId,
+          settings.timezone || "UTC",
+          (settings.autoTempoSkipDays as string[] | null) || ["Saturday", "Sunday"]
+        );
+      } catch {
+        // Ignore tempo sync failure during integration sync
+      }
+    }
+
     return NextResponse.json({
       success: true,
       syncedJiraCount,
       syncedGithubCount,
+      syncedTempoCount,
       messages,
     });
   });
