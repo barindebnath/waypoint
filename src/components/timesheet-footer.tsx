@@ -3,7 +3,7 @@
 import { useState, Fragment, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
-import { DAY_KEYS } from "@/lib/timesheet-shared";
+import { DAY_KEYS, type AutoTempoResult } from "@/lib/timesheet-shared";
 import { inRange, type InspectRange } from "@/lib/inspect";
 import { useDeferredLoading } from "@/lib/use-deferred-loading";
 import { Spinner } from "./spinner";
@@ -119,6 +119,167 @@ function TimesheetSubmitButton({
   );
 }
 
+function AutoTempoFeedback({
+  result,
+  onDismiss,
+}: {
+  result: AutoTempoResult;
+  onDismiss: () => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  const totalHours = (result.totalSecondsLogged / 3600).toFixed(1);
+  const daysCount = result.processedDates.length;
+  const hasWorklogs = result.days && result.days.some((d) => d.worklogs && d.worklogs.length > 0);
+  const isNoOp = result.worklogsCreated === 0 && result.messages.length > 0;
+
+  return (
+    <div className="mx-1 mb-2 rounded-xl border border-accent/30 bg-surface-2/80 backdrop-blur-sm p-3 text-xs shadow-sm transition-all animate-fade-in">
+      {/* Hero Summary Header */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent text-[11px] font-bold">
+            ✓
+          </span>
+          <span className="font-semibold text-ink">AutoTempo Complete</span>
+          {isNoOp ? (
+            <span className="text-ink-muted text-[11px]">
+              • {result.messages[0] || "No new worklogs were created."}
+            </span>
+          ) : (
+            <>
+              <span className="text-ink-muted text-[11px]">
+                • {totalHours} hrs logged across {daysCount} {daysCount === 1 ? "day" : "days"} ({result.worklogsCreated} worklogs)
+              </span>
+
+              {/* Date Chips */}
+              {result.days && result.days.length > 0 && (
+                <div className="flex items-center gap-1 ml-1 flex-wrap">
+                  {result.days.map((d) => (
+                    <span
+                      key={d.date}
+                      className="inline-flex items-center gap-1 rounded-md border border-edge/60 bg-surface-3 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted"
+                    >
+                      <span>{d.date}</span>
+                      <span className="font-semibold text-accent">{d.totalHours.toFixed(1)}h</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto shrink-0">
+          {hasWorklogs && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="cursor-pointer flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10 transition-colors"
+            >
+              <span>{isExpanded ? "Hide Details" : "View Details"}</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+              </svg>
+            </button>
+          )}
+
+          <button
+            onClick={onDismiss}
+            title="Dismiss"
+            className="cursor-pointer p-1 text-ink-muted hover:text-ink rounded hover:bg-surface-3 transition-colors text-[11px]"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded Breakdown Drawer */}
+      {isExpanded && hasWorklogs && (
+        <div className="mt-3 pt-3 border-t border-edge/50 flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {result.days.map((day) => (
+              <div
+                key={day.date}
+                className="rounded-lg border border-edge/60 bg-surface/80 p-2.5 flex flex-col gap-2"
+              >
+                <div className="flex items-center justify-between border-b border-edge/40 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-ink">📅 {day.date}</span>
+                  </div>
+                  <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                    {day.totalHours.toFixed(1)} hrs
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  {day.worklogs.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between gap-2 text-[11px] rounded bg-surface-2/40 px-2 py-1 hover:bg-surface-2 transition-colors"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <span className="shrink-0 text-xs" title={item.type === "meeting" ? "Meeting" : "Waypoint Card"}>
+                          {item.type === "meeting" ? "🗓️" : "🎫"}
+                        </span>
+                        <span className="truncate font-medium text-ink" title={item.title}>
+                          {item.type === "card" && item.ref ? item.ref : item.title}
+                        </span>
+                        {item.accountName && (
+                          <span
+                            className="hidden sm:inline-block truncate text-[9px] text-ink-faint rounded bg-surface-3 px-1.5 py-0.5"
+                            title={`Account: ${item.account} (${item.accountName})`}
+                          >
+                            {item.accountName}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="font-semibold text-accent tabular-nums">
+                          {item.hours.toFixed(1)}h
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Diagnostics Accordion */}
+          {result.diagnostics && result.diagnostics.length > 0 && (
+            <div className="pt-1">
+              <button
+                onClick={() => setShowDiagnostics(!showDiagnostics)}
+                className="cursor-pointer text-[10px] text-ink-faint hover:text-ink-muted flex items-center gap-1 transition-colors"
+              >
+                <span>⚙️ {showDiagnostics ? "Hide Sync Diagnostics" : "View Sync Diagnostics"}</span>
+                <span className="text-[9px]">({result.diagnostics.length} entries)</span>
+              </button>
+
+              {showDiagnostics && (
+                <div className="mt-1.5 rounded bg-surface-3/50 p-2 text-[10px] font-mono text-ink-muted space-y-0.5 max-h-32 overflow-y-auto">
+                  {result.diagnostics.map((diag, i) => (
+                    <div key={i} className="leading-relaxed">• {diag}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TimesheetFooter({
   readOnly,
   inspect,
@@ -148,21 +309,20 @@ export function TimesheetFooter({
     onSettled: invalidate,
   });
 
-  const [autoTempoStatus, setAutoTempoStatus] = useState<string | null>(null);
+  const [autoTempoResult, setAutoTempoResult] = useState<AutoTempoResult | null>(null);
+  const [autoTempoError, setAutoTempoError] = useState<string | null>(null);
 
   const autoTempoMut = useMutation({
     mutationFn: (dates?: string[]) => api.autoTempoFill(dates),
     onSuccess: (res) => {
-      if (res.messages && res.messages.length > 0) {
-        setAutoTempoStatus(res.messages.join(" • "));
-      } else {
-        setAutoTempoStatus(`Logged ${res.worklogsCreated} worklogs (${(res.totalSecondsLogged / 3600).toFixed(1)} hrs total).`);
-      }
+      setAutoTempoError(null);
+      setAutoTempoResult(res);
       invalidate();
     },
     onError: (err: unknown) => {
       const message = err instanceof Error ? err.message : "Execution failed";
-      setAutoTempoStatus(`AutoTempo Error: ${message}`);
+      setAutoTempoResult(null);
+      setAutoTempoError(message);
     },
   });
 
@@ -278,11 +438,26 @@ export function TimesheetFooter({
         </div>
 
         <div className={`max-h-64 flex-col gap-4 overflow-y-auto pr-1 pt-1 ${isMobileExpanded ? "flex" : "hidden md:flex"}`}>
-          {autoTempoStatus && (
-            <div className="mx-2 mb-1 rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs text-accent font-medium flex items-center justify-between animate-fade-in">
-              <span>{autoTempoStatus}</span>
-              <button onClick={() => setAutoTempoStatus(null)} className="text-accent hover:opacity-75 text-[11px] font-bold cursor-pointer ml-2">✕</button>
+          {autoTempoError && (
+            <div className="mx-1 mb-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400 flex items-center justify-between animate-fade-in">
+              <div className="flex items-center gap-2">
+                <span className="font-bold">⚠️ AutoTempo Error:</span>
+                <span>{autoTempoError}</span>
+              </div>
+              <button
+                onClick={() => setAutoTempoError(null)}
+                className="text-red-500 hover:opacity-75 text-[11px] font-bold cursor-pointer ml-2"
+              >
+                ✕
+              </button>
             </div>
+          )}
+
+          {autoTempoResult && (
+            <AutoTempoFeedback
+              result={autoTempoResult}
+              onDismiss={() => setAutoTempoResult(null)}
+            />
           )}
 
           {months.length === 0 && (

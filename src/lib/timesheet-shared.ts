@@ -64,7 +64,7 @@ export const ADMIN_ISSUES: AdminIssueRule[] = [
   { summary_contains: "Leave / PTO", allowed: ["OPX_PTO"] },
   { summary_contains: "Public Holiday", allowed: ["OPX_PTO"] },
   { summary_contains: "Company or Department Meeting", allowed: ["OPX_ADMIN"] },
-  { summary_contains: "General Administrative Time", allowed: ["OPX_TRAINING", "OPX_ADMIN"] },
+  { summary_contains: "General Administrative Time", allowed: ["OPX_ADMIN"] },
   { summary_contains: "Training", allowed: ["OPX_TRAINING"] },
   { summary_contains: "Agile Processes", allowed: ["OPX_PLAN", "OPX_ADMIN"] },
   { summary_contains: "Support Tickets", allowed: ["OPX_SUPPORT"] },
@@ -73,6 +73,7 @@ export const ADMIN_ISSUES: AdminIssueRule[] = [
 export const ADMIN_PROJECT_KEYS = ["AT", "ADMIN"] as const;
 
 export const ALWAYS_ALLOWED_ON_PROJECT_ISSUES = ["OPX_PLAN", "OPX_RESEARCH"] as const;
+export const ALWAYS_ALLOWED_EXCLUDED_CATEGORIES = ["Admin", "Interview"] as const;
 
 export const MAX_DAILY_HOURS = 12;
 
@@ -84,26 +85,67 @@ export interface AutoTempoRule {
   skip?: boolean;
 }
 
-/** Default common meeting rules for auto-tempo classification */
+/** Jira issue ID of AT-20 "Company or Department Meeting" — every work meeting logs here */
+export const MEETING_ISSUE_ID = "197608";
+
+/**
+ * Default common meeting rules for auto-tempo classification.
+ * The first matching rule wins, so leave and skip rules come before the work-meeting rules.
+ * AT-20 allows only OPX_ADMIN (see ADMIN_ISSUES), so all work meetings use that account.
+ */
 export const SYSTEM_COMMON_RULES: AutoTempoRule[] = [
+  // Leave — not a meeting, logs to the leave issues
   { account: "OPX_PTO", issue: "39593", rule: ["Out of office", "Leave", "Annual Leave", "Unpaid Leave", "Sick Leave", "PTO", "Give Back day"], type: "PTO" },
   { account: "OPX_PTO", issue: "39600", rule: "Public Holiday", type: "PTO" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["Town Hall", "All Hands", "Showcase", "Company Meeting", "Department Meeting", "Engineering Monthly"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["1-on-1", "1:1", "1-1", "Check-in", "Sync", "PDP", "Goals", "Goals chat"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["Meet and greet", "Chat with", "Intro", "Weekly goal setting", "Fun day", "Virtual Lunch"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["Education Engineering leads", "Leaders", "Education tech leadership", "Wow Group Meeting", "EDU SLT Meeting", "SLT"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["Weekly program update", "Weekly milestone", "Weekly Engineering - Product Sync", "Elixir weekly updates", "Product / Eng - Heads"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["PIR", "Internal PIR Review", "ITSM Review", "Working Group", "Incident Management", "discussion", "Discuss", "investigation", "Prioritisation", "Gravity DB Storage optimisation", "plan", "UK shenanigans", "GG Posts chat", "Common services strategy"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "197608", rule: ["Interview", "EOY", "Roadmap"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "158608", rule: ["Standup", "Stand-up", "Stand up", "Tech lead standup", "Catch up", "Catch-up", "Catchup", "Team Sync", "Tech lead catchup"], type: "Admin" },
-  { account: "OPX_ADMIN", issue: "158608", rule: ["Retro", "Retrospective", "Firewarden Retro"], type: "Admin" },
-  { account: "OPX_PLAN", issue: "158608", rule: ["Sprint Planning", "Backlog Refinement", "Planning", "Roadmap", "Estimation", "Tech Feasibility", "Tech Feasability", "Story Time"], type: "Planning" },
-  { account: "OPX_ADMIN", issue: "158634", rule: ["Timesheet", "Timesheets", "Time Tracking", "Autotempo", "Time entry", "Admin"], type: "Admin" },
-  { account: "OPX_TRAINING", issue: "39597", rule: ["Training", "Workshop", "Lunch & Learn", "Upskilling", "Conference", "10% time", "Education Tech Meetup", "L&L", "Elixir and Frontend Upskilling", "CCS and PES Upskilling"], type: "Training" },
-  { account: "OPX_SUPPORT", issue: "40814", rule: ["On-Call", "Support Handover", "Triage", "BAU", "JIRA time", "Firewarden", "Firewarden handover", "Firewarden / Support chat"], type: "BAU" },
-  { rule: "Update 1:1 spreadsheet", skip: true },
-  { rule: "Funky Bunch Trivia", skip: true },
-  { rule: "Buffer", skip: true },
-  { rule: "Focus Time", skip: true },
+
+  // Non-work events and calendar blocks — not logged
+  { rule: ["Fun day", "Virtual Lunch", "Funky Bunch Trivia", "Trivia", "Donut", "New Starter Olympics", "Social"], skip: true },
+  { rule: ["Update 1:1 spreadsheet", "Buffer", "Focus Time"], skip: true },
+
+  // Work meetings — all log to AT-20
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Town Hall", "All Hands", "Showcase", "Company Meeting", "Department Meeting", "Engineering Monthly"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Standup", "Stand-up", "Stand up", "Tech lead standup", "Catch up", "Catch-up", "Catchup", "Team Sync", "Tech lead catchup"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Retro", "Retrospective", "Firewarden Retro"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Sprint Planning", "Backlog Refinement", "Planning", "Estimation", "Tech Feasibility", "Tech Feasability", "Story Time"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["1-on-1", "1:1", "1-1", "Check-in", "Sync", "PDP", "Goals", "Goals chat"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Meet and greet", "Chat with", "Intro", "Weekly goal setting"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Education Engineering leads", "Leaders", "Education tech leadership", "Wow Group Meeting", "EDU SLT Meeting", "SLT"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Weekly program update", "Weekly milestone", "Weekly Engineering - Product Sync", "Elixir weekly updates", "Product / Eng - Heads"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["PIR", "Internal PIR Review", "ITSM Review", "Working Group", "Incident Management", "discussion", "Discuss", "investigation", "Prioritisation", "Gravity DB Storage optimisation", "plan", "UK shenanigans", "GG Posts chat", "Common services strategy"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Interview", "EOY", "Roadmap"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Timesheet", "Timesheets", "Time Tracking", "Autotempo", "Time entry", "Admin"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["Training", "Workshop", "Lunch & Learn", "Upskilling", "Conference", "10% time", "Education Tech Meetup", "L&L", "Elixir and Frontend Upskilling", "CCS and PES Upskilling"], type: "Admin" },
+  { account: "OPX_ADMIN", issue: MEETING_ISSUE_ID, rule: ["On-Call", "Support Handover", "Triage", "BAU", "JIRA time", "Firewarden", "Firewarden handover", "Firewarden / Support chat"], type: "Admin" },
 ];
+
+export interface AutoTempoWorklogItem {
+  id: string;
+  date: string;
+  type: "meeting" | "card";
+  title: string;
+  ref?: string;
+  issueId: string;
+  account: string;
+  accountName?: string;
+  seconds: number;
+  hours: number;
+}
+
+export interface AutoTempoDaySummary {
+  date: string;
+  totalSeconds: number;
+  totalHours: number;
+  worklogs: AutoTempoWorklogItem[];
+}
+
+export interface AutoTempoResult {
+  success: boolean;
+  processedDates: string[];
+  worklogsCreated: number;
+  totalSecondsLogged: number;
+  days: AutoTempoDaySummary[];
+  diagnostics: string[];
+  messages: string[];
+}
+
 
