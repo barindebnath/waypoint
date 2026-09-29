@@ -25,6 +25,7 @@ export type AuthedUser = {
   autoTempoDefaultRule: unknown;
   autoTempoSkipDays: unknown;
   autoTempoRules: unknown;
+  autoTempoScheduled: boolean;
 };
 
 export class ApiError extends Error {
@@ -100,6 +101,7 @@ export async function requireUser(opts: { write?: boolean } = {}): Promise<Authe
     autoTempoDefaultRule: settings.autoTempoDefaultRule,
     autoTempoSkipDays: settings.autoTempoSkipDays,
     autoTempoRules: settings.autoTempoRules,
+    autoTempoScheduled: settings.autoTempoScheduled,
   };
 }
 

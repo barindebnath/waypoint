@@ -217,8 +217,23 @@ Adjust script names to match your `package.json`. Architecture notes live in [`C
    | `BETTER_AUTH_API_KEY` | Server-only API key from the Better Auth dashboard project |
    | `BETTER_AUTH_URL` | **canonical browser URL** for the app, e.g. `https://waypoint.example.com` (or your `*.vercel.app` URL when no custom domain is used) |
    | `BETTER_AUTH_TRUSTED_ORIGINS` | (optional) comma-separated additional origins, such as a Vercel preview URL |
+   | `CRON_SECRET` | `openssl rand -hex 32` — protects the weekly AutoTempo cron at `/api/cron/autotempo` |
 3. **Deploy.** Migrations run automatically during the Vercel build (`vercel-build` runs `drizzle-kit migrate` first). Sign up at your URL, then in **Settings**: set your timezone, Jira base URL, GitHub org URL, and create a `read,write` token for your AI.
 4. Point your AI at `https://<your-url>/llms.txt` and give it the token.
+
+### Weekly AutoTempo cron
+
+`vercel.json` schedules `GET /api/cron/autotempo` every Friday at 12:30 UTC (18:00 IST). Vercel Cron uses UTC. To change the time, edit the `schedule` value.
+
+1. Set `CRON_SECRET` in **Vercel → Project Settings → Environment Variables** for Production, then redeploy. If the variable is not set, the route rejects every call.
+2. Each user turns on **Run AutoTempo every Friday** in **Settings**. The run processes only those users.
+3. Each run fills the unfilled days up to that Friday. It deletes the existing Tempo worklogs on those days before it logs new ones.
+
+To start a run manually:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<your-url>/api/cron/autotempo
+```
 
 ### Better Auth production configuration
 

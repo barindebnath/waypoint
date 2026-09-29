@@ -130,6 +130,8 @@ export const userSettings = pgTable("user_settings", {
   autoTempoDefaultRule: jsonb("auto_tempo_default_rule"),
   autoTempoSkipDays: jsonb("auto_tempo_skip_days"),
   autoTempoRules: jsonb("auto_tempo_rules"),
+  /** Opt-in: the Friday cron (/api/cron/autotempo) runs AutoTempo for this user */
+  autoTempoScheduled: boolean("auto_tempo_scheduled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

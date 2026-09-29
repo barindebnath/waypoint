@@ -208,6 +208,7 @@ export const api = {
       autoTempoDefaultRule: unknown;
       autoTempoSkipDays: unknown;
       autoTempoRules: unknown;
+      autoTempoScheduled: boolean;
     }>("/api/v1/me"),
   updateMe: (patch: {
     timezone?: string;
@@ -228,6 +229,7 @@ export const api = {
     autoTempoDefaultRule?: Record<string, unknown> | null;
     autoTempoSkipDays?: string[] | null;
     autoTempoRules?: Record<string, unknown>[] | null;
+    autoTempoScheduled?: boolean;
   }) => request<{ ok: true }>("/api/v1/me", { method: "PATCH", body: JSON.stringify(patch) }),
   syncIntegrations: () =>
     request<{ success: true; syncedJiraCount: number; syncedGithubCount: number; messages?: string[] }>(

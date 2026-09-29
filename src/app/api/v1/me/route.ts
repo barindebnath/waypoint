@@ -30,6 +30,7 @@ export async function GET() {
       autoTempoDefaultRule: user.autoTempoDefaultRule,
       autoTempoSkipDays: user.autoTempoSkipDays,
       autoTempoRules: user.autoTempoRules,
+      autoTempoScheduled: user.autoTempoScheduled,
     });
   });
 }
@@ -65,6 +66,7 @@ const patchSchema = z.object({
   autoTempoDefaultRule: z.record(z.string(), z.unknown()).nullable().optional(),
   autoTempoSkipDays: z.array(z.string()).nullable().optional(),
   autoTempoRules: z.array(z.record(z.string(), z.unknown())).nullable().optional(),
+  autoTempoScheduled: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request) {

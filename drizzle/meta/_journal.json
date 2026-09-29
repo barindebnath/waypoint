@@ -57,6 +57,13 @@
       "when": 1787396795664,
       "tag": "0007_flowery_johnny_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790681719790,
+      "tag": "0008_omniscient_yellowjacket",
+      "breakpoints": true
     }
   ]
 }

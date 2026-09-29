@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "auto_tempo_scheduled" boolean DEFAULT false NOT NULL;

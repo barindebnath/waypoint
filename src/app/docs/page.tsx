@@ -415,6 +415,7 @@ export default async function DocsPage() {
                 ["autoTempoDefaultRule", "object | null", "Default auto-tempo logging rule."],
                 ["autoTempoSkipDays", "string[] | null", "Days to skip during auto-tempo (e.g. public holidays)."],
                 ["autoTempoRules", "object[] | null", "Per-project auto-tempo rule overrides."],
+                ["autoTempoScheduled", "boolean", "Opt in to the weekly auto-tempo run every Friday at 12:30 UTC."],
               ]}
             />
           </Ep>
