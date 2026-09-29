@@ -253,6 +253,7 @@ function SettingsForm({
     autoTempoDefaultRule: unknown;
     autoTempoSkipDays: unknown;
     autoTempoRules: unknown;
+    autoTempoScheduled: boolean;
   };
 }) {
   const qc = useQueryClient();
@@ -294,6 +295,8 @@ function SettingsForm({
     if (Array.isArray(me.autoTempoSkipDays)) return me.autoTempoSkipDays as string[];
     return ["Saturday", "Sunday"];
   });
+
+  const [autoTempoScheduled, setAutoTempoScheduled] = useState(me.autoTempoScheduled);
 
   const [ruleSearch, setRuleSearch] = useState("");
   const [showSystemRules, setShowSystemRules] = useState(false);
@@ -348,6 +351,7 @@ function SettingsForm({
         msRefreshToken: msRefreshToken.trim() || null,
         autoTempoSkipDays: skipDays,
         autoTempoRules: formattedRules,
+        autoTempoScheduled,
       });
     },
     onSuccess: () => {
@@ -669,6 +673,22 @@ function SettingsForm({
               })}
             </div>
           </div>
+
+          {/* Weekly schedule opt-in */}
+          <label className="flex items-start gap-2.5 rounded-lg border border-edge bg-surface-2/60 p-3.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoTempoScheduled}
+              onChange={(e) => setAutoTempoScheduled(e.target.checked)}
+              className="mt-0.5 cursor-pointer accent-accent"
+            />
+            <span className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-ink">Run AutoTempo every Friday</span>
+              <span className="text-[11px] text-ink-muted">
+                The server fills your unfilled days each Friday at about 18:00 IST (12:30 UTC). Each run replaces your existing Tempo worklogs on the days it fills.
+              </span>
+            </span>
+          </label>
 
           {/* Company Common Rules Banner & Personal Overrides */}
           <div className="flex flex-col gap-3">
