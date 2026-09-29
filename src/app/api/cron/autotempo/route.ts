@@ -30,8 +30,8 @@ interface UserRunSummary {
 }
 
 /**
- * Weekly AutoTempo run, called by Vercel Cron (see vercel.json).
- * Vercel sends `Authorization: Bearer $CRON_SECRET`; every other caller gets 401.
+ * Weekly AutoTempo run, called by GitHub Actions (see .github/workflows/autotempo.yml).
+ * The caller sends `Authorization: Bearer $CRON_SECRET`; every other caller gets 401.
  * Only users who opt in (userSettings.autoTempoScheduled) are processed.
  */
 export async function GET(req: Request) {

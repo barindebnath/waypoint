@@ -685,7 +685,7 @@ function SettingsForm({
             <span className="flex flex-col gap-1">
               <span className="text-xs font-semibold text-ink">Run AutoTempo every Friday</span>
               <span className="text-[11px] text-ink-muted">
-                The server fills your unfilled days each Friday at 18:00 IST (12:30 UTC). Each run replaces your existing Tempo worklogs on the days it fills.
+                The server fills your unfilled days each Friday at about 18:00 IST (12:30 UTC). Each run replaces your existing Tempo worklogs on the days it fills.
               </span>
             </span>
           </label>

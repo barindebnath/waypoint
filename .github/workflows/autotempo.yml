@@ -1,0 +1,56 @@
+# Weekly AutoTempo run. GitHub Actions calls the app's cron route; the route
+# itself does the work and checks CRON_SECRET.
+#
+# Setup (repository → Settings → Secrets and variables → Actions):
+# - Secret   CRON_SECRET  — the same value as CRON_SECRET in the Vercel project
+# - Variable WAYPOINT_URL — the app URL, for example https://waypoint.example.com
+#
+# The repository is public, so the job logs are public. The job prints only the
+# user counts and the HTTP status, never the response body or the secret.
+name: Weekly AutoTempo
+
+on:
+  schedule:
+    # Cron times are UTC: 12:30 UTC is 18:00 IST. GitHub can start a scheduled run late.
+    - cron: "30 12 * * 5"
+  workflow_dispatch:
+
+# The job only makes an outbound HTTP call, so it needs no repository permissions.
+permissions: {}
+
+concurrency:
+  group: autotempo
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Call the AutoTempo cron route
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          WAYPOINT_URL: ${{ vars.WAYPOINT_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CRON_SECRET" ] || [ -z "$WAYPOINT_URL" ]; then
+            echo "::error::Set the CRON_SECRET secret and the WAYPOINT_URL variable."
+            exit 1
+          fi
+
+          # The route can run for up to 300 s (maxDuration), so allow a little more here.
+          status=$(curl -sS --max-time 330 -o response.json -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${WAYPOINT_URL%/}/api/cron/autotempo")
+
+          echo "HTTP status: $status"
+          if [ "$status" != "200" ]; then
+            echo "::error::The AutoTempo cron route returned HTTP $status."
+            exit 1
+          fi
+
+          jq '{usersProcessed, usersFailed}' response.json
+          if [ "$(jq '.usersFailed' response.json)" != "0" ]; then
+            echo "::error::AutoTempo failed for one or more users. See the Vercel function logs."
+            exit 1
+          fi
