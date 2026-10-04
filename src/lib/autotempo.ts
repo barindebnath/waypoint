@@ -424,6 +424,53 @@ async function createTempoWorklog(
   return true;
 }
 
+/**
+ * Choose the dates that auto-resume fills. A day that was filled early (for example a
+ * public holiday) must not hide the unfilled days before it, so the start date is:
+ * 1. the day after the latest submitted week in the window, or
+ * 2. if no week is submitted, the earlier of the earliest filled day in the window
+ *    and the start of the current week.
+ * From the start date up to today, every working day that is not in a submitted week
+ * and has less than a full day logged is a target.
+ */
+export function pickResumeDates(
+  today: DateTime,
+  windowStart: DateTime,
+  loggedSecondsByDate: Record<string, number>,
+  submittedWeekIds: Set<string>,
+  skipDays: string[],
+): string[] {
+  const isWorkDay = (dt: DateTime) => !skipDays.includes(dt.toFormat("EEEE"));
+  const isFull = (dt: DateTime) => (loggedSecondsByDate[dt.toFormat("yyyy-MM-dd")] || 0) >= DEFAULT_WORK_DAY_SECONDS;
+  const isSubmitted = (dt: DateTime) => submittedWeekIds.has(weekIdFor(dt));
+
+  let latestSubmittedDt: DateTime | null = null;
+  let earliestFilledDt: DateTime | null = null;
+  for (let cursor = windowStart.startOf("day"); cursor <= today; cursor = cursor.plus({ days: 1 })) {
+    if (!isWorkDay(cursor)) continue;
+    if (isSubmitted(cursor)) {
+      latestSubmittedDt = cursor;
+    } else if (!earliestFilledDt && isFull(cursor)) {
+      earliestFilledDt = cursor;
+    }
+  }
+
+  const weekStart = today.startOf("week");
+  const startDt = latestSubmittedDt
+    ? latestSubmittedDt.plus({ days: 1 })
+    : earliestFilledDt && earliestFilledDt < weekStart
+      ? earliestFilledDt
+      : weekStart;
+
+  const dates: string[] = [];
+  for (let curr = startDt.startOf("day"); curr <= today; curr = curr.plus({ days: 1 })) {
+    if (isWorkDay(curr) && !isSubmitted(curr) && !isFull(curr)) {
+      dates.push(curr.toFormat("yyyy-MM-dd"));
+    }
+  }
+  return dates;
+}
+
 /** Find unfilled dates up to today in Tempo (8h logged, skipping non-working days and submitted weeks) */
 async function findTargetDatesForResume(
   userId: string,
@@ -480,46 +527,7 @@ async function findTargetDatesForResume(
     }
   }
 
-  // Walk backwards from today to find latest filled day
-  let latestFilledDt: DateTime | null = null;
-  let cursor = today;
-  while (cursor >= thirtyDaysAgo) {
-    const dStr = cursor.toFormat("yyyy-MM-dd");
-    const dayName = cursor.toFormat("EEEE");
-    const wId = weekIdFor(cursor);
-
-    if (!skipDays.includes(dayName)) {
-      const isSubmitted = submittedWeekIds.has(wId);
-      const logged = loggedSecondsByDate[dStr] || 0;
-      if (isSubmitted || logged >= DEFAULT_WORK_DAY_SECONDS) {
-        latestFilledDt = cursor;
-        break;
-      }
-    }
-    cursor = cursor.minus({ days: 1 });
-  }
-
-  // Determine start date
-  const startDt = latestFilledDt ? latestFilledDt.plus({ days: 1 }) : today.startOf("week");
-
-  // Collect target dates from startDt up to today, excluding skipDays, submitted weeks, and already full days
-  const dates: string[] = [];
-  let curr = startDt;
-  while (curr <= today) {
-    const dayName = curr.toFormat("EEEE");
-    const dStr = curr.toFormat("yyyy-MM-dd");
-    const wId = weekIdFor(curr);
-
-    if (!skipDays.includes(dayName) && !submittedWeekIds.has(wId)) {
-      const logged = loggedSecondsByDate[dStr] || 0;
-      if (logged < DEFAULT_WORK_DAY_SECONDS) {
-        dates.push(dStr);
-      }
-    }
-    curr = curr.plus({ days: 1 });
-  }
-
-  return dates;
+  return pickResumeDates(today, thirtyDaysAgo, loggedSecondsByDate, submittedWeekIds, skipDays);
 }
 
 /** Sync days with >= 8h in Tempo for the last 30 days into Waypoint timesheet */
