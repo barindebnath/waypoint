@@ -3,6 +3,7 @@
 import type { EnrichedRowView } from "./links";
 import type { MonthView, WeekView } from "./timesheet";
 import type { PipelineDef, PipelineKey } from "./pipelines";
+import type { GithubPrPreview } from "./github";
 
 import type { AutoTempoResult, AutoTempoDaySummary, AutoTempoWorklogItem } from "./timesheet-shared";
 
@@ -245,7 +246,7 @@ export const api = {
       headers: { "Idempotency-Key": `reorder-${Date.now()}-${Math.random()}` },
     }),
   previewRef: (ref: string) =>
-    request<{ ref: string; title: string | null }>(
+    request<{ ref: string; title: string | null; pr?: GithubPrPreview | null }>(
       `/api/v1/integrations/preview?ref=${encodeURIComponent(ref)}`
     ),
   deleteAccount: () =>

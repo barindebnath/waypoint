@@ -140,12 +140,33 @@ export async function fetchGithubPrStatus(
   }
 }
 
-export async function fetchGithubPrTitle(
+export interface GithubPrPreview {
+  title: string;
+  state: GithubPrDetails["state"];
+  owner: string;
+  repo: string;
+  number: number;
+  createdAt: string;
+  updatedAt: string;
+  authorLogin: string | null;
+  authorAvatarUrl: string | null;
+  additions: number;
+  deletions: number;
+  changedFiles: number;
+}
+
+// Only GitHub's avatar CDN is allowed, so the client never loads an image from an arbitrary host.
+function safeAvatarUrl(url: unknown): string | null {
+  if (typeof url !== "string") return null;
+  return url.startsWith("https://avatars.githubusercontent.com/") ? url : null;
+}
+
+export async function fetchGithubPrPreview(
   pat: string | null | undefined,
   owner: string,
   repo: string,
   pullNumber: number
-): Promise<string | null> {
+): Promise<GithubPrPreview | null> {
   try {
     const token = pat?.trim() || "";
     const authHeadersToTry: (string | null)[] = token
@@ -168,13 +189,30 @@ export async function fetchGithubPrTitle(
 
       if (res.ok) {
         const data = await res.json();
-        return data.title ? String(data.title) : null;
+        let state: GithubPrDetails["state"] = "open";
+        if (data.merged) state = "merged";
+        else if (data.state === "closed") state = "closed";
+        else if (data.draft) state = "draft";
+
+        return {
+          title: data.title ? String(data.title) : "",
+          state,
+          owner,
+          repo,
+          number: pullNumber,
+          createdAt: String(data.created_at ?? ""),
+          updatedAt: String(data.updated_at ?? ""),
+          authorLogin: data.user?.login ? String(data.user.login) : null,
+          authorAvatarUrl: safeAvatarUrl(data.user?.avatar_url),
+          additions: Number(data.additions) || 0,
+          deletions: Number(data.deletions) || 0,
+          changedFiles: Number(data.changed_files) || 0,
+        };
       }
     }
     return null;
   } catch (err) {
-    console.error(`Failed to fetch GitHub PR title for ${owner}/${repo}#${pullNumber}:`, err);
+    console.error(`Failed to fetch GitHub PR preview for ${owner}/${repo}#${pullNumber}:`, err);
     return null;
   }
 }
-
