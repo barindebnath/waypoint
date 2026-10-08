@@ -111,6 +111,13 @@ function fmtAge(isoString: string): string {
 
 type EnrichedRef = EnrichedRowView["secondaryRefs"][number];
 
+const PR_STATE_CLASS: Record<"open" | "closed" | "merged" | "draft", string> = {
+  open: "border-done/40 text-done",
+  closed: "border-danger/40 text-danger",
+  merged: "border-purple-400/40 text-purple-400",
+  draft: "border-edge text-ink-muted",
+};
+
 function PrRefPill({
   prRef,
   readOnly,
@@ -190,7 +197,7 @@ function PrRefPill({
       )}
 
       {/* Hover Popover Card */}
-      <div className="absolute left-0 top-full mt-1.5 hidden group-hover/pr:block z-30 w-64 rounded-xl border border-edge bg-surface p-3 shadow-xl text-xs text-ink pointer-events-none transition-all">
+      <div className="absolute left-0 top-full mt-1.5 hidden group-hover/pr:block z-30 w-80 rounded-xl border border-edge bg-surface p-3 shadow-xl text-xs text-ink pointer-events-none transition-all">
         <div className="flex items-center justify-between border-b border-edge/60 pb-1.5 mb-2 font-mono text-[11px]">
           <span className="font-semibold text-accent flex items-center gap-1">
             <GitPullRequestIcon className="h-3.5 w-3.5" /> {prRef.ref}
@@ -198,18 +205,46 @@ function PrRefPill({
           <span className="text-[10px] text-ink-faint">GitHub PR</span>
         </div>
 
-        {/* Ephemeral PR title preview */}
-        {preview?.title ? (
-          <div className="mb-2 pb-2 border-b border-edge/60">
-            <p className="text-[11.5px] font-medium text-ink leading-snug line-clamp-2" title={preview.title}>
-              &ldquo;{preview.title}&rdquo;
-            </p>
+        {/* Ephemeral PR preview: state, repo, age, title, author, and diff size */}
+        {preview?.pr ? (
+          <div className="mb-2 pb-2 border-b border-edge/60 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-[10.5px] text-ink-muted">
+              <span
+                className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-[1px] font-medium capitalize ${PR_STATE_CLASS[preview.pr.state]}`}
+              >
+                <GitPullRequestIcon className="h-2.5 w-2.5" />
+                {preview.pr.state}
+              </span>
+              <span className="truncate font-mono">
+                {preview.pr.owner}/{preview.pr.repo} #{preview.pr.number}
+              </span>
+              {preview.pr.updatedAt && (
+                <span className="ml-auto shrink-0 text-ink-faint" title={`Updated ${fmt(preview.pr.updatedAt)}`}>
+                  {fmtAge(preview.pr.updatedAt)} ago
+                </span>
+              )}
+            </div>
+            <p className="text-[12px] font-medium text-ink leading-snug line-clamp-3">{preview.pr.title}</p>
+            <div className="flex items-center gap-1.5 text-[10.5px]">
+              {preview.pr.authorAvatarUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- small remote avatar; next/image would need remotePatterns config
+                <img src={preview.pr.authorAvatarUrl} alt="" className="h-4 w-4 rounded-full" />
+              )}
+              {preview.pr.authorLogin && <span className="truncate text-ink-muted">{preview.pr.authorLogin}</span>}
+              <span className="ml-auto shrink-0 rounded-md border border-edge px-1.5 py-[1px] font-mono">
+                <span className="text-done">+{preview.pr.additions.toLocaleString()}</span>{" "}
+                <span className="text-danger">−{preview.pr.deletions.toLocaleString()}</span>
+              </span>
+              <span className="shrink-0 rounded-md border border-edge px-1.5 py-[1px] font-mono text-ink-muted">
+                {preview.pr.changedFiles} {preview.pr.changedFiles === 1 ? "file" : "files"}
+              </span>
+            </div>
           </div>
         ) : isLoadingPreview ? (
           <div className="mb-2 pb-1.5 border-b border-edge/60">
             <p className="text-[10.5px] text-ink-faint italic flex items-center gap-1.5">
               <Spinner className="h-2.5 w-2.5 text-accent shrink-0" />
-              <span>Loading PR title…</span>
+              <span>Loading PR details…</span>
             </p>
           </div>
         ) : null}

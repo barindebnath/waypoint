@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { handle } from "@/lib/api-helpers";
 import { db, schema } from "@/lib/db";
-import { fetchGithubPrTitle, parseGithubOrg, parsePrRef } from "@/lib/github";
+import { fetchGithubPrPreview, parseGithubOrg, parsePrRef } from "@/lib/github";
 import { fetchJiraIssueSummary } from "@/lib/jira";
 import { eq } from "drizzle-orm";
 
@@ -33,13 +33,13 @@ export async function GET(req: NextRequest) {
 
       const parsed = parsePrRef(ref, defaultOrg);
       if (parsed) {
-        const title = await fetchGithubPrTitle(
+        const pr = await fetchGithubPrPreview(
           settings.githubPat,
           parsed.owner,
           parsed.repo,
           parsed.pullNumber
         );
-        return NextResponse.json({ ref, title });
+        return NextResponse.json({ ref, title: pr?.title || null, pr });
       }
     }
 
