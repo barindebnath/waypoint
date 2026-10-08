@@ -10,6 +10,7 @@ import { Spinner } from "./spinner";
 
 const tabs = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/board", label: "Board" },
   { href: "/analytics", label: "Analytics" },
   { href: "/settings", label: "Settings" },
   { href: "/docs", label: "Docs" },
