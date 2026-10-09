@@ -194,23 +194,25 @@ export const api = {
       timezone: string;
       jiraBaseUrl: string | null;
       jiraEmail: string | null;
-      jiraApiToken: string | null;
       githubBaseUrl: string | null;
-      githubPat: string | null;
       githubDefaultOrg: string | null;
       colorTheme: string;
       fontTheme: string;
       showTimesheet: boolean;
-      tempoApiToken: string | null;
       jiraAccountId: string | null;
       msClientId: string | null;
-      msClientSecret: string | null;
-      msRefreshToken: string | null;
       autoTempoDefaultRule: unknown;
       autoTempoSkipDays: unknown;
       autoTempoRules: unknown;
       autoTempoScheduled: boolean;
+      // Secrets are write-only: the server reports only whether each is set.
+      hasJiraApiToken: boolean;
+      hasGithubPat: boolean;
+      hasTempoApiToken: boolean;
+      hasMsClientSecret: boolean;
+      hasMsRefreshToken: boolean;
     }>("/api/v1/me"),
+  /** For a secret field: omit or "" keeps the stored value, a string replaces it, null clears it. */
   updateMe: (patch: {
     timezone?: string;
     jiraBaseUrl?: string | null;

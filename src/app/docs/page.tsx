@@ -392,10 +392,13 @@ export default async function DocsPage() {
             timezone; completion times are last-touch approximations by design.</p>
           </Ep>
           <Ep v="GET" path="/api/v1/me">
-            <p>Who am I: user id, auth method, scopes, timezone, link templates.</p>
+            <p>Who am I: user id, auth method, scopes, timezone, link templates. Secrets are never returned —
+            only flags such as <code className="font-mono">hasJiraApiToken</code> and <code className="font-mono">hasGithubPat</code>.</p>
           </Ep>
           <Ep v="PATCH" path="/api/v1/me">
             <p>Update user settings. All fields are optional — send only what you want to change.
+            Secret fields are write-only: omit one or send <code className="font-mono">&quot;&quot;</code> to keep it,
+            send a string to replace it, send <code className="font-mono">null</code> to clear it.
             Link templates turn bare refs into one-click links (<code className="font-mono">PES-1032</code> →{" "}
             <code className="font-mono">{`{jiraBaseUrl}/browse/PES-1032`}</code>).</p>
             <Fields
@@ -403,12 +406,12 @@ export default async function DocsPage() {
                 ["timezone", "string", "IANA timezone (e.g. Asia/Kolkata)."],
                 ["jiraBaseUrl", "string | null", "Jira instance URL for link templates."],
                 ["jiraEmail", "string | null", "Jira account email for API access."],
-                ["jiraApiToken", "string | null", "Jira API token."],
+                ["jiraApiToken", "string | null", "Jira API token (write-only)."],
                 ["jiraAccountId", "string | null", "Jira account ID (for Tempo)."],
                 ["githubBaseUrl", "string | null", "GitHub instance URL."],
-                ["githubPat", "string | null", "GitHub personal access token for PR status sync."],
+                ["githubPat", "string | null", "GitHub personal access token for PR status sync (write-only)."],
                 ["githubDefaultOrg", "string | null", "Default GitHub org for short-form PR refs (repo#123)."],
-                ["tempoApiToken", "string | null", "Tempo API token for auto-tempo."],
+                ["tempoApiToken", "string | null", "Tempo API token for auto-tempo (write-only)."],
                 ["colorTheme", '"paper" | "nord" | "forest" | "royal"', "Dashboard colour theme."],
                 ["fontTheme", '"serif" | "sans" | "mono"', "Dashboard font family."],
                 ["showTimesheet", "boolean", "Show or hide the timesheet sidebar."],
