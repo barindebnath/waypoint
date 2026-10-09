@@ -11,7 +11,7 @@ import type { ExternalRef } from "./db/schema";
 
 /**
  * The domain engine — the ONE place progress logic lives (spec §5.4), used by
- * both the dashboard and the programmatic API so they can never disagree.
+ * both the Board UI and the programmatic API so they can never disagree.
  *
  * Rules encoded here:
  * - A milestone completes when all its sub-tasks are checked; completion
@@ -27,9 +27,23 @@ import type { ExternalRef } from "./db/schema";
 /* Pipeline definitions (DB-held config, lazily seeded from code)      */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Older databases store a `humanUsual` flag on some sub-tasks. The flag is removed (spec-v2 §14),
+ * so keep only the key and the label. Then the API does not return the old flag.
+ */
+function stripRemovedFields(def: PipelineDef): PipelineDef {
+  return {
+    ...def,
+    milestones: def.milestones.map((m) => ({
+      ...m,
+      subtasks: m.subtasks.map((s) => ({ key: s.key, label: s.label })),
+    })),
+  };
+}
+
 export async function loadPipelines(): Promise<Record<PipelineKey, PipelineDef>> {
   const rows = await db.select().from(schema.pipelineDefinition);
-  const found = new Map(rows.map((r) => [r.key, r.definition as PipelineDef]));
+  const found = new Map(rows.map((r) => [r.key, stripRemovedFields(r.definition as PipelineDef)]));
   const missing = Object.values(PIPELINES).filter((p) => !found.has(p.key));
   if (missing.length > 0) {
     await db
@@ -65,7 +79,6 @@ export function refKind(ref: string): ExternalRef["kind"] {
 export type SubtaskView = {
   key: string;
   label: string;
-  humanUsual: boolean;
   checked: boolean;
   createdAt: string;
   updatedAt: string;
@@ -131,7 +144,6 @@ async function buildViews(userId: string, rows: RowRecord[]): Promise<RowView[]>
         return {
           key: sDef.key,
           label: sDef.label,
-          humanUsual: sDef.humanUsual ?? false,
           checked: sState?.checked ?? false,
           createdAt: (sState?.createdAt ?? row.createdAt).toISOString(),
           updatedAt: (sState?.updatedAt ?? row.createdAt).toISOString(),
@@ -180,17 +192,6 @@ export async function listRows(userId: string, limit?: number, offset?: number):
   if (offset !== undefined) query = query.offset(offset);
   const rows = await query;
   return buildViews(userId, rows);
-}
-
-export async function reorderRows(userId: string, rowIds: string[]): Promise<void> {
-  await db.transaction(async (tx) => {
-    for (let i = 0; i < rowIds.length; i++) {
-      await tx
-        .update(schema.ticketRow)
-        .set({ sortOrder: i })
-        .where(and(eq(schema.ticketRow.userId, userId), eq(schema.ticketRow.id, rowIds[i])));
-    }
-  });
 }
 
 /** Find a row by its identity ref, or fall back to secondary refs. */
@@ -400,7 +401,7 @@ export async function setSubtask(
         );
     }
 
-    // Dynamic cascade: when a subtask is checked, auto-check preceding automated subtasks
+    // Dynamic cascade: when a subtask is checked, auto-check all preceding subtasks
     if (checked) {
       const targetMIdx = def.milestones.findIndex((m) => m.key === milestoneKey);
       if (targetMIdx !== -1) {
@@ -424,26 +425,24 @@ export async function setSubtask(
           }
         }
 
-        // 2. All earlier non-humanUsual subtasks in the target milestone
+        // 2. All earlier subtasks in the target milestone
         const targetSIdx = mDef.subtasks.findIndex((s) => s.key === subtaskKey);
         if (targetSIdx > 0) {
           for (let s = 0; s < targetSIdx; s++) {
             const prevS = mDef.subtasks[s];
-            if (!prevS.humanUsual) {
-              const res = await tx
-                .update(schema.subtaskState)
-                .set({ checked: true, updatedAt: new Date() })
-                .where(
-                  and(
-                    eq(schema.subtaskState.rowId, row.id),
-                    eq(schema.subtaskState.milestoneKey, milestoneKey),
-                    eq(schema.subtaskState.subtaskKey, prevS.key),
-                    eq(schema.subtaskState.checked, false),
-                  ),
-                )
-                .returning();
-              if (res.length > 0) stateChanged = true;
-            }
+            const res = await tx
+              .update(schema.subtaskState)
+              .set({ checked: true, updatedAt: new Date() })
+              .where(
+                and(
+                  eq(schema.subtaskState.rowId, row.id),
+                  eq(schema.subtaskState.milestoneKey, milestoneKey),
+                  eq(schema.subtaskState.subtaskKey, prevS.key),
+                  eq(schema.subtaskState.checked, false),
+                ),
+              )
+              .returning();
+            if (res.length > 0) stateChanged = true;
           }
         }
       }

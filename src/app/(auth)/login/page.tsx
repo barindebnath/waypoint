@@ -26,7 +26,7 @@ export default function LoginPage() {
       setError(err.message ?? "Authentication failed");
       return;
     }
-    router.push("/dashboard");
+    router.push("/board");
     router.refresh();
   }
 

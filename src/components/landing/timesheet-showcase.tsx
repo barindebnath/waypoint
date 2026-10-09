@@ -1,171 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircleIcon, SparklesIcon } from "./icons";
+import { AutoTempoFeedback } from "@/components/timesheet-footer";
+import type { AutoTempoResult } from "@/lib/timesheet-shared";
+import { TimesheetBarPreview } from "./board-showcase";
 
-type DayKey = "mon" | "tue" | "wed" | "thu" | "fri";
+/** The last two weekdays before `now`, as yyyy-MM-dd. */
+function lastWeekdays(now: Date): string[] {
+  const out: string[] = [];
+  const d = new Date(now);
+  while (out.length < 2) {
+    d.setDate(d.getDate() - 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) out.unshift(d.toLocaleDateString("en-CA"));
+  }
+  return out;
+}
 
-const DAYS: { key: DayKey; label: string; date: string }[] = [
-  { key: "mon", label: "Mon", date: "Aug 18" },
-  { key: "tue", label: "Tue", date: "Aug 19" },
-  { key: "wed", label: "Wed", date: "Aug 20" },
-  { key: "thu", label: "Thu", date: "Aug 21" },
-  { key: "fri", label: "Fri", date: "Aug 22" },
-];
-
-export function TimesheetShowcase() {
-  const [checkedDays, setCheckedDays] = useState<Record<DayKey, boolean>>({
-    mon: true,
-    tue: true,
-    wed: true,
-    thu: false,
-    fri: false,
+/** A sample AutoTempo run: Board cards and a meeting, mapped to investment accounts. */
+function sampleResult(now: Date): AutoTempoResult {
+  const [d1, d2] = lastWeekdays(now);
+  const item = (id: string, date: string, type: "card" | "meeting", title: string, hours: number, accountName: string, ref?: string) => ({
+    id, date, type, title, ref, issueId: id, account: accountName.toUpperCase().replace(/\W+/g, "-"), accountName, seconds: hours * 3600, hours,
   });
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  const allDaysChecked = DAYS.every((d) => checkedDays[d.key]);
-
-  const toggleDay = (key: DayKey) => {
-    if (isSubmitted) return;
-    setCheckedDays((prev) => ({ ...prev, [key]: !prev[key] }));
+  const days = [
+    { date: d1, worklogs: [item("w1", d1, "card", "Support multi-region token exchange", 5, "Capex Feature", "OFF-13698"), item("w2", d1, "meeting", "Sprint planning", 1, "Overhead"), item("w3", d1, "card", "Invoice PDF tax total", 2, "BAU Support", "ZT-2041")] },
+    { date: d2, worklogs: [item("w4", d2, "card", "Webhook retries with backoff", 6, "Capex Feature", "OFF-13655"), item("w5", d2, "meeting", "Team stand-up", 0.5, "Overhead"), item("w6", d2, "card", "Session expires after reset", 1.5, "BAU Support", "ZT-2057")] },
+  ].map((d) => ({ ...d, totalHours: d.worklogs.reduce((s, w) => s + w.hours, 0), totalSeconds: d.worklogs.reduce((s, w) => s + w.seconds, 0) }));
+  return {
+    success: true,
+    processedDates: [d1, d2],
+    worklogsCreated: 6,
+    totalSecondsLogged: days.reduce((s, d) => s + d.totalSeconds, 0),
+    days,
+    diagnostics: [],
+    messages: [],
   };
+}
 
-  const handleApplyAutoTempo = () => {
-    setCheckedDays({
-      mon: true,
-      tue: true,
-      wed: true,
-      thu: true,
-      fri: true,
-    });
-  };
-
-  const handleReset = () => {
-    setCheckedDays({
-      mon: true,
-      tue: true,
-      wed: true,
-      thu: false,
-      fri: false,
-    });
-    setIsSubmitted(false);
-  };
+/**
+ * The timesheet bar from the Board, with the real AutoTempo result card.
+ * Fill shows a sample result. Nothing here calls the API.
+ */
+export function TimesheetShowcase() {
+  const [now] = useState(() => new Date());
+  const [result, setResult] = useState<AutoTempoResult | null>(() => sampleResult(now));
 
   return (
     <div className="w-full rounded-2xl border border-edge bg-surface p-5 sm:p-6 shadow-card space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-edge pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-serif text-base font-semibold text-ink">
-              Weekly Tempo Attestation Strip
-            </h3>
-            <span className="rounded-full bg-accent-soft text-accent px-2 py-0.5 font-mono text-[10.5px] font-semibold">
-              Mon–Fri Flow
-            </span>
+      <div className="overflow-hidden rounded-xl border border-edge">
+        {result && (
+          <div className="bg-surface/95 px-3 pt-3">
+            <AutoTempoFeedback result={result} onDismiss={() => setResult(null)} />
           </div>
-          <p className="text-xs text-ink-muted mt-0.5">
-            Click each day to confirm Tempo logging. Submission unlocks when all 5 days are complete.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <button
-            onClick={handleApplyAutoTempo}
-            className="flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent-soft px-2.5 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/20 cursor-pointer"
-          >
-            <SparklesIcon className="h-3 w-3" />
-            <span>Simulate AutoTempo</span>
-          </button>
-          <button
-            onClick={handleReset}
-            className="rounded-lg border border-edge bg-surface-2 px-2.5 py-1.5 text-xs text-ink-muted hover:text-ink cursor-pointer"
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-
-      {/* Attestation Row */}
-      <div className="rounded-xl border border-edge bg-surface-2 p-4 sm:p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-semibold text-ink">Week 2026-W34</span>
-            <span className="text-[11px] text-ink-faint">· Tempo Attestation</span>
-          </div>
-
-          {isSubmitted ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-done/30 bg-done-soft px-2.5 py-0.5 font-mono text-[11px] font-semibold text-done">
-              <CheckCircleIcon className="h-3.5 w-3.5" />
-              <span>Week Submitted</span>
-            </span>
-          ) : (
-            <span className="font-mono text-xs text-ink-muted">
-              {Object.values(checkedDays).filter(Boolean).length} of 5 Days Logged
-            </span>
-          )}
-        </div>
-
-        {/* 5 Day Squares */}
-        <div className="grid grid-cols-5 gap-2 sm:gap-2.5">
-          {DAYS.map((d) => {
-            const checked = checkedDays[d.key];
-            return (
-              <button
-                key={d.key}
-                onClick={() => toggleDay(d.key)}
-                disabled={isSubmitted}
-                className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-1 sm:py-3 transition-all ${
-                  checked
-                    ? "border-done bg-done-soft text-ink shadow-xs"
-                    : "border-edge bg-surface text-ink-muted hover:border-edge-strong hover:text-ink"
-                } ${isSubmitted ? "cursor-default opacity-85" : "cursor-pointer"}`}
-              >
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider">{d.label}</span>
-                <span className="text-[10.5px] text-ink-faint hidden sm:inline">{d.date}</span>
-                <span
-                  className={`mt-1.5 flex h-4 w-4 items-center justify-center rounded-full border text-[10px] font-bold ${
-                    checked
-                      ? "border-done bg-done text-surface"
-                      : "border-edge-strong bg-surface-2 text-transparent"
-                  }`}
-                >
-                  ✓
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Submit Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-edge pt-3 text-xs">
-          <span className="text-ink-faint text-[11.5px]">
-            {allDaysChecked
-              ? "All 5 days verified. Ready for Tempo week submission."
-              : "Check all 5 weekdays to enable Tempo week submission."}
-          </span>
-
-          {isSubmitted ? (
-            <button
-              onClick={() => setIsSubmitted(false)}
-              className="rounded-lg border border-edge bg-surface px-3 py-1.5 text-xs text-ink-muted hover:text-ink cursor-pointer"
-            >
-              Reopen Week (Unsubmit)
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsSubmitted(true)}
-              disabled={!allDaysChecked}
-              className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
-                allDaysChecked
-                  ? "bg-done text-surface shadow-xs hover:opacity-90 cursor-pointer"
-                  : "bg-surface-3 text-ink-faint cursor-not-allowed"
-              }`}
-            >
-              Submit Week to Tempo →
-            </button>
-          )}
-        </div>
+        )}
+        <TimesheetBarPreview now={now} onFill={() => setResult(sampleResult(now))} />
       </div>
 
       {/* AutoTempo Rules Preview */}

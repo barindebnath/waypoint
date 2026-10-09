@@ -15,13 +15,10 @@ This file is served live at `/llms.txt` on the deployed app. The API base is
    field — do not try to smuggle descriptions into ref strings.
 2. **Never tick a sub-task that didn't actually happen.** Waypoint is the
    user's memory; a false tick is a corrupted memory.
-3. Sub-tasks marked `humanUsual` (local testing, staging/prod testing,
-   deploys) are usually done by the human. Tick them **only when the user
-   explicitly tells you they're done.**
-4. **`regress` is destructive** — it clears a milestone plus everything after
+3. **`regress` is destructive** — it clears a milestone plus everything after
    it. Only call it on explicit user request; confirm the milestone before
    firing.
-5. Always send an **`Idempotency-Key`** header on writes.
+4. Always send an **`Idempotency-Key`** header on writes.
 
 ## Authentication
 
@@ -44,7 +41,7 @@ management are session-only — you cannot and must not do them.
 - **Milestone**: a phase (e.g. "Development"). Completes when all its
   sub-tasks are checked; the bar auto-advances.
 - **Sub-task**: a checkbox inside a milestone. You tick these as real events
-  happen. Some are `humanUsual` — see rule #3.
+  happen.
 - **Timesheet**: weekly attestation strip (Mon–Fri) that time was logged in
   Tempo. Ticking a day means "Tempo logging for that day is done."
 
@@ -73,9 +70,6 @@ Fetch `/api/v1/pipelines` for live milestone/sub-task keys — never hardcode.
 | `support_light` | Triage & Setup → Resolution → Close-out | `origin: support, subType: task` | DB-query / data-fix work with no branch/PR/deploy |
 | `feature` | Definition → Development → Staging → QA & Review → Production & Close | `origin: product` | Greenfield + enhancement work |
 
-Some sub-tasks are flagged **`humanUsual: true`** in the `/api/v1/pipelines`
-response — respect that flag per hard rule #3.
-
 ## When to act
 
 | Event | Action |
@@ -91,7 +85,6 @@ response — respect that flag per hard rule #3.
 | All five days ticked and user confirms the Tempo week is submitted | `POST /timesheet/{weekId}/submit` |
 | User wants to reopen a submitted week | `POST /timesheet/{weekId}/unsubmit` |
 | User wants to auto-log Tempo from rules | `POST /timesheet/autotempo {dates?: ["YYYY-MM-DD"]}` — uses the user's configured auto-tempo rules |
-| User reorders rows on the board | `POST /rows/reorder {rowIds: [uuid, …]}` — full ordered list of row UUIDs |
 | A row shipped fully and user wants to close it out | `POST /rows/{ref}/complete` — checks every remaining sub-task and advances to done |
 | A row is abandoned / won't be fixed | `POST /rows/{ref}/wontfix` — marks complete without checking remaining sub-tasks |
 | User wants to pull latest Jira/GitHub statuses | `POST /integrations/sync` — fans out across all active rows; auto-advances matching sub-tasks |
@@ -104,7 +97,6 @@ All paths are prefixed with `/api/v1`.
 | :-- | :-- | :-- | :-- |
 | GET | `/rows` | List rows (full milestone/sub-task state) | — |
 | POST | `/rows` | Create a row | `{identityRef, origin, subType?, pipelineKey?, secondaryRefs?, identityUrl?}` |
-| POST | `/rows/reorder` | Persist a new display order | `{rowIds: uuid[]}` |
 | GET | `/rows/{ref}` | Fetch one row by any of its refs | — |
 | DELETE | `/rows/{ref}` | Delete a row (rare — prefer completing it) | — |
 | POST | `/rows/{ref}/subtasks` | Tick a sub-task, or bulk-check every sub-task in a milestone | `{milestone, subtask?, checked}` |

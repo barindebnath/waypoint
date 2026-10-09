@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/api-auth";
 import { handle } from "@/lib/api-helpers";
 import { db, schema } from "@/lib/db";
 import { fetchGithubPrPreview, parseGithubOrg, parsePrRef } from "@/lib/github";
-import { fetchJiraIssueSummary } from "@/lib/jira";
+import { fetchJiraIssueDetails } from "@/lib/jira";
+import { demoIntegrationsEnabled, demoPreview } from "@/lib/demo-integrations";
 import { eq } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
@@ -14,6 +15,12 @@ export async function GET(req: NextRequest) {
 
     if (!ref) {
       return NextResponse.json({ ref: "", title: null });
+    }
+
+    // Development only: fake data for the DEMO- refs (see src/lib/demo-integrations.ts).
+    if (demoIntegrationsEnabled()) {
+      const demo = demoPreview(ref);
+      if (demo) return NextResponse.json(demo);
     }
 
     const settings = await db.query.userSettings.findFirst({
@@ -45,13 +52,13 @@ export async function GET(req: NextRequest) {
 
     // Otherwise treat as Jira card
     if (settings.jiraBaseUrl && settings.jiraEmail && settings.jiraApiToken) {
-      const title = await fetchJiraIssueSummary(
+      const issue = await fetchJiraIssueDetails(
         settings.jiraBaseUrl,
         settings.jiraEmail,
         settings.jiraApiToken,
         ref
       );
-      return NextResponse.json({ ref, title });
+      return NextResponse.json({ ref, title: issue?.summary ?? null, issueType: issue?.issueType ?? null });
     }
 
     return NextResponse.json({ ref, title: null });

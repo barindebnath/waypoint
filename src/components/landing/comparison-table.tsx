@@ -34,7 +34,7 @@ const ROWS: ComparisonRow[] = [
   },
   {
     feature: "Timesheet & Tempo",
-    waypoint: "Daily 5-day Mon–Fri attestation + AutoTempo rules",
+    waypoint: "Timesheet bar on the Board + one-click AutoTempo fill",
     jiraLinear: "Heavy third-party plugin with daily friction",
     spreadsheets: "End-of-week memory reconstruction panic",
   },

@@ -38,8 +38,7 @@ AI Agent:
 
 1. Never write card contents, customer data, or secrets into Waypoint. Refs only.
 2. Never tick a sub-task that didn't happen. False tick = corrupted memory.
-3. Sub-tasks marked humanUsual: true are ticked only upon explicit user confirmation.
-4. Always send an Idempotency-Key header on writes.`;
+3. Always send an Idempotency-Key header on writes.`;
 
   return (
     <div className="w-full rounded-2xl border border-edge bg-surface shadow-card overflow-hidden">
@@ -194,9 +193,6 @@ AI Agent:
               </li>
               <li>
                 <strong className="text-ink">Honest memory:</strong> Never tick a sub-task that didn&apos;t happen in reality.
-              </li>
-              <li>
-                <strong className="text-ink">humanUsual flag:</strong> Tasks marked <code>humanUsual: true</code> require explicit user confirmation.
               </li>
               <li>
                 <strong className="text-ink">Idempotency:</strong> Always send an <code>Idempotency-Key</code> header on writes.

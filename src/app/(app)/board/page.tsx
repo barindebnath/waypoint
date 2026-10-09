@@ -5,30 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { api, type EnrichedRowView } from "@/lib/client-api";
 import { useAutoSync } from "@/lib/use-auto-sync";
 import { BoardCard } from "@/components/board-card";
+import { COLUMNS, columnIndex } from "@/lib/board-columns";
 import { DeferredSpinner } from "@/components/deferred-spinner";
-
-/**
- * Board view (Dashboard v2): one column per milestone position.
- *
- * Pipelines differ, so a column groups milestone keys by meaning, not by index.
- * Support-light skips Staging and QA: its Close-out lands in column 5.
- * The page only reads `/api/v1/rows`; the engine stays the one source of logic.
- */
-const COLUMNS: { title: string; keys: string[] }[] = [
-  { title: "Triage / Definition", keys: ["triage", "definition"] },
-  { title: "Development", keys: ["development", "resolution"] },
-  { title: "Staging", keys: ["staging"] },
-  { title: "QA & Review", keys: ["qa_review"] },
-  { title: "Production & Close-out", keys: ["prod_close", "closeout"] },
-];
-
-function columnIndex(row: EnrichedRowView): number {
-  const idx = COLUMNS.findIndex((c) => c.keys.includes(row.currentMilestone));
-  if (idx !== -1) return idx;
-  // If a pipeline gets a new milestone key, place it by its position in the pipeline.
-  const pos = row.milestones.findIndex((m) => m.key === row.currentMilestone);
-  return Math.min(Math.max(pos, 0), COLUMNS.length - 1);
-}
+import { TimesheetFooter } from "@/components/timesheet-footer";
+import { NewRowForm } from "@/components/new-row-form";
 
 function fmtSince(ms: number): string {
   const mins = Math.floor((Date.now() - ms) / 60000);
@@ -72,13 +52,19 @@ function SyncStatus() {
   );
 }
 
+/**
+ * Board view: one column per milestone position.
+ * The column grouping is in src/lib/board-columns.ts.
+ * The page only reads `/api/v1/rows`; the engine stays the one source of logic.
+ * Completed rows are not on the Board. Analytics lists them.
+ */
 export default function BoardPage() {
   const { data, isLoading } = useQuery({ queryKey: ["rows"], queryFn: api.rows });
-  const [showDone, setShowDone] = useState(false);
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
+  const showTimesheet = me?.showTimesheet ?? true;
 
   const rows = data?.rows ?? [];
   const active = rows.filter((r) => !r.isComplete);
-  const done = rows.filter((r) => r.isComplete);
   const columns = COLUMNS.map((c) => ({ ...c, rows: [] as EnrichedRowView[] }));
   for (const r of active) columns[columnIndex(r)].rows.push(r);
 
@@ -87,9 +73,12 @@ export default function BoardPage() {
       <div className="mb-3 sm:mb-[18px] flex flex-row flex-wrap items-baseline gap-2.5 sm:gap-4">
         <h1 className="font-serif text-xl sm:text-[32px] font-medium tracking-tight">Board</h1>
         <span className="font-serif text-xs sm:text-[15px] italic text-ink-muted">
-          {active.length} in flight · {done.length} done
+          {active.length} in flight
         </span>
         <SyncStatus />
+        <div className="self-center">
+          <NewRowForm />
+        </div>
       </div>
 
       {isLoading ? (
@@ -115,26 +104,12 @@ export default function BoardPage() {
         </div>
       )}
 
-      {/* Done section: hidden by default */}
-      {done.length > 0 && (
-        <div className="mt-5">
-          <button
-            type="button"
-            onClick={() => setShowDone(!showDone)}
-            aria-expanded={showDone}
-            className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted hover:text-ink cursor-pointer"
-          >
-            <span className={`transition-transform ${showDone ? "rotate-90" : ""}`}>›</span>
-            Done ({done.length})
-          </button>
-          {showDone && (
-            <div className="mt-3 grid gap-2 grid-cols-[repeat(auto-fill,minmax(240px,1fr))]">
-              {done.map((r) => (
-                <BoardCard key={r.id} row={r} />
-              ))}
-            </div>
-          )}
-        </div>
+      {showTimesheet && (
+        <>
+          {/* The bar is fixed to the window bottom. This spacer keeps the last cards above its closed height. */}
+          <div className="h-12 shrink-0" aria-hidden />
+          <TimesheetFooter />
+        </>
       )}
     </main>
   );

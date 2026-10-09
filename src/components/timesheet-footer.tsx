@@ -4,23 +4,23 @@ import { useState, Fragment, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { DAY_KEYS, type AutoTempoResult } from "@/lib/timesheet-shared";
-import { inRange, type InspectRange } from "@/lib/inspect";
 import { useDeferredLoading } from "@/lib/use-deferred-loading";
 import { Spinner } from "./spinner";
 
-function TimesheetDayBadge({
+export function TimesheetDayBadge({
   dayLabel,
   checked,
   title,
-  grayed,
   canUnfill,
   isUnfilling,
   onUnfill,
+  isToday = false,
 }: {
   dayLabel: string;
   checked: boolean;
   title: string;
-  grayed: boolean;
+  /** Today gets an accent ring with a gap and a small dot under the date. */
+  isToday?: boolean;
   canUnfill?: boolean;
   isUnfilling?: boolean;
   onUnfill?: () => void;
@@ -30,7 +30,8 @@ function TimesheetDayBadge({
 
   return (
     <div
-      title={showUndo ? "Click to un-fill this day" : title}
+      aria-current={isToday ? "date" : undefined}
+      title={showUndo ? "Click to un-fill this day" : isToday ? `Today · ${title}` : title}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={(e) => {
@@ -39,7 +40,9 @@ function TimesheetDayBadge({
           onUnfill();
         }
       }}
-      className={`flex h-[22px] w-[22px] items-center justify-center rounded-lg border text-[9px] font-semibold select-none transition-all duration-200 ${
+      className={`relative flex h-[22px] w-[22px] items-center justify-center rounded-lg border text-[9px] font-semibold select-none transition-all duration-200 ${
+        isToday ? "ring-1 ring-accent ring-offset-2 ring-offset-surface" : ""
+      } ${
         isUnfilling
           ? "border-ink-faint/40 bg-surface-2/60 text-ink-faint"
           : showUndo
@@ -47,8 +50,11 @@ function TimesheetDayBadge({
             : checked
               ? "border-accent bg-accent !text-accent-ink shadow-sm"
               : "border-edge/60 bg-surface-2/40 text-ink-faint/60"
-      } ${grayed ? "opacity-25" : ""}`}
+      } ${isToday && !checked ? "!text-accent" : ""}`}
     >
+      {isToday && (
+        <span aria-hidden className="absolute -bottom-[6px] left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full bg-accent" />
+      )}
       {isUnfilling ? (
         <Spinner className="h-2.5 w-2.5 text-ink-faint" />
       ) : showUndo ? (
@@ -66,7 +72,6 @@ function TimesheetSubmitButton({
   disabled,
   isPending,
   submitted,
-  submitGrayed,
   title,
   onClick,
   submittable,
@@ -74,7 +79,6 @@ function TimesheetSubmitButton({
   disabled: boolean;
   isPending: boolean;
   submitted: boolean;
-  submitGrayed: boolean;
   title: string;
   onClick: () => void;
   submittable: boolean;
@@ -100,7 +104,7 @@ function TimesheetSubmitButton({
           : submittable
             ? "text-accent hover:scale-115 hover:rotate-6 active:scale-95"
             : "text-ink-faint/50"
-      } ${submitGrayed && submitted ? "opacity-25" : ""} disabled:cursor-not-allowed`}
+      } disabled:cursor-not-allowed`}
     >
       {submitted ? (
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-[13px] h-[13px] text-accent transition-all">
@@ -119,7 +123,7 @@ function TimesheetSubmitButton({
   );
 }
 
-function AutoTempoFeedback({
+export function AutoTempoFeedback({
   result,
   onDismiss,
 }: {
@@ -280,19 +284,24 @@ function AutoTempoFeedback({
   );
 }
 
-export function TimesheetFooter({
-  readOnly,
-  inspect,
-}: {
-  showCompleted?: boolean;
-  readOnly: boolean;
-  inspect: InspectRange | null;
-}) {
+/**
+ * The timesheet bar, fixed to the bottom of the window (Board): title and AutoTempo on the left,
+ * the dates in the middle, the month pager on the right.
+ */
+export function TimesheetFooter() {
   const [activeMonthIndex, setActiveMonthIndex] = useState<number | null>(null);
-  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const qc = useQueryClient();
 
   const { data } = useQuery({ queryKey: ["timesheet"], queryFn: () => api.timesheet(6) });
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
+  // Render again once a minute, so the "today" highlight moves at midnight while the page stays open.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  // The week dates are in the user's timezone, so "today" must be too. en-CA formats as yyyy-MM-dd.
+  const todayIso = now.toLocaleDateString("en-CA", me?.timezone ? { timeZone: me.timezone } : undefined);
   const invalidate = () => qc.invalidateQueries({ queryKey: ["timesheet"] });
 
   const submitMut = useMutation({
@@ -355,211 +364,200 @@ export function TimesheetFooter({
   );
   const activeMonth = months[safeIndex];
 
-  return (
-    <footer className="footer-panel rounded-xl border border-edge bg-surface shadow-card transition-colors duration-200 mt-auto">
-      <div className="mx-auto flex max-w-[1300px] flex-col gap-2 p-3 sm:p-4">
-        <div
-          className="flex items-center justify-between cursor-pointer select-none"
-          onClick={() => setIsMobileExpanded(!isMobileExpanded)}
-        >
+
+  const autoTempoButton = (
+    <button
+      disabled={autoTempoMut.isPending}
+      onClick={(e) => {
+        e.stopPropagation();
+        autoTempoMut.mutate(undefined);
+      }}
+      title="AutoTempo: find the last filled day in Tempo and fill the missing days up to today"
+      aria-label="Fill missing days with AutoTempo"
+      className="cursor-pointer flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold text-accent hover:bg-accent hover:text-accent-ink transition-all disabled:opacity-40"
+    >
+      {autoTempoMut.isPending ? (
+        <Spinner className="h-3 w-3 text-current" />
+      ) : (
+        "Fill"
+      )}
+    </button>
+  );
+
+  const monthPager = activeMonth && (
+    <>
+      <button
+        disabled={safeIndex >= months.length - 1}
+        onClick={() => setActiveMonthIndex(safeIndex + 1)}
+        className="cursor-pointer p-1 rounded hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent text-ink-muted transition-colors"
+        title="Previous Month"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+        </svg>
+      </button>
+
+      <span
+        className={`text-xs font-semibold flex items-center gap-1.5 min-w-[80px] sm:min-w-[90px] justify-center select-none ${activeMonth.allSubmitted ? "text-done" : "text-ink-muted"}`}
+      >
+        {activeMonth.label}
+        {activeMonth.allSubmitted && (
+          <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-done-soft text-done text-[9px] font-bold">✓</span>
+        )}
+      </span>
+
+      <button
+        disabled={safeIndex <= 0}
+        onClick={() => setActiveMonthIndex(safeIndex - 1)}
+        className="cursor-pointer p-1 rounded hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent text-ink-muted transition-colors"
+        title="Next Month"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+        </svg>
+      </button>
+    </>
+  );
+
+  const feedback = (
+    <>
+      {autoTempoError && (
+        <div className="mx-1 mb-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink select-none">
-              Timesheet Attestation
-            </span>
-
-            <button
-              disabled={readOnly || autoTempoMut.isPending}
-              onClick={(e) => {
-                e.stopPropagation();
-                autoTempoMut.mutate(undefined);
-              }}
-              title="Find last filled day in Tempo and auto-fill missing days up to today"
-              className="cursor-pointer flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold text-accent hover:bg-accent hover:text-accent-ink transition-all disabled:opacity-40"
-            >
-              {autoTempoMut.isPending ? (
-                <Spinner className="h-3 w-3 text-current" />
-              ) : (
-                "⚡ Fill AutoTempo"
-              )}
-            </button>
+            <span className="font-bold">⚠️ AutoTempo Error:</span>
+            <span>{autoTempoError}</span>
           </div>
-
-          {activeMonth && (
-            <div className="flex items-center gap-1.5 sm:gap-2" onClick={(e) => e.stopPropagation()}>
-              <button
-                disabled={safeIndex >= months.length - 1}
-                onClick={() => setActiveMonthIndex(safeIndex + 1)}
-                className="cursor-pointer p-1 rounded hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent text-ink-muted transition-colors"
-                title="Previous Month"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                </svg>
-              </button>
-              
-              <span
-                className={`text-xs font-semibold flex items-center gap-1.5 min-w-[80px] sm:min-w-[90px] justify-center select-none ${activeMonth.allSubmitted ? "text-done" : "text-ink-muted"}`}
-              >
-                {activeMonth.label}
-                {activeMonth.allSubmitted && (
-                  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-done-soft text-done text-[9px] font-bold">✓</span>
-                )}
-              </span>
-
-              <button
-                disabled={safeIndex <= 0}
-                onClick={() => setActiveMonthIndex(safeIndex - 1)}
-                className="cursor-pointer p-1 rounded hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent text-ink-muted transition-colors"
-                title="Next Month"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                </svg>
-              </button>
-
-              <button
-                onClick={() => setIsMobileExpanded(!isMobileExpanded)}
-                className="md:hidden flex items-center justify-center p-1 rounded text-ink-muted hover:bg-surface-3 ml-1"
-                aria-label="Toggle timesheet view"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${isMobileExpanded ? "rotate-180" : ""}`}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
-                </svg>
-              </button>
-            </div>
-          )}
+          <button
+            onClick={() => setAutoTempoError(null)}
+            className="text-red-500 hover:opacity-75 text-[11px] font-bold cursor-pointer ml-2"
+          >
+            ✕
+          </button>
         </div>
+      )}
 
-        <div className={`max-h-64 flex-col gap-4 overflow-y-auto pr-1 pt-1 ${isMobileExpanded ? "flex" : "hidden md:flex"}`}>
-          {autoTempoError && (
-            <div className="mx-1 mb-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400 flex items-center justify-between animate-fade-in">
-              <div className="flex items-center gap-2">
-                <span className="font-bold">⚠️ AutoTempo Error:</span>
-                <span>{autoTempoError}</span>
-              </div>
-              <button
-                onClick={() => setAutoTempoError(null)}
-                className="text-red-500 hover:opacity-75 text-[11px] font-bold cursor-pointer ml-2"
+      {autoTempoResult && (
+        <AutoTempoFeedback
+          result={autoTempoResult}
+          onDismiss={() => setAutoTempoResult(null)}
+        />
+      )}
+    </>
+  );
+
+  const emptyNote = (
+    <span className="font-serif text-xs italic text-ink-faint">
+      Nothing to show here right now.
+    </span>
+  );
+
+  const weeksStrip = activeMonth && (
+    <div className="relative">
+      <div
+        className={`absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+          showLeftShadow ? "opacity-100" : "opacity-0"
+        }`}
+      />
+      <div
+        className={`absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+          showRightShadow ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex flex-row flex-nowrap items-center gap-5 pl-2 pt-1 pb-2 overflow-x-auto"
+      >
+        {[...activeMonth.weeks].reverse().map((week, index, arr) => {
+          const submitted = week.submit.status === "submitted";
+
+          return (
+            <Fragment key={week.weekId}>
+              <div
+                className="flex items-center gap-2.5 w-fit shrink-0"
+                title={week.weekId}
               >
-                ✕
-              </button>
-            </div>
-          )}
+                <div className="flex gap-1">
+                  {DAY_KEYS.map((d) => {
+                    const day = week.days[d];
+                    const dateStr = week.dates[d];
+                    const dateNum = dateStr ? parseInt(dateStr.split("-")[2], 10) : "";
 
-          {autoTempoResult && (
-            <AutoTempoFeedback
-              result={autoTempoResult}
-              onDismiss={() => setAutoTempoResult(null)}
-            />
-          )}
+                    return (
+                      <TimesheetDayBadge
+                        key={d}
+                        dayLabel={String(dateNum)}
+                        checked={day.checked}
+                        title={`${dateStr}${day.updatedAt ? ` · Logged ${new Date(day.updatedAt).toLocaleString()}` : ""}`}
+                        canUnfill={!submitted && day.checked}
+                        isUnfilling={
+                          tickMut.isPending &&
+                          tickMut.variables?.weekId === week.weekId &&
+                          tickMut.variables?.day === d
+                        }
+                        onUnfill={() => tickMut.mutate({ weekId: week.weekId, day: d })}
+                isToday={dateStr === todayIso}
+                      />
+                    );
+                  })}
+                </div>
 
-          {months.length === 0 && (
-            <span className="font-serif text-xs italic text-ink-faint">
-              Nothing to show here right now.
+                <div className="h-[20px] flex items-center justify-center">
+                  <TimesheetSubmitButton
+                    disabled={
+                      submitMut.isPending ||
+                      unsubmitMut.isPending ||
+                      (!submitted && !week.submittable)
+                    }
+                    isPending={
+                      (submitMut.isPending && submitMut.variables === week.weekId) ||
+                      (unsubmitMut.isPending && unsubmitMut.variables === week.weekId)
+                    }
+                    submitted={submitted}
+                    title={
+                      submitted
+                        ? `Submitted ${week.submit.submittedAt ? new Date(week.submit.submittedAt).toLocaleString() : ""} · Click to undo submission`
+                        : week.submittable
+                          ? "Mark week as submitted in Tempo"
+                          : "Check all five days first"
+                    }
+                    onClick={() => {
+                      if (submitted) {
+                        unsubmitMut.mutate(week.weekId);
+                      } else {
+                        submitMut.mutate(week.weekId);
+                      }
+                    }}
+                    submittable={week.submittable}
+                  />
+                </div>
+              </div>
+              {index < arr.length - 1 && (
+                <div className="h-4 w-px bg-edge shrink-0" />
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // One row: title and AutoTempo on the left, the dates in the middle (they scroll), the month on the right.
+  // An AutoTempo result or error shows above the row until the user dismisses it.
+  return (
+    <footer className="footer-panel fixed inset-x-0 bottom-0 z-30 border-t border-edge bg-surface/95 shadow-[0_-6px_16px_-8px_rgba(0,0,0,0.25)] backdrop-blur-md">
+      <div className="mx-auto max-w-[1500px] px-3 sm:px-7">
+        {(autoTempoError || autoTempoResult) && <div className="max-h-64 overflow-y-auto pt-2">{feedback}</div>}
+        <div className="flex items-center gap-3 sm:gap-5 py-1.5">
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-[0.16em] text-ink select-none">
+              Timesheets
             </span>
-          )}
-          {activeMonth && (
-            <div className="relative">
-              <div
-                className={`absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
-                  showLeftShadow ? "opacity-100" : "opacity-0"
-                }`}
-              />
-              <div
-                className={`absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
-                  showRightShadow ? "opacity-100" : "opacity-0"
-                }`}
-              />
-
-              <div
-                ref={scrollRef}
-                onScroll={handleScroll}
-                className="flex flex-row flex-nowrap items-center gap-5 pl-2 py-1 overflow-x-auto"
-              >
-                {[...activeMonth.weeks].reverse().map((week, index, arr) => {
-                  const submitted = week.submit.status === "submitted";
-                  const submitGrayed = inspect && !inRange(week.submit.submittedAt, inspect);
-
-                  return (
-                    <Fragment key={week.weekId}>
-                      <div
-                        className="flex items-center gap-2.5 w-fit shrink-0"
-                        title={week.weekId}
-                      >
-                        <div className="flex gap-1">
-                          {DAY_KEYS.map((d) => {
-                            const day = week.days[d];
-                            const dateStr = week.dates[d];
-                            const grayed = inspect && !inRange(day.updatedAt, inspect);
-                            const dateNum = dateStr ? parseInt(dateStr.split("-")[2], 10) : "";
-
-                            return (
-                              <TimesheetDayBadge
-                                key={d}
-                                dayLabel={String(dateNum)}
-                                checked={day.checked}
-                                title={`${dateStr}${day.updatedAt ? ` · Logged ${new Date(day.updatedAt).toLocaleString()}` : ""}`}
-                                grayed={!!grayed}
-                                canUnfill={!readOnly && !submitted && day.checked}
-                                isUnfilling={
-                                  tickMut.isPending &&
-                                  tickMut.variables?.weekId === week.weekId &&
-                                  tickMut.variables?.day === d
-                                }
-                                onUnfill={() => tickMut.mutate({ weekId: week.weekId, day: d })}
-                              />
-                            );
-                          })}
-                        </div>
-
-                        <div className="h-[20px] flex items-center justify-center">
-                          <TimesheetSubmitButton
-                            disabled={
-                              readOnly ||
-                              submitMut.isPending ||
-                              unsubmitMut.isPending ||
-                              (!submitted && !week.submittable)
-                            }
-                            isPending={
-                              (submitMut.isPending && submitMut.variables === week.weekId) ||
-                              (unsubmitMut.isPending && unsubmitMut.variables === week.weekId)
-                            }
-                            submitted={submitted}
-                            submitGrayed={!!submitGrayed}
-                            title={
-                              submitted
-                                ? `Submitted ${week.submit.submittedAt ? new Date(week.submit.submittedAt).toLocaleString() : ""} · Click to undo submission`
-                                : week.submittable
-                                  ? "Mark week as submitted in Tempo"
-                                  : "Check all five days first"
-                            }
-                            onClick={() => {
-                              if (submitted) {
-                                unsubmitMut.mutate(week.weekId);
-                              } else {
-                                submitMut.mutate(week.weekId);
-                              }
-                            }}
-                            submittable={week.submittable}
-                          />
-                        </div>
-                      </div>
-                      {index < arr.length - 1 && (
-                        <div className="h-4 w-px bg-edge shrink-0" />
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+            {autoTempoButton}
+          </div>
+          <div className="min-w-0 flex-1">{months.length === 0 ? emptyNote : weeksStrip}</div>
+          {activeMonth && <div className="flex shrink-0 items-center gap-1 sm:gap-2">{monthPager}</div>}
         </div>
       </div>
     </footer>

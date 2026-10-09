@@ -9,7 +9,6 @@ import { Logo } from "./logo";
 import { Spinner } from "./spinner";
 
 const tabs = [
-  { href: "/dashboard", label: "Dashboard" },
   { href: "/board", label: "Board" },
   { href: "/analytics", label: "Analytics" },
   { href: "/settings", label: "Settings" },
@@ -22,18 +21,11 @@ export function AppNav({ email }: { email: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const today = new Date().toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
   return (
-    <header className="sticky top-0 sm:top-3 z-40 mx-auto w-full sm:w-[calc(100%-3.5rem)] max-w-[1044px] transition-all duration-300">
+    <header className="sticky top-0 z-40 w-full">
       {/* Top Bar Glass Capsule */}
-      <div className="flex items-center justify-between lg:justify-start gap-4 lg:gap-8 px-3.5 sm:px-6 py-2 sm:py-2.5 rounded-none sm:rounded-2xl border-x-0 border-t-0 border-b sm:border border-edge/60 bg-surface/85 backdrop-blur-md shadow-card">
-        <Link href="/dashboard" className="flex items-center gap-2 sm:gap-2.5 !text-ink hover:!text-ink shrink-0 transition-transform duration-200 hover:scale-[1.02]">
+      <div className="flex items-center justify-between lg:justify-start gap-4 lg:gap-8 px-3.5 sm:px-7 py-2 sm:py-2.5 border-b border-edge/60 bg-surface/85 backdrop-blur-md shadow-[0_6px_16px_-10px_rgba(0,0,0,0.25)]">
+        <Link href="/board" className="flex items-center gap-2 sm:gap-2.5 !text-ink hover:!text-ink shrink-0 transition-transform duration-200 hover:scale-[1.02]">
           <Logo className="h-5 w-5 sm:h-6 sm:w-6 -mt-0.5" />
           <span className="font-serif text-lg sm:text-[21px] font-semibold tracking-tight">Waypoint</span>
         </Link>
@@ -60,10 +52,6 @@ export function AppNav({ email }: { email: string }) {
 
         {/* Desktop Actions */}
         <div className="hidden lg:flex items-center gap-3.5 lg:ml-auto min-w-0">
-          <span suppressHydrationWarning className="hidden xl:inline text-[10px] uppercase tracking-[0.1em] text-ink-faint shrink-0">
-            {today.replace(",", " ·")}
-          </span>
-          <div className="hidden xl:block h-4 w-[1px] bg-edge/70 shrink-0" />
           <div className="shrink-0">
             <ThemeToggle />
           </div>
@@ -116,7 +104,7 @@ export function AppNav({ email }: { email: string }) {
 
       {/* Mobile Drawer Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-30 lg:hidden flex flex-col bg-surface/65 backdrop-blur-lg rounded-2xl border border-edge/60 shadow-card transition-all duration-200 ease-in-out max-h-[calc(100vh-100px)] overflow-hidden">
+        <div className="absolute top-full left-0 right-0 z-30 lg:hidden flex flex-col bg-surface/65 backdrop-blur-lg rounded-b-2xl border border-t-0 border-edge/60 shadow-card transition-all duration-200 ease-in-out max-h-[calc(100vh-100px)] overflow-hidden">
           <div className="flex flex-col gap-5 p-6 overflow-y-auto">
             <nav className="flex flex-col gap-2.5">
               {tabs.map((t) => {
@@ -139,10 +127,6 @@ export function AppNav({ email }: { email: string }) {
             </nav>
 
             <div className="border-t border-edge/80 pt-5 flex flex-col gap-3.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[10px] uppercase tracking-[0.1em] text-ink-faint">Today</span>
-                <span suppressHydrationWarning className="font-serif font-semibold text-ink">{today}</span>
-              </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[10px] uppercase tracking-[0.1em] text-ink-faint">Account</span>
                 <span className="font-mono text-ink-muted break-all max-w-[70%] text-right">{email}</span>
