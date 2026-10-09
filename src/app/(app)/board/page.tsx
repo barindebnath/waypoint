@@ -41,7 +41,7 @@ function SyncStatus() {
       type="button"
       onClick={() => sync.refetch()}
       disabled={sync.isFetching}
-      title={sync.isError ? `${sync.error.message} · click to retry` : "Jira, GitHub & Tempo sync automatically every 5 min · click to sync now"}
+      title={sync.isError ? `${sync.error.message} · click to retry` : "Jira, GitHub & Tempo sync automatically every 30 min · click to sync now"}
       className={`ml-auto flex items-center gap-1.5 font-mono text-[11px] cursor-pointer disabled:cursor-default ${
         sync.isError ? "text-danger" : "text-ink-faint hover:text-ink"
       }`}

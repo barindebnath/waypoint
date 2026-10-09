@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client-api";
 
 /** One sync calls Jira and GitHub once per row, so keep the interval wide. */
-export const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+export const AUTO_SYNC_INTERVAL_MS = 30 * 60 * 1000;
 
 /**
  * Background integration sync for the Board view.
