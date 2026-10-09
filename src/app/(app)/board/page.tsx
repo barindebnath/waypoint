@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type EnrichedRowView } from "@/lib/client-api";
+import { useAutoSync } from "@/lib/use-auto-sync";
 import { BoardCard } from "@/components/board-card";
+import { DeferredSpinner } from "@/components/deferred-spinner";
 
 /**
  * Board view (Dashboard v2): one column per milestone position.
@@ -28,6 +30,48 @@ function columnIndex(row: EnrichedRowView): number {
   return Math.min(Math.max(pos, 0), COLUMNS.length - 1);
 }
 
+function fmtSince(ms: number): string {
+  const mins = Math.floor((Date.now() - ms) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  return `${Math.floor(mins / 60)}h ago`;
+}
+
+/** Status of the background sync. Click to sync now. */
+function SyncStatus() {
+  const sync = useAutoSync();
+  const [, setTick] = useState(0);
+
+  // Update the relative time every 30 seconds.
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const label = sync.isFetching
+    ? "Syncing…"
+    : sync.isError
+      ? "Sync failed"
+      : sync.dataUpdatedAt
+        ? `Synced ${fmtSince(sync.dataUpdatedAt)}`
+        : "Not synced";
+
+  return (
+    <button
+      type="button"
+      onClick={() => sync.refetch()}
+      disabled={sync.isFetching}
+      title={sync.isError ? `${sync.error.message} · click to retry` : "Jira, GitHub & Tempo sync automatically every 5 min · click to sync now"}
+      className={`ml-auto flex items-center gap-1.5 font-mono text-[11px] cursor-pointer disabled:cursor-default ${
+        sync.isError ? "text-danger" : "text-ink-faint hover:text-ink"
+      }`}
+    >
+      <DeferredSpinner isPending={sync.isFetching} className="h-3 w-3 text-current" />
+      {label}
+    </button>
+  );
+}
+
 export default function BoardPage() {
   const { data, isLoading } = useQuery({ queryKey: ["rows"], queryFn: api.rows });
   const [showDone, setShowDone] = useState(false);
@@ -45,6 +89,7 @@ export default function BoardPage() {
         <span className="font-serif text-xs sm:text-[15px] italic text-ink-muted">
           {active.length} in flight · {done.length} done
         </span>
+        <SyncStatus />
       </div>
 
       {isLoading ? (
