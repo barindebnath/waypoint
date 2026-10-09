@@ -4,16 +4,11 @@
  * These are stored in the `pipeline_definition` table (config/data, not code)
  * so milestones/sub-tasks can be edited without a deploy; this module is the
  * typed seed source and single source of truth for fresh databases.
- *
- * `humanUsual: true` marks sub-tasks usually done by the human (testing,
- * deploys). It is a soft note rendered in the UI and in AGENTS.md — not an
- * enforced restriction.
  */
 
 export type SubtaskDef = {
   key: string;
   label: string;
-  humanUsual?: boolean;
 };
 
 export type MilestoneDef = {
@@ -52,7 +47,7 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         label: "Development",
         subtasks: [
           { key: "fix_implemented", label: "Fix implemented" },
-          { key: "tested_locally", label: "Tested locally", humanUsual: true },
+          { key: "tested_locally", label: "Tested locally" },
           { key: "branch_created", label: "Branch created" },
           { key: "code_committed", label: "Code committed" },
           { key: "pr_raised", label: "PR raised" },
@@ -62,7 +57,7 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         key: "staging",
         label: "Staging",
         subtasks: [
-          { key: "deployed_staging", label: "Deployed to staging", humanUsual: true },
+          { key: "deployed_staging", label: "Deployed to staging" },
           { key: "staging_post_teams", label: "Staging post in Teams" },
           { key: "card_ready_for_qa", label: "Card to Ready for QA" },
         ],
@@ -71,7 +66,7 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         key: "qa_review",
         label: "QA & Review",
         subtasks: [
-          { key: "tested_staging", label: "Tested on staging", humanUsual: true },
+          { key: "tested_staging", label: "Tested on staging" },
           { key: "pr_reviewed", label: "PR reviewed & approved" },
         ],
       },
@@ -80,12 +75,12 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         label: "Production & Close-out",
         subtasks: [
           { key: "merged_main", label: "Merged to main" },
-          { key: "deployed_prod", label: "Deployed to prod", humanUsual: true },
+          { key: "deployed_prod", label: "Deployed to prod" },
           { key: "release_announcement", label: "Release announcement in Eng Releases" },
-          { key: "tested_prod", label: "Tested on prod", humanUsual: true },
-          { key: "comment_project_card", label: "Comment on project card (dev/QA language) + moved to Done", humanUsual: true },
+          { key: "tested_prod", label: "Tested on prod" },
+          { key: "comment_project_card", label: "Comment on project card (dev/QA language) + moved to Done" },
           { key: "comment_zt", label: "Comment on ZT (support language)" },
-          { key: "zt_closed", label: "ZT closed / handed to L2 to close", humanUsual: true },
+          { key: "zt_closed", label: "ZT closed / handed to L2 to close" },
         ],
       },
     ],
@@ -109,7 +104,7 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         label: "Resolution",
         subtasks: [
           { key: "fix_prepared", label: "Fix/query prepared" },
-          { key: "run_against_db", label: "Run against DB", humanUsual: true },
+          { key: "run_against_db", label: "Run against DB" },
           { key: "result_verified", label: "Result verified" },
           { key: "result_shared", label: "Result shared with support" },
         ],
@@ -144,7 +139,7 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         label: "Development",
         subtasks: [
           { key: "worked_on_card", label: "Worked on card" },
-          { key: "tested_locally", label: "Tested locally", humanUsual: true },
+          { key: "tested_locally", label: "Tested locally" },
           { key: "branch_created", label: "Branch created" },
           { key: "code_committed", label: "Code committed" },
           { key: "pr_raised", label: "PR raised" },
@@ -155,7 +150,7 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         key: "staging",
         label: "Staging",
         subtasks: [
-          { key: "deployed_staging", label: "Deployed to staging", humanUsual: true },
+          { key: "deployed_staging", label: "Deployed to staging" },
           { key: "staging_post_teams", label: "Staging post in Teams" },
           { key: "card_ready_for_qa", label: "Card to Ready for QA" },
         ],
@@ -164,7 +159,7 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         key: "qa_review",
         label: "QA & Review",
         subtasks: [
-          { key: "tested_staging", label: "Tested on staging (In QA)", humanUsual: true },
+          { key: "tested_staging", label: "Tested on staging (In QA)" },
           { key: "pr_reviewed", label: "PR reviewed & approved" },
         ],
       },
@@ -173,7 +168,7 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         label: "Production & Close",
         subtasks: [
           { key: "merged_main", label: "Merged to main" },
-          { key: "deployed_prod", label: "Deployed to prod", humanUsual: true },
+          { key: "deployed_prod", label: "Deployed to prod" },
           { key: "release_announcement", label: "Release announcement in Eng Releases" },
           { key: "card_done", label: "Card moved to Done" },
         ],

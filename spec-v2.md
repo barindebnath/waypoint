@@ -89,7 +89,7 @@ Pipeline choice defaults from sub-type (Bug → full, Task → light) but is ove
 ### 5.4 Completion, auto-advance, and sub-task rules
 
 - **All sub-tasks are mandatory.** A milestone is complete when all its sub-tasks are checked, at which point the bar auto-advances to the next milestone.
-- Some sub-tasks (local testing, staging/prod testing, deployment) are things **AI cannot do** — the user ticks them from the UI, or tells the AI they're done so it can tick them. This is a soft note per sub-task ("usually done by you"), not an enforced restriction.
+- ~~Some sub-tasks are things **AI cannot do** (soft `humanUsual` note).~~ Removed 2026-10-09: the UI, the API or an AI agent can tick any sub-task (§14).
 - **Progress logic is computed in one place (server-side)** so the dashboard UI and the API can never disagree about where a bar is. This is about consistency, not policing — the API is just you acting programmatically on your own data.
 - **Unchecking a *sub-task* does not move the bar.** A completed milestone stays complete. But see the loose-ends rule in §5.6.
 
@@ -244,6 +244,12 @@ Because the API acts only on the user's own data with the user's own token, the 
 - Project name: **Waypoint**.
 - Support **Task** gets a third pipeline, **Support-light**: Triage & Setup (ZT picked up · classified · investment category) → Resolution (fix/query prepared · run against DB · result verified · result shared with support) → Close-out (comment on ZT · ZT closed/assigned back). No project card sub-task — per Confluence, ZT Tasks are actioned directly without a dupe Bug. Default: sub-type Task → light, Bug → full; overridable at creation.
 - **Promotion** of a recurring Task to an L2 self-serve endpoint = a **new row** on the full support pipeline (matches team practice: endpoint gets its own OFF card, e.g. OFF-13090 under epic OFF-12077). The light row remains as the record of interim query-running.
+
+**Changed 2026-10-09:**
+- The `humanUsual` flag is removed. No sub-task is "usually done by you". The UI, the API or an AI agent can tick any sub-task. When the UI or the API ticks a sub-task, the engine also ticks all earlier sub-tasks in the same milestone.
+
+**Changed 2026-10-10:**
+- The v1 dashboard (the list of rows) is removed. The Board is the only work view, and `/dashboard` redirects to `/board`. These v1 features are removed with it: drag to reorder (and `POST /rows/reorder`), the date-range inspect mode, the advance suggestion banner, and the filter and sort controls. The `sort_order` column stays, and new rows still get the next value. Completed rows are on the Analytics page.
 
 **Still open:**
 2. Are the 5-milestone groupings in §5.2 / §5.3 the right checkpoint boundaries, or would you split/merge any?

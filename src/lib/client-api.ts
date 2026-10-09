@@ -239,14 +239,8 @@ export const api = {
     ),
   analytics: (from: string, to: string, origin = "all") =>
     request<AnalyticsData>(`/api/v1/analytics?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&origin=${encodeURIComponent(origin)}`),
-  reorderRows: (rowIds: string[]) =>
-    request<{ ok: true }>("/api/v1/rows/reorder", {
-      method: "POST",
-      body: JSON.stringify({ rowIds }),
-      headers: { "Idempotency-Key": `reorder-${Date.now()}-${Math.random()}` },
-    }),
   previewRef: (ref: string) =>
-    request<{ ref: string; title: string | null; pr?: GithubPrPreview | null }>(
+    request<{ ref: string; title: string | null; issueType?: string | null; pr?: GithubPrPreview | null }>(
       `/api/v1/integrations/preview?ref=${encodeURIComponent(ref)}`
     ),
   deleteAccount: () =>

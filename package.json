@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "dev:demo": "WAYPOINT_DEMO_INTEGRATIONS=1 next dev",
+    "seed:demo": "tsx --env-file=.env scripts/seed-demo.ts"
   },
   "dependencies": {
     "@better-auth/api-key": "^1.6.23",

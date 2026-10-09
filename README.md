@@ -31,7 +31,7 @@ Next.js (App Router) · PostgreSQL (Neon) + Drizzle · Better Auth (+ API-key an
 
 **Memory over management.** Waypoint doesn't push cards through Jira, merge PRs, or send Teams messages. You (or your AI) still does the real work in the real tools — you just mirror the status here so nothing falls off your map.
 
-**A false tick is a corrupted memory.** Sub-tasks marked `humanUsual` (local testing, staging/prod testing, deploys) are ticked only when you explicitly confirm — your AI never speculates.
+**A false tick is a corrupted memory.** Your AI ticks a sub-task only when the event happened. Any sub-task can be ticked from the UI or the API.
 
 ---
 
@@ -47,7 +47,7 @@ You do real work in Jira, GitHub, and Teams through your own connections — and
 | **Card ref** | The identity of a row — e.g. `ZT-1234` (support), `OFF-5678` (product). Refs only, never card contents. |
 | **Secondary refs** | Extra pointers on a row: PR links (`myrepo#42`), dupe bugs, related tickets. Lookup works by any ref the row carries. |
 | **Milestone** | A phase in the pipeline (e.g. Development, Staging, QA). Completes when all its sub-tasks are checked; the bar auto-advances. |
-| **Sub-task** | A checkbox inside a milestone. Some are marked `humanUsual` — those wait for explicit user confirmation. |
+| **Sub-task** | A checkbox inside a milestone. The UI, the API or an AI agent can tick any sub-task. |
 | **Timesheet** | A weekly Tempo attestation strip. Ticking a day means "Tempo logging for that day is done." |
 
 ---

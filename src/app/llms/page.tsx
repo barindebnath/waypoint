@@ -271,8 +271,8 @@ export default function LlmsPage() {
               API docs
             </Link>
             {session ? (
-              <Link href="/dashboard" className="rounded border border-edge px-2.5 py-1 text-xs text-ink-muted hover:border-edge-strong">
-                Dashboard
+              <Link href="/board" className="rounded border border-edge px-2.5 py-1 text-xs text-ink-muted hover:border-edge-strong">
+                Board
               </Link>
             ) : (
               <>

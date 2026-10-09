@@ -153,12 +153,54 @@ export interface GithubPrPreview {
   additions: number;
   deletions: number;
   changedFiles: number;
+  /** Review threads that nobody resolved yet. Null if GitHub did not give the count (for example, no token). */
+  unresolvedThreads: number | null;
 }
 
 // Only GitHub's avatar CDN is allowed, so the client never loads an image from an arbitrary host.
 function safeAvatarUrl(url: unknown): string | null {
   if (typeof url !== "string") return null;
   return url.startsWith("https://avatars.githubusercontent.com/") ? url : null;
+}
+
+const UNRESOLVED_THREADS_QUERY = `
+  query ($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
+        reviewThreads(first: 100) { nodes { isResolved } }
+      }
+    }
+  }`;
+
+/**
+ * The REST API does not give the resolved state of a review thread, so this uses GraphQL.
+ * GraphQL needs a token. If the auth header is null, the function returns null.
+ * The owner, repo and number go in as GraphQL variables, never into the query text.
+ * The count includes the first 100 threads only.
+ */
+async function fetchUnresolvedThreadCount(
+  authHeader: string | null,
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<number | null> {
+  if (!authHeader) return null;
+  try {
+    const res = await fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: { Authorization: authHeader, "Content-Type": "application/json", "User-Agent": "Waypoint-App" },
+      body: JSON.stringify({ query: UNRESOLVED_THREADS_QUERY, variables: { owner, repo, number: pullNumber } }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const nodes = json?.data?.repository?.pullRequest?.reviewThreads?.nodes;
+    if (!Array.isArray(nodes)) return null;
+    return nodes.filter((n: { isResolved?: boolean }) => n && n.isResolved === false).length;
+  } catch (err) {
+    console.error(`Failed to fetch review threads for ${owner}/${repo}#${pullNumber}:`, err);
+    return null;
+  }
 }
 
 export async function fetchGithubPrPreview(
@@ -207,6 +249,7 @@ export async function fetchGithubPrPreview(
           additions: Number(data.additions) || 0,
           deletions: Number(data.deletions) || 0,
           changedFiles: Number(data.changed_files) || 0,
+          unresolvedThreads: await fetchUnresolvedThreadCount(authHeader, owner, repo, pullNumber),
         };
       }
     }
