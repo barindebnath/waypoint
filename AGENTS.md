@@ -111,8 +111,8 @@ All paths are prefixed with `/api/v1`.
 | POST | `/timesheet/{weekId}/unsubmit` | Reopen a submitted week | — |
 | POST | `/timesheet/autotempo` | Auto-log Tempo days from configured rules | `{dates?: ["YYYY-MM-DD"]}` |
 | GET | `/analytics?from&to` | Throughput, velocity delta, breakdown, loose ends | — |
-| GET | `/me` | Caller identity + settings | — |
-| PATCH | `/me` | Update settings | `{timezone?, jiraBaseUrl?, jiraEmail?, jiraApiToken?, jiraAccountId?, githubBaseUrl?, githubPat?, githubDefaultOrg?, tempoApiToken?, colorTheme?, fontTheme?, showTimesheet?, autoTempoDefaultRule?, autoTempoSkipDays?, autoTempoRules?}` |
+| GET | `/me` | Caller identity + settings. Secrets are never returned — only `hasJiraApiToken`, `hasGithubPat`, `hasTempoApiToken`, `hasMsClientSecret`, `hasMsRefreshToken` | — |
+| PATCH | `/me` | Update settings. For a secret field, omit it or send `""` to keep the stored value, send a string to replace it, send `null` to clear it | `{timezone?, jiraBaseUrl?, jiraEmail?, jiraApiToken?, jiraAccountId?, githubBaseUrl?, githubPat?, githubDefaultOrg?, tempoApiToken?, msClientId?, msClientSecret?, msRefreshToken?, colorTheme?, fontTheme?, showTimesheet?, autoTempoDefaultRule?, autoTempoSkipDays?, autoTempoRules?, autoTempoScheduled?}` |
 | GET | `/export` | Full JSON export of the user's data | — |
 | DELETE | `/account` | Delete account (session-only — tokens get 403) | `{confirm: "DELETE"}` |
 | POST | `/integrations/sync` | Pull latest Jira/GitHub statuses for all active rows | — |

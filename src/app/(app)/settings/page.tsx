@@ -220,6 +220,80 @@ function FontStyleSection() {
   );
 }
 
+const inputCls =
+  "w-full rounded-[7px] border border-edge bg-surface-2 px-2.5 py-2 outline-none focus:border-accent";
+
+/* Integration secrets are write-only: /me reports only whether each one is set. */
+type SecretKey = "jiraApiToken" | "githubPat" | "tempoApiToken" | "msClientSecret" | "msRefreshToken";
+type SecretDraft = { value: string; clear: boolean };
+const EMPTY_SECRET_DRAFTS: Record<SecretKey, SecretDraft> = {
+  jiraApiToken: { value: "", clear: false },
+  githubPat: { value: "", clear: false },
+  tempoApiToken: { value: "", clear: false },
+  msClientSecret: { value: "", clear: false },
+  msRefreshToken: { value: "", clear: false },
+};
+
+/** PATCH value for a secret: null clears it, a new value replaces it, undefined (omitted) keeps it. */
+function secretPatch(d: SecretDraft): string | null | undefined {
+  if (d.clear) return null;
+  return d.value.trim() || undefined;
+}
+
+function SecretInput({
+  label,
+  name,
+  placeholder,
+  isSet,
+  draft,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  placeholder: string;
+  isSet: boolean;
+  draft: SecretDraft;
+  onChange: (d: SecretDraft) => void;
+}) {
+  // A blank field keeps the stored secret, so tell the user that one is saved.
+  const hint = draft.clear
+    ? "Will be cleared on save"
+    : isSet
+      ? "•••••••• saved — leave blank to keep"
+      : placeholder;
+  return (
+    <div className="block">
+      <span className="mb-1.5 flex items-center justify-between text-xs text-ink-muted">
+        <span>{label}</span>
+        {(isSet || draft.clear) && (
+          <button
+            type="button"
+            onClick={() => onChange({ value: "", clear: !draft.clear })}
+            className="text-[11px] font-semibold text-ink-muted hover:text-ink cursor-pointer"
+          >
+            {draft.clear ? "Undo clear" : "Clear"}
+          </button>
+        )}
+      </span>
+      <input
+        type="text"
+        name={name}
+        aria-label={label}
+        autoComplete="off"
+        style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
+        data-lpignore="true"
+        data-1p-ignore="true"
+        data-bwignore="true"
+        value={draft.value}
+        // Typing a new value cancels a pending clear: the new value replaces the stored one.
+        onChange={(e) => onChange({ value: e.target.value, clear: false })}
+        placeholder={hint}
+        className={`${inputCls} font-mono text-xs`}
+      />
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
   if (!me) {
@@ -238,39 +312,37 @@ function SettingsForm({
     timezone: string;
     jiraBaseUrl: string | null;
     jiraEmail: string | null;
-    jiraApiToken: string | null;
     githubBaseUrl: string | null;
-    githubPat: string | null;
     githubDefaultOrg: string | null;
     colorTheme: string;
     fontTheme: string;
     showTimesheet: boolean;
-    tempoApiToken: string | null;
     jiraAccountId: string | null;
     msClientId: string | null;
-    msClientSecret: string | null;
-    msRefreshToken: string | null;
     autoTempoDefaultRule: unknown;
     autoTempoSkipDays: unknown;
     autoTempoRules: unknown;
     autoTempoScheduled: boolean;
+    hasJiraApiToken: boolean;
+    hasGithubPat: boolean;
+    hasTempoApiToken: boolean;
+    hasMsClientSecret: boolean;
+    hasMsRefreshToken: boolean;
   };
 }) {
   const qc = useQueryClient();
   const [timezone, setTimezone] = useState(me.timezone);
   const [jira, setJira] = useState(me.jiraBaseUrl ?? "");
   const [jiraEmail, setJiraEmail] = useState(me.jiraEmail ?? "");
-  const [jiraApiToken, setJiraApiToken] = useState(me.jiraApiToken ?? "");
   const [github, setGithub] = useState(me.githubBaseUrl ?? "");
-  const [githubPat, setGithubPat] = useState(me.githubPat ?? "");
   const [githubDefaultOrg] = useState(me.githubDefaultOrg ?? "");
 
   // AutoTempo states
-  const [tempoApiToken, setTempoApiToken] = useState(me.tempoApiToken ?? "");
   const [jiraAccountId, setJiraAccountId] = useState(me.jiraAccountId ?? "");
   const [msClientId, setMsClientId] = useState(me.msClientId ?? "");
-  const [msClientSecret, setMsClientSecret] = useState(me.msClientSecret ?? "");
-  const [msRefreshToken, setMsRefreshToken] = useState(me.msRefreshToken ?? "");
+  // Secret inputs start empty: the stored values never reach the browser.
+  const [secrets, setSecrets] = useState(EMPTY_SECRET_DRAFTS);
+  const setSecret = (key: SecretKey) => (d: SecretDraft) => setSecrets((prev) => ({ ...prev, [key]: d }));
 
   const [rulesList, setRulesList] = useState<
     Array<{ id: string; issue: string; account: string; ruleStr: string; type: string; skip: boolean }>
@@ -339,22 +411,24 @@ function SettingsForm({
         timezone,
         jiraBaseUrl: jira.trim() || null,
         jiraEmail: jiraEmail.trim() || null,
-        jiraApiToken: jiraApiToken.trim() || null,
+        jiraApiToken: secretPatch(secrets.jiraApiToken),
         githubBaseUrl: github.trim() || null,
-        githubPat: githubPat.trim() || null,
+        githubPat: secretPatch(secrets.githubPat),
         githubDefaultOrg: githubDefaultOrg.trim() || null,
         showTimesheet: true,
-        tempoApiToken: tempoApiToken.trim() || null,
+        tempoApiToken: secretPatch(secrets.tempoApiToken),
         jiraAccountId: jiraAccountId.trim() || null,
         msClientId: msClientId.trim() || null,
-        msClientSecret: msClientSecret.trim() || null,
-        msRefreshToken: msRefreshToken.trim() || null,
+        msClientSecret: secretPatch(secrets.msClientSecret),
+        msRefreshToken: secretPatch(secrets.msRefreshToken),
         autoTempoSkipDays: skipDays,
         autoTempoRules: formattedRules,
         autoTempoScheduled,
       });
     },
     onSuccess: () => {
+      // Drop the typed secrets from component state; the refetched /me shows them as saved.
+      setSecrets(EMPTY_SECRET_DRAFTS);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       qc.invalidateQueries();
@@ -426,9 +500,6 @@ function SettingsForm({
   // falls back to the first option and a save would overwrite the setting.
   if (timezone && !timezones.includes(timezone)) timezones.unshift(timezone);
 
-  const inputCls =
-    "w-full rounded-[7px] border border-edge bg-surface-2 px-2.5 py-2 outline-none focus:border-accent";
-
   return (
     <main className="mx-auto flex w-full max-w-[680px] lg:max-w-[1240px] xl:max-w-[1500px] flex-1 flex-col gap-4 px-7 pb-16 pt-[26px]">
       <h1 className="font-serif text-[32px] font-medium tracking-tight">Settings</h1>
@@ -456,17 +527,14 @@ function SettingsForm({
             </p>
             <div className="flex flex-col gap-3.5 text-[13px]">
               <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1.5 block text-xs text-ink-muted">Tempo API Token</span>
-                  <input
-                    type="text"
-                    value={tempoApiToken}
-                    onChange={(e) => setTempoApiToken(e.target.value)}
-                    placeholder="Log into Tempo -> Settings -> API Integration -> New Token"
-                    style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
-                    className={`${inputCls} font-mono text-xs`}
-                  />
-                </label>
+                <SecretInput
+                  label="Tempo API Token"
+                  name="tempo_api_token_setting"
+                  placeholder="Log into Tempo -> Settings -> API Integration -> New Token"
+                  isSet={me.hasTempoApiToken}
+                  draft={secrets.tempoApiToken}
+                  onChange={setSecret("tempoApiToken")}
+                />
                 <label className="block">
                   <span className="mb-1.5 block text-xs text-ink-muted">Jira Account ID</span>
                   <input
@@ -490,28 +558,22 @@ function SettingsForm({
                     className={`${inputCls} font-mono text-xs`}
                   />
                 </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-xs text-ink-muted">MS Client Secret (Optional)</span>
-                  <input
-                    type="text"
-                    value={msClientSecret}
-                    onChange={(e) => setMsClientSecret(e.target.value)}
-                    placeholder="Secret value"
-                    style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
-                    className={`${inputCls} font-mono text-xs`}
-                  />
-                </label>
-                <label className="block sm:col-span-1">
-                  <span className="mb-1.5 block text-xs text-ink-muted">MS Refresh Token</span>
-                  <input
-                    type="text"
-                    value={msRefreshToken}
-                    onChange={(e) => setMsRefreshToken(e.target.value)}
-                    placeholder="OAuth Refresh Token"
-                    style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
-                    className={`${inputCls} font-mono text-xs`}
-                  />
-                </label>
+                <SecretInput
+                  label="MS Client Secret (Optional)"
+                  name="ms_client_secret_setting"
+                  placeholder="Secret value"
+                  isSet={me.hasMsClientSecret}
+                  draft={secrets.msClientSecret}
+                  onChange={setSecret("msClientSecret")}
+                />
+                <SecretInput
+                  label="MS Refresh Token"
+                  name="ms_refresh_token_setting"
+                  placeholder="OAuth Refresh Token"
+                  isSet={me.hasMsRefreshToken}
+                  draft={secrets.msRefreshToken}
+                  onChange={setSecret("msRefreshToken")}
+                />
               </div>
 
               {/* Waypoint Rows Allocation Notice */}
@@ -835,24 +897,14 @@ function SettingsForm({
                     className={`${inputCls} font-mono text-xs`}
                   />
                 </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-xs text-ink-muted">
-                    Jira API Token
-                  </span>
-                  <input
-                    type="text"
-                    name="jira_api_token_setting"
-                    autoComplete="off"
-                    style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-bwignore="true"
-                    value={jiraApiToken}
-                    onChange={(e) => setJiraApiToken(e.target.value)}
-                    placeholder="ATATT3xFfGF0..."
-                    className={`${inputCls} font-mono text-xs`}
-                  />
-                </label>
+                <SecretInput
+                  label="Jira API Token"
+                  name="jira_api_token_setting"
+                  placeholder="ATATT3xFfGF0..."
+                  isSet={me.hasJiraApiToken}
+                  draft={secrets.jiraApiToken}
+                  onChange={setSecret("jiraApiToken")}
+                />
               </div>
               <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
                 <label className="block">
@@ -869,24 +921,14 @@ function SettingsForm({
                     className={`${inputCls} font-mono text-xs`}
                   />
                 </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-xs text-ink-muted">
-                    GitHub Personal Access Token (PAT)
-                  </span>
-                  <input
-                    type="text"
-                    name="github_pat_setting"
-                    autoComplete="off"
-                    style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-bwignore="true"
-                    value={githubPat}
-                    onChange={(e) => setGithubPat(e.target.value)}
-                    placeholder="ghp_xxxxxxxxxxxx"
-                    className={`${inputCls} font-mono text-xs`}
-                  />
-                </label>
+                <SecretInput
+                  label="GitHub Personal Access Token (PAT)"
+                  name="github_pat_setting"
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  isSet={me.hasGithubPat}
+                  draft={secrets.githubPat}
+                  onChange={setSecret("githubPat")}
+                />
               </div>
 
               <div className="flex items-center gap-3">
