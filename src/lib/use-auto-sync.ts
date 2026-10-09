@@ -4,10 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client-api";
 
 /** One sync calls Jira and GitHub once per row, so keep the interval wide. */
-export const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
-
-/** Same key as the v1 dashboard, so both pages show the same "Synced …" time. */
-const LAST_SYNCED_KEY = "waypoint_last_synced";
+export const AUTO_SYNC_INTERVAL_MS = 30 * 60 * 1000;
 
 /**
  * Background integration sync for the Board view.
@@ -24,7 +21,6 @@ export function useAutoSync() {
     queryKey: ["integrations-sync"],
     queryFn: async () => {
       const res = await api.syncIntegrations();
-      localStorage.setItem(LAST_SYNCED_KEY, new Date().toISOString());
       // A sync can tick sub-tasks, so cards can change columns.
       await qc.invalidateQueries({ queryKey: ["rows"] });
       return res;

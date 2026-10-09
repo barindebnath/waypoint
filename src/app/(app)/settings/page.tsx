@@ -501,576 +501,592 @@ function SettingsForm({
   if (timezone && !timezones.includes(timezone)) timezones.unshift(timezone);
 
   return (
-    <main className="mx-auto flex w-full max-w-[680px] flex-1 flex-col gap-4 px-7 pb-16 pt-[26px]">
+    <main className="mx-auto flex w-full max-w-[680px] lg:max-w-[1240px] xl:max-w-[1500px] flex-1 flex-col gap-4 px-7 pb-16 pt-[26px]">
       <h1 className="font-serif text-[32px] font-medium tracking-tight">Settings</h1>
 
-      <AppearanceSection />
-      <ColorPaletteSection />
-      <FontStyleSection />
+      {/*
+        Three column groups: appearance | AutoTempo | links, tokens and data.
+        Two columns from lg (the third group goes under the first), three from xl.
+        Narrow screens stack the groups in the original section order.
+      */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-4">
+          <AppearanceSection />
+          <ColorPaletteSection />
+          <FontStyleSection />
 
-      {/* Timezone & link templates */}
-      <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-        <h2 className="mb-3.5 text-sm font-semibold">Timezone &amp; link templates</h2>
-        <div className="flex flex-col gap-3.5 text-[13px]">
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-ink-muted">
-              Timezone (day/week/month bucketing happens here)
-            </span>
-            <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputCls}>
-              {timezones.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-xs text-ink-muted">
-              Jira base URL — makes every Jira ref a one-click link
-            </span>
-            <input
-              type="url"
-              name="jira_base_url_setting"
-              autoComplete="off"
-              value={jira}
-              onChange={(e) => setJira(e.target.value)}
-              placeholder="https://yourorg.atlassian.net"
-              className={`${inputCls} font-mono text-xs`}
-            />
-          </label>
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1.5 block text-xs text-ink-muted">
-                Jira Account Email (for status sync)
-              </span>
-              <input
-                type="text"
-                name="jira_email_setting"
-                autoComplete="off"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-bwignore="true"
-                value={jiraEmail}
-                onChange={(e) => setJiraEmail(e.target.value)}
-                placeholder="dev@company.com"
-                className={`${inputCls} font-mono text-xs`}
-              />
-            </label>
-            <SecretInput
-              label="Jira API Token"
-              name="jira_api_token_setting"
-              placeholder="ATATT3xFfGF0..."
-              isSet={me.hasJiraApiToken}
-              draft={secrets.jiraApiToken}
-              onChange={setSecret("jiraApiToken")}
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1.5 block text-xs text-ink-muted">
-                GitHub Org / Owner (makes PR refs clickable & resolve short <span className="font-mono">repo#123</span> refs)
-              </span>
-              <input
-                type="text"
-                name="github_org_setting"
-                autoComplete="off"
-                value={github}
-                onChange={(e) => setGithub(e.target.value)}
-                placeholder="my-org or https://github.com/my-org"
-                className={`${inputCls} font-mono text-xs`}
-              />
-            </label>
-            <SecretInput
-              label="GitHub Personal Access Token (PAT)"
-              name="github_pat_setting"
-              placeholder="ghp_xxxxxxxxxxxx"
-              isSet={me.hasGithubPat}
-              draft={secrets.githubPat}
-              onChange={setSecret("githubPat")}
-            />
-          </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => saveMut.mutate()}
-              disabled={saveMut.isPending}
-              className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-bold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-            >
-              <DeferredSpinner isPending={saveMut.isPending} className="h-3.5 w-3.5 text-current" />
-              {saved ? "Saved ✓" : "Save"}
-            </button>
-            <button
-              type="button"
-              disabled={syncMut.isPending}
-              onClick={() => syncMut.mutate()}
-              className="rounded-[7px] border border-edge bg-surface-2 px-3.5 py-[9px] text-[13px] font-semibold text-ink hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-            >
-              <DeferredSpinner isPending={syncMut.isPending} className="h-3.5 w-3.5 text-current" />
-              {!syncMut.isPending && <RefreshIcon className="h-3.5 w-3.5 text-ink-muted" />}
-              Sync Integrations Now
-            </button>
-          </div>
-          {syncStatus && <p className="text-xs text-accent font-medium mt-1">{syncStatus}</p>}
-          {syncMessages.length > 0 && (
-            <div className="mt-2 rounded-md border border-warn/40 bg-warn/10 p-2.5 text-xs text-warn flex flex-col gap-1">
-              {syncMessages.map((msg, i) => (
-                <p key={i}>⚠️ {msg}</p>
-              ))}
-            </div>
-          )}
         </div>
-      </section>
 
-      {/* AutoTempo Integration & Rules */}
-      <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-        <h2 className="mb-1 text-sm font-semibold">AutoTempo Integration &amp; Rules</h2>
-        <p className="mb-3.5 text-xs text-ink-muted">
-          Configure Tempo API token, Jira Account ID, Microsoft Outlook Graph credentials, and matching rules to auto-fill worklogs.
-        </p>
-        <div className="flex flex-col gap-3.5 text-[13px]">
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-            <SecretInput
-              label="Tempo API Token"
-              name="tempo_api_token_setting"
-              placeholder="Log into Tempo -> Settings -> API Integration -> New Token"
-              isSet={me.hasTempoApiToken}
-              draft={secrets.tempoApiToken}
-              onChange={setSecret("tempoApiToken")}
-            />
-            <label className="block">
-              <span className="mb-1.5 block text-xs text-ink-muted">Jira Account ID</span>
-              <input
-                type="text"
-                value={jiraAccountId}
-                onChange={(e) => setJiraAccountId(e.target.value)}
-                placeholder="Jira Profile -> grab ID at end of URL"
-                className={`${inputCls} font-mono text-xs`}
-              />
-            </label>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
-            <label className="block">
-              <span className="mb-1.5 block text-xs text-ink-muted">MS Client ID (Optional)</span>
-              <input
-                type="text"
-                value={msClientId}
-                onChange={(e) => setMsClientId(e.target.value)}
-                placeholder="cb1cf73c-ad9a-..."
-                className={`${inputCls} font-mono text-xs`}
-              />
-            </label>
-            <SecretInput
-              label="MS Client Secret (Optional)"
-              name="ms_client_secret_setting"
-              placeholder="Secret value"
-              isSet={me.hasMsClientSecret}
-              draft={secrets.msClientSecret}
-              onChange={setSecret("msClientSecret")}
-            />
-            <SecretInput
-              label="MS Refresh Token"
-              name="ms_refresh_token_setting"
-              placeholder="OAuth Refresh Token"
-              isSet={me.hasMsRefreshToken}
-              draft={secrets.msRefreshToken}
-              onChange={setSecret("msRefreshToken")}
-            />
-          </div>
-
-          {/* Waypoint Rows Allocation Notice */}
-          <div className="rounded-lg border border-edge bg-surface-2/60 p-3.5 flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-ink">Waypoint Rows Auto-Fill</span>
-            <p className="text-[11px] text-ink-muted">
-              AutoTempo allocates remaining workday hours directly across your active Waypoint rows (cards you worked on), looking up Jira issue IDs and mapping Tempo finance account categories automatically.
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* AutoTempo Integration & Rules */}
+          <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+            <h2 className="mb-1 text-sm font-semibold">AutoTempo Integration &amp; Rules</h2>
+            <p className="mb-3.5 text-xs text-ink-muted">
+              Configure Tempo API token, Jira Account ID, Microsoft Outlook Graph credentials, and matching rules to auto-fill worklogs.
             </p>
-          </div>
+            <div className="flex flex-col gap-3.5 text-[13px]">
+              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                <SecretInput
+                  label="Tempo API Token"
+                  name="tempo_api_token_setting"
+                  placeholder="Log into Tempo -> Settings -> API Integration -> New Token"
+                  isSet={me.hasTempoApiToken}
+                  draft={secrets.tempoApiToken}
+                  onChange={setSecret("tempoApiToken")}
+                />
+                <label className="block">
+                  <span className="mb-1.5 block text-xs text-ink-muted">Jira Account ID</span>
+                  <input
+                    type="text"
+                    value={jiraAccountId}
+                    onChange={(e) => setJiraAccountId(e.target.value)}
+                    placeholder="Jira Profile -> grab ID at end of URL"
+                    className={`${inputCls} font-mono text-xs`}
+                  />
+                </label>
+              </div>
 
-          {/* Skip Days Selector */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-ink">Skip Days</span>
-            <p className="text-[11px] text-ink-muted">Days to exclude from AutoTempo logging (e.g. weekends or non-working days).</p>
-            <div className="flex flex-wrap gap-1.5">
-              {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((dayName) => {
-                const isSkipped = skipDays.includes(dayName);
-                return (
-                  <button
-                    key={dayName}
-                    type="button"
-                    onClick={() =>
-                      setSkipDays(
-                        isSkipped ? skipDays.filter((d) => d !== dayName) : [...skipDays, dayName]
-                      )
-                    }
-                    className={`cursor-pointer rounded-md border px-2.5 py-1 text-xs font-semibold transition-all ${
-                      isSkipped
-                        ? "border-accent bg-accent/20 text-accent"
-                        : "border-edge bg-surface-2 text-ink-faint hover:border-edge-strong hover:text-ink"
-                    }`}
-                  >
-                    {dayName} {isSkipped ? "✓" : ""}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs text-ink-muted">MS Client ID (Optional)</span>
+                  <input
+                    type="text"
+                    value={msClientId}
+                    onChange={(e) => setMsClientId(e.target.value)}
+                    placeholder="cb1cf73c-ad9a-..."
+                    className={`${inputCls} font-mono text-xs`}
+                  />
+                </label>
+                <SecretInput
+                  label="MS Client Secret (Optional)"
+                  name="ms_client_secret_setting"
+                  placeholder="Secret value"
+                  isSet={me.hasMsClientSecret}
+                  draft={secrets.msClientSecret}
+                  onChange={setSecret("msClientSecret")}
+                />
+                <SecretInput
+                  label="MS Refresh Token"
+                  name="ms_refresh_token_setting"
+                  placeholder="OAuth Refresh Token"
+                  isSet={me.hasMsRefreshToken}
+                  draft={secrets.msRefreshToken}
+                  onChange={setSecret("msRefreshToken")}
+                />
+              </div>
 
-          {/* Weekly schedule opt-in */}
-          <label className="flex items-start gap-2.5 rounded-lg border border-edge bg-surface-2/60 p-3.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoTempoScheduled}
-              onChange={(e) => setAutoTempoScheduled(e.target.checked)}
-              className="mt-0.5 cursor-pointer accent-accent"
-            />
-            <span className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-ink">Run AutoTempo every Friday</span>
-              <span className="text-[11px] text-ink-muted">
-                The server fills your unfilled days each Friday at about 18:00 IST (12:30 UTC). Each run replaces your existing Tempo worklogs on the days it fills.
-              </span>
-            </span>
-          </label>
-
-          {/* Company Common Rules Banner & Personal Overrides */}
-          <div className="flex flex-col gap-3">
-            {/* Company Common Rules Banner */}
-            <div className="rounded-lg border border-done/30 bg-done-soft/20 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-done">✓ Company-Wide Common Rules</span>
-                  <span className="rounded-full bg-done-soft px-2 py-0.5 text-[10px] font-bold text-done">
-                    {SYSTEM_COMMON_RULES.length} Global Rules Active
-                  </span>
-                </div>
-                <p className="text-[11px] text-ink-muted mt-0.5">
-                  Inherited automatically for all employees (1:1s, Standups, Retros, Leave, Public Holidays, Training, etc.).
+              {/* Waypoint Rows Allocation Notice */}
+              <div className="rounded-lg border border-edge bg-surface-2/60 p-3.5 flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-ink">Waypoint Rows Auto-Fill</span>
+                <p className="text-[11px] text-ink-muted">
+                  AutoTempo allocates remaining workday hours directly across your active Waypoint rows (cards you worked on), looking up Jira issue IDs and mapping Tempo finance account categories automatically.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowSystemRules(!showSystemRules)}
-                className="cursor-pointer rounded-md border border-edge bg-surface px-3 py-1.5 text-xs font-semibold text-ink-muted hover:text-ink transition-all shrink-0"
-              >
-                {showSystemRules ? "Hide System Rules" : `Inspect System Rules (${SYSTEM_COMMON_RULES.length})`}
-              </button>
-            </div>
-
-            {/* Read-Only System Rules Viewer */}
-            {showSystemRules && (
-              <div className="rounded-lg border border-edge bg-surface-2 p-3.5 flex flex-col gap-2.5 animate-fade-in">
-                <div className="flex items-center justify-between gap-2 border-b border-edge/60 pb-2">
-                  <span className="text-xs font-semibold text-ink">System Common Rules Directory</span>
-                  <input
-                    type="text"
-                    value={ruleSearch}
-                    onChange={(e) => setRuleSearch(e.target.value)}
-                    placeholder="🔍 Search system rules..."
-                    className={`${inputCls} w-44 sm:w-56 text-xs py-1`}
-                  />
-                </div>
-
-                <div className="max-h-64 overflow-y-auto flex flex-col gap-1.5 pr-1">
-                  <div className="hidden sm:grid grid-cols-12 gap-2 text-[10px] font-bold text-ink-muted px-2 uppercase tracking-wider sticky top-0 bg-surface-2 py-1 z-10">
-                    <span className="col-span-5">Keywords / Meeting Title</span>
-                    <span className="col-span-2">Issue Key</span>
-                    <span className="col-span-3">Account</span>
-                    <span className="col-span-2">Category</span>
-                  </div>
-
-                  {SYSTEM_COMMON_RULES.filter((r) => {
-                    if (!ruleSearch.trim()) return true;
-                    const search = ruleSearch.toLowerCase();
-                    const ruleText = Array.isArray(r.rule) ? r.rule.join(" ") : r.rule;
+              {/* Skip Days Selector */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-ink">Skip Days</span>
+                <p className="text-[11px] text-ink-muted">Days to exclude from AutoTempo logging (e.g. weekends or non-working days).</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((dayName) => {
+                    const isSkipped = skipDays.includes(dayName);
                     return (
-                      ruleText.toLowerCase().includes(search) ||
-                      (r.issue && r.issue.toLowerCase().includes(search)) ||
-                      (r.account && r.account.toLowerCase().includes(search))
+                      <button
+                        key={dayName}
+                        type="button"
+                        onClick={() =>
+                          setSkipDays(
+                            isSkipped ? skipDays.filter((d) => d !== dayName) : [...skipDays, dayName]
+                          )
+                        }
+                        className={`cursor-pointer rounded-md border px-2.5 py-1 text-xs font-semibold transition-all ${
+                          isSkipped
+                            ? "border-accent bg-accent/20 text-accent"
+                            : "border-edge bg-surface-2 text-ink-faint hover:border-edge-strong hover:text-ink"
+                        }`}
+                      >
+                        {dayName} {isSkipped ? "✓" : ""}
+                      </button>
                     );
-                  }).map((r, i) => (
-                    <div key={i} className="rounded border border-edge/60 bg-surface p-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-xs">
-                      <div className="sm:col-span-5 font-mono text-[11.5px] text-ink">
-                        {Array.isArray(r.rule) ? r.rule.join(", ") : r.rule}
-                        {r.skip && <span className="ml-2 text-[10px] text-warn font-semibold">(Skipped)</span>}
-                      </div>
-                      <div className="sm:col-span-2 font-mono text-ink-muted text-[11px]">
-                        {r.issue || "—"}
-                      </div>
-                      <div className="sm:col-span-3 font-mono text-accent text-[11px]">
-                        {r.account || "—"}
-                      </div>
-                      <div className="sm:col-span-2 text-ink-muted text-[11px]">
-                        {r.type || (r.skip ? "Ignored" : "General")}
-                      </div>
-                    </div>
-                  ))}
+                  })}
                 </div>
               </div>
-            )}
 
-            {/* Personal Overrides Section */}
-            <div className="rounded-lg border border-edge bg-surface-2 p-3.5 flex flex-col gap-2.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-ink">Personal Custom Overrides</span>
-                  <p className="text-[11px] text-ink-muted mt-0.5">
-                    Add employee-specific or project-specific meeting keyword rules.
-                  </p>
+              {/* Weekly schedule opt-in */}
+              <label className="flex items-start gap-2.5 rounded-lg border border-edge bg-surface-2/60 p-3.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoTempoScheduled}
+                  onChange={(e) => setAutoTempoScheduled(e.target.checked)}
+                  className="mt-0.5 cursor-pointer accent-accent"
+                />
+                <span className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-ink">Run AutoTempo every Friday</span>
+                  <span className="text-[11px] text-ink-muted">
+                    The server fills your unfilled days each Friday at about 18:00 IST (12:30 UTC). Each run replaces your existing Tempo worklogs on the days it fills.
+                  </span>
+                </span>
+              </label>
+
+              {/* Company Common Rules Banner & Personal Overrides */}
+              <div className="flex flex-col gap-3">
+                {/* Company Common Rules Banner */}
+                <div className="rounded-lg border border-done/30 bg-done-soft/20 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-done">✓ Company-Wide Common Rules</span>
+                      <span className="rounded-full bg-done-soft px-2 py-0.5 text-[10px] font-bold text-done">
+                        {SYSTEM_COMMON_RULES.length} Global Rules Active
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-ink-muted mt-0.5">
+                      Inherited automatically for all employees (1:1s, Standups, Retros, Leave, Public Holidays, Training, etc.).
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSystemRules(!showSystemRules)}
+                    className="cursor-pointer rounded-md border border-edge bg-surface px-3 py-1.5 text-xs font-semibold text-ink-muted hover:text-ink transition-all shrink-0"
+                  >
+                    {showSystemRules ? "Hide System Rules" : `Inspect System Rules (${SYSTEM_COMMON_RULES.length})`}
+                  </button>
                 </div>
+
+                {/* Read-Only System Rules Viewer */}
+                {showSystemRules && (
+                  <div className="rounded-lg border border-edge bg-surface-2 p-3.5 flex flex-col gap-2.5 animate-fade-in">
+                    <div className="flex items-center justify-between gap-2 border-b border-edge/60 pb-2">
+                      <span className="text-xs font-semibold text-ink">System Common Rules Directory</span>
+                      <input
+                        type="text"
+                        value={ruleSearch}
+                        onChange={(e) => setRuleSearch(e.target.value)}
+                        placeholder="🔍 Search system rules..."
+                        className={`${inputCls} w-44 sm:w-56 text-xs py-1`}
+                      />
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto flex flex-col gap-1.5 pr-1">
+                      <div className="hidden sm:grid grid-cols-12 gap-2 text-[10px] font-bold text-ink-muted px-2 uppercase tracking-wider sticky top-0 bg-surface-2 py-1 z-10">
+                        <span className="col-span-5">Keywords / Meeting Title</span>
+                        <span className="col-span-2">Issue Key</span>
+                        <span className="col-span-3">Account</span>
+                        <span className="col-span-2">Category</span>
+                      </div>
+
+                      {SYSTEM_COMMON_RULES.filter((r) => {
+                        if (!ruleSearch.trim()) return true;
+                        const search = ruleSearch.toLowerCase();
+                        const ruleText = Array.isArray(r.rule) ? r.rule.join(" ") : r.rule;
+                        return (
+                          ruleText.toLowerCase().includes(search) ||
+                          (r.issue && r.issue.toLowerCase().includes(search)) ||
+                          (r.account && r.account.toLowerCase().includes(search))
+                        );
+                      }).map((r, i) => (
+                        <div key={i} className="rounded border border-edge/60 bg-surface p-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-xs">
+                          <div className="sm:col-span-5 font-mono text-[11.5px] text-ink">
+                            {Array.isArray(r.rule) ? r.rule.join(", ") : r.rule}
+                            {r.skip && <span className="ml-2 text-[10px] text-warn font-semibold">(Skipped)</span>}
+                          </div>
+                          <div className="sm:col-span-2 font-mono text-ink-muted text-[11px]">
+                            {r.issue || "—"}
+                          </div>
+                          <div className="sm:col-span-3 font-mono text-accent text-[11px]">
+                            {r.account || "—"}
+                          </div>
+                          <div className="sm:col-span-2 text-ink-muted text-[11px]">
+                            {r.type || (r.skip ? "Ignored" : "General")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Personal Overrides Section */}
+                <div className="rounded-lg border border-edge bg-surface-2 p-3.5 flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-ink">Personal Custom Overrides</span>
+                      <p className="text-[11px] text-ink-muted mt-0.5">
+                        Add employee-specific or project-specific meeting keyword rules.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRulesList([
+                          {
+                            id: `rule-${Date.now()}`,
+                            issue: "",
+                            account: "CAP_DEV_NEW",
+                            ruleStr: "",
+                            type: "Feature Enhancement",
+                            skip: false,
+                          },
+                          ...rulesList,
+                        ])
+                      }
+                      className="cursor-pointer rounded-md border border-edge bg-surface px-2.5 py-1 text-xs font-semibold text-accent hover:border-accent shrink-0"
+                    >
+                      + Add Personal Rule
+                    </button>
+                  </div>
+
+                  {rulesList.length === 0 ? (
+                    <div className="rounded-md border border-dashed border-edge/80 p-3 text-center text-xs text-ink-muted font-serif italic">
+                      No personal rules added. All 32 company-wide common rules apply automatically.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <div className="hidden sm:grid grid-cols-12 gap-2 text-[10.5px] font-bold text-ink-muted px-1.5 uppercase tracking-wider">
+                        <span className="col-span-4">Keywords</span>
+                        <span className="col-span-2">Issue Key</span>
+                        <span className="col-span-3">Account</span>
+                        <span className="col-span-2">Category</span>
+                        <span className="col-span-1 text-right">Action</span>
+                      </div>
+
+                      {rulesList.map((r, idx) => (
+                        <div
+                          key={r.id}
+                          className="rounded-md border border-edge/80 bg-surface p-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center"
+                        >
+                          <div className="sm:col-span-4">
+                            <input
+                              type="text"
+                              value={r.ruleStr}
+                              onChange={(e) => {
+                                const updated = [...rulesList];
+                                updated[idx].ruleStr = e.target.value;
+                                setRulesList(updated);
+                              }}
+                              placeholder="e.g. My Team Sync"
+                              className={`${inputCls} font-mono text-xs`}
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <input
+                              type="text"
+                              value={r.issue}
+                              onChange={(e) => {
+                                const updated = [...rulesList];
+                                updated[idx].issue = e.target.value;
+                                setRulesList(updated);
+                              }}
+                              placeholder="197032"
+                              className={`${inputCls} font-mono text-xs`}
+                            />
+                          </div>
+                          <div className="sm:col-span-3">
+                            <select
+                              value={r.account}
+                              onChange={(e) => {
+                                const updated = [...rulesList];
+                                updated[idx].account = e.target.value;
+                                setRulesList(updated);
+                              }}
+                              className={`${inputCls} text-xs font-mono`}
+                            >
+                              {OFFICIAL_ACCOUNTS.map((acc) => (
+                                <option key={acc.key} value={acc.key}>
+                                  {acc.key} ({acc.type})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <select
+                              value={r.type}
+                              onChange={(e) => {
+                                const updated = [...rulesList];
+                                updated[idx].type = e.target.value;
+                                setRulesList(updated);
+                              }}
+                              className={`${inputCls} text-xs`}
+                            >
+                              {OFFICIAL_INVESTMENT_CATEGORIES.map((cat) => (
+                                <option key={cat} value={cat}>
+                                  {cat}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="sm:col-span-1 flex items-center justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setRulesList(rulesList.filter((item) => item.id !== r.id))}
+                              className="cursor-pointer text-ink-muted hover:text-danger p-1 text-xs transition-colors"
+                              title="Delete Rule"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
                 <button
                   type="button"
-                  onClick={() =>
-                    setRulesList([
-                      {
-                        id: `rule-${Date.now()}`,
-                        issue: "",
-                        account: "CAP_DEV_NEW",
-                        ruleStr: "",
-                        type: "Feature Enhancement",
-                        skip: false,
-                      },
-                      ...rulesList,
-                    ])
-                  }
-                  className="cursor-pointer rounded-md border border-edge bg-surface px-2.5 py-1 text-xs font-semibold text-accent hover:border-accent shrink-0"
+                  onClick={() => saveMut.mutate()}
+                  disabled={saveMut.isPending}
+                  className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-bold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
-                  + Add Personal Rule
+                  <DeferredSpinner isPending={saveMut.isPending} className="h-3.5 w-3.5 text-current" />
+                  {saved ? "Saved AutoTempo Config ✓" : "Save AutoTempo Settings"}
                 </button>
               </div>
+            </div>
+          </section>
 
-              {rulesList.length === 0 ? (
-                <div className="rounded-md border border-dashed border-edge/80 p-3 text-center text-xs text-ink-muted font-serif italic">
-                  No personal rules added. All 32 company-wide common rules apply automatically.
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <div className="hidden sm:grid grid-cols-12 gap-2 text-[10.5px] font-bold text-ink-muted px-1.5 uppercase tracking-wider">
-                    <span className="col-span-4">Keywords</span>
-                    <span className="col-span-2">Issue Key</span>
-                    <span className="col-span-3">Account</span>
-                    <span className="col-span-2">Category</span>
-                    <span className="col-span-1 text-right">Action</span>
-                  </div>
+        </div>
 
-                  {rulesList.map((r, idx) => (
-                    <div
-                      key={r.id}
-                      className="rounded-md border border-edge/80 bg-surface p-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center"
-                    >
-                      <div className="sm:col-span-4">
-                        <input
-                          type="text"
-                          value={r.ruleStr}
-                          onChange={(e) => {
-                            const updated = [...rulesList];
-                            updated[idx].ruleStr = e.target.value;
-                            setRulesList(updated);
-                          }}
-                          placeholder="e.g. My Team Sync"
-                          className={`${inputCls} font-mono text-xs`}
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <input
-                          type="text"
-                          value={r.issue}
-                          onChange={(e) => {
-                            const updated = [...rulesList];
-                            updated[idx].issue = e.target.value;
-                            setRulesList(updated);
-                          }}
-                          placeholder="197032"
-                          className={`${inputCls} font-mono text-xs`}
-                        />
-                      </div>
-                      <div className="sm:col-span-3">
-                        <select
-                          value={r.account}
-                          onChange={(e) => {
-                            const updated = [...rulesList];
-                            updated[idx].account = e.target.value;
-                            setRulesList(updated);
-                          }}
-                          className={`${inputCls} text-xs font-mono`}
-                        >
-                          {OFFICIAL_ACCOUNTS.map((acc) => (
-                            <option key={acc.key} value={acc.key}>
-                              {acc.key} ({acc.type})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="sm:col-span-2">
-                        <select
-                          value={r.type}
-                          onChange={(e) => {
-                            const updated = [...rulesList];
-                            updated[idx].type = e.target.value;
-                            setRulesList(updated);
-                          }}
-                          className={`${inputCls} text-xs`}
-                        >
-                          {OFFICIAL_INVESTMENT_CATEGORIES.map((cat) => (
-                            <option key={cat} value={cat}>
-                              {cat}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="sm:col-span-1 flex items-center justify-end">
-                        <button
-                          type="button"
-                          onClick={() => setRulesList(rulesList.filter((item) => item.id !== r.id))}
-                          className="cursor-pointer text-ink-muted hover:text-danger p-1 text-xs transition-colors"
-                          title="Delete Rule"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* Timezone & link templates */}
+          <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+            <h2 className="mb-3.5 text-sm font-semibold">Timezone &amp; link templates</h2>
+            <div className="flex flex-col gap-3.5 text-[13px]">
+              <label className="block">
+                <span className="mb-1.5 block text-xs text-ink-muted">
+                  Timezone (day/week/month bucketing happens here)
+                </span>
+                <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputCls}>
+                  {timezones.map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs text-ink-muted">
+                  Jira base URL — makes every Jira ref a one-click link
+                </span>
+                <input
+                  type="url"
+                  name="jira_base_url_setting"
+                  autoComplete="off"
+                  value={jira}
+                  onChange={(e) => setJira(e.target.value)}
+                  placeholder="https://yourorg.atlassian.net"
+                  className={`${inputCls} font-mono text-xs`}
+                />
+              </label>
+              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs text-ink-muted">
+                    Jira Account Email (for status sync)
+                  </span>
+                  <input
+                    type="text"
+                    name="jira_email_setting"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    value={jiraEmail}
+                    onChange={(e) => setJiraEmail(e.target.value)}
+                    placeholder="dev@company.com"
+                    className={`${inputCls} font-mono text-xs`}
+                  />
+                </label>
+                <SecretInput
+                  label="Jira API Token"
+                  name="jira_api_token_setting"
+                  placeholder="ATATT3xFfGF0..."
+                  isSet={me.hasJiraApiToken}
+                  draft={secrets.jiraApiToken}
+                  onChange={setSecret("jiraApiToken")}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs text-ink-muted">
+                    GitHub Org / Owner (makes PR refs clickable & resolve short <span className="font-mono">repo#123</span> refs)
+                  </span>
+                  <input
+                    type="text"
+                    name="github_org_setting"
+                    autoComplete="off"
+                    value={github}
+                    onChange={(e) => setGithub(e.target.value)}
+                    placeholder="my-org or https://github.com/my-org"
+                    className={`${inputCls} font-mono text-xs`}
+                  />
+                </label>
+                <SecretInput
+                  label="GitHub Personal Access Token (PAT)"
+                  name="github_pat_setting"
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  isSet={me.hasGithubPat}
+                  draft={secrets.githubPat}
+                  onChange={setSecret("githubPat")}
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => saveMut.mutate()}
+                  disabled={saveMut.isPending}
+                  className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-bold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <DeferredSpinner isPending={saveMut.isPending} className="h-3.5 w-3.5 text-current" />
+                  {saved ? "Saved ✓" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  disabled={syncMut.isPending}
+                  onClick={() => syncMut.mutate()}
+                  className="rounded-[7px] border border-edge bg-surface-2 px-3.5 py-[9px] text-[13px] font-semibold text-ink hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <DeferredSpinner isPending={syncMut.isPending} className="h-3.5 w-3.5 text-current" />
+                  {!syncMut.isPending && <RefreshIcon className="h-3.5 w-3.5 text-ink-muted" />}
+                  Sync Integrations Now
+                </button>
+              </div>
+              {syncStatus && <p className="text-xs text-accent font-medium mt-1">{syncStatus}</p>}
+              {syncMessages.length > 0 && (
+                <div className="mt-2 rounded-md border border-warn/40 bg-warn/10 p-2.5 text-xs text-warn flex flex-col gap-1">
+                  {syncMessages.map((msg, i) => (
+                    <p key={i}>⚠️ {msg}</p>
                   ))}
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
-          <div>
-            <button
-              type="button"
-              onClick={() => saveMut.mutate()}
-              disabled={saveMut.isPending}
-              className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-bold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-            >
-              <DeferredSpinner isPending={saveMut.isPending} className="h-3.5 w-3.5 text-current" />
-              {saved ? "Saved AutoTempo Config ✓" : "Save AutoTempo Settings"}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* PATs */}
-      <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-        <h2 className="mb-1 text-sm font-semibold">Personal access tokens</h2>
-        <p className="mb-3.5 text-xs text-ink-muted">
-          For AI agents and scripts. Shown once, hashed at rest, revocable. Point your agent at{" "}
-          <a href="/llms.txt" target="_blank" className="font-mono">
-            /llms.txt
-          </a>{" "}
-          for usage instructions.
-        </p>
-
-        {freshToken && (
-          <div className="mb-3.5 rounded-[9px] border border-warn bg-[var(--accent-soft)] px-[13px] py-[11px] text-xs">
-            <p className="mb-[7px] font-semibold text-warn">
-              Copy this token now — it won&apos;t be shown again:
+          {/* PATs */}
+          <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+            <h2 className="mb-1 text-sm font-semibold">Personal access tokens</h2>
+            <p className="mb-3.5 text-xs text-ink-muted">
+              For AI agents and scripts. Shown once, hashed at rest, revocable. Point your agent at{" "}
+              <a href="/llms.txt" target="_blank" className="font-mono">
+                /llms.txt
+              </a>{" "}
+              for usage instructions.
             </p>
-            <code className="block select-all break-all rounded-md bg-surface-2 p-[9px] font-mono text-[11.5px]">
-              {freshToken}
-            </code>
-            <button
-              onClick={() => setFreshToken(null)}
-              className="mt-[7px] text-[11.5px] text-ink-muted underline"
-            >
-              Done, hide it
-            </button>
-          </div>
-        )}
 
-        <form onSubmit={createToken} className="mb-3.5 flex flex-wrap gap-2">
-          <input
-            value={tokenName}
-            onChange={(e) => setTokenName(e.target.value)}
-            placeholder="Token name (e.g. claude-code)"
-            className="w-[190px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-[7px] text-xs outline-none focus:border-accent"
-          />
-          <select
-            value={tokenScope}
-            onChange={(e) => setTokenScope(e.target.value as "read" | "read,write")}
-            className="rounded-[7px] border border-edge bg-surface-2 px-2 py-[7px] text-xs"
-          >
-            <option value="read,write">read + write</option>
-            <option value="read">read only</option>
-          </select>
-          <button
-            type="submit"
-            disabled={creatingToken}
-            className="rounded-[7px] border border-edge px-3.5 py-[7px] text-xs text-ink-muted hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5"
-          >
-            <DeferredSpinner isPending={creatingToken} className="h-3 w-3 text-current" />
-            Create token
-          </button>
-          {tokenError && <span className="text-xs text-danger">{tokenError}</span>}
-        </form>
+            {freshToken && (
+              <div className="mb-3.5 rounded-[9px] border border-warn bg-[var(--accent-soft)] px-[13px] py-[11px] text-xs">
+                <p className="mb-[7px] font-semibold text-warn">
+                  Copy this token now — it won&apos;t be shown again:
+                </p>
+                <code className="block select-all break-all rounded-md bg-surface-2 p-[9px] font-mono text-[11.5px]">
+                  {freshToken}
+                </code>
+                <button
+                  onClick={() => setFreshToken(null)}
+                  className="mt-[7px] text-[11.5px] text-ink-muted underline"
+                >
+                  Done, hide it
+                </button>
+              </div>
+            )}
 
-        <ul className="text-xs">
-          {(keys ?? []).map((k) => (
-            <li key={k.id} className="flex items-center gap-3 border-t border-edge py-[9px]">
-              <span className="font-semibold">{k.name ?? "unnamed"}</span>
-              <span className="font-mono text-ink-faint">{k.start}…</span>
-              <span className="text-ink-faint">
-                {k.lastRequest ? `last used ${new Date(k.lastRequest).toLocaleDateString()}` : "never used"}
-              </span>
-              <span className="rounded border border-edge px-1.5 py-px font-mono text-[10px] text-ink-muted">
-                {scopesOf(k.metadata)}
-              </span>
+            <form onSubmit={createToken} className="mb-3.5 flex flex-wrap gap-2">
+              <input
+                value={tokenName}
+                onChange={(e) => setTokenName(e.target.value)}
+                placeholder="Token name (e.g. claude-code)"
+                className="w-[190px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-[7px] text-xs outline-none focus:border-accent"
+              />
+              <select
+                value={tokenScope}
+                onChange={(e) => setTokenScope(e.target.value as "read" | "read,write")}
+                className="rounded-[7px] border border-edge bg-surface-2 px-2 py-[7px] text-xs"
+              >
+                <option value="read,write">read + write</option>
+                <option value="read">read only</option>
+              </select>
               <button
-                disabled={revokingKeyId !== null}
+                type="submit"
+                disabled={creatingToken}
+                className="rounded-[7px] border border-edge px-3.5 py-[7px] text-xs text-ink-muted hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <DeferredSpinner isPending={creatingToken} className="h-3 w-3 text-current" />
+                Create token
+              </button>
+              {tokenError && <span className="text-xs text-danger">{tokenError}</span>}
+            </form>
+
+            <ul className="text-xs">
+              {(keys ?? []).map((k) => (
+                <li key={k.id} className="flex items-center gap-3 border-t border-edge py-[9px]">
+                  <span className="font-semibold">{k.name ?? "unnamed"}</span>
+                  <span className="font-mono text-ink-faint">{k.start}…</span>
+                  <span className="text-ink-faint">
+                    {k.lastRequest ? `last used ${new Date(k.lastRequest).toLocaleDateString()}` : "never used"}
+                  </span>
+                  <span className="rounded border border-edge px-1.5 py-px font-mono text-[10px] text-ink-muted">
+                    {scopesOf(k.metadata)}
+                  </span>
+                  <button
+                    disabled={revokingKeyId !== null}
+                    onClick={async () => {
+                      if (window.confirm(`Revoke token "${k.name ?? k.id}"?`)) {
+                        setRevokingKeyId(k.id);
+                        try {
+                          await authClient.apiKey.delete({ keyId: k.id });
+                          refetchKeys();
+                        } finally {
+                          setRevokingKeyId(null);
+                        }
+                      }
+                    }}
+                    className="ml-auto rounded-md border border-edge px-2.5 py-[3px] text-[11px] text-ink-faint hover:border-danger hover:text-danger disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <DeferredSpinner isPending={revokingKeyId === k.id} className="h-3 w-3 text-current" />
+                    Revoke
+                  </button>
+                </li>
+              ))}
+              {(keys ?? []).length === 0 && (
+                <li className="border-t border-edge py-[9px] font-serif italic text-ink-faint">No tokens yet.</li>
+              )}
+            </ul>
+          </section>
+
+          {/* Data rights */}
+          <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
+            <h2 className="mb-1 text-sm font-semibold">Your data</h2>
+            <p className="mb-3.5 text-xs text-ink-muted">
+              Export everything as JSON, or permanently delete the account and all its data. See{" "}
+              <a href="/privacy">privacy</a>.
+            </p>
+            <div className="flex gap-2.5">
+              <a
+                href="/api/v1/export"
+                download
+                className="rounded-[7px] border border-edge px-4 py-2 text-xs !text-ink-muted no-underline hover:border-edge-strong"
+              >
+                Export JSON
+              </a>
+              <button
                 onClick={async () => {
-                  if (window.confirm(`Revoke token "${k.name ?? k.id}"?`)) {
-                    setRevokingKeyId(k.id);
-                    try {
-                      await authClient.apiKey.delete({ keyId: k.id });
-                      refetchKeys();
-                    } finally {
-                      setRevokingKeyId(null);
-                    }
+                  const typed = window.prompt(
+                    'This permanently deletes your account, all rows, timesheets, and tokens. Type "DELETE" to confirm.',
+                  );
+                  if (typed === "DELETE") {
+                    await api.deleteAccount();
+                    window.location.href = "/signup";
                   }
                 }}
-                className="ml-auto rounded-md border border-edge px-2.5 py-[3px] text-[11px] text-ink-faint hover:border-danger hover:text-danger disabled:opacity-50 flex items-center gap-1.5"
+                className="rounded-[7px] border border-danger px-4 py-2 text-xs text-danger hover:bg-[var(--accent-soft)]"
               >
-                <DeferredSpinner isPending={revokingKeyId === k.id} className="h-3 w-3 text-current" />
-                Revoke
+                Delete account…
               </button>
-            </li>
-          ))}
-          {(keys ?? []).length === 0 && (
-            <li className="border-t border-edge py-[9px] font-serif italic text-ink-faint">No tokens yet.</li>
-          )}
-        </ul>
-      </section>
-
-      {/* Data rights */}
-      <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-        <h2 className="mb-1 text-sm font-semibold">Your data</h2>
-        <p className="mb-3.5 text-xs text-ink-muted">
-          Export everything as JSON, or permanently delete the account and all its data. See{" "}
-          <a href="/privacy">privacy</a>.
-        </p>
-        <div className="flex gap-2.5">
-          <a
-            href="/api/v1/export"
-            download
-            className="rounded-[7px] border border-edge px-4 py-2 text-xs !text-ink-muted no-underline hover:border-edge-strong"
-          >
-            Export JSON
-          </a>
-          <button
-            onClick={async () => {
-              const typed = window.prompt(
-                'This permanently deletes your account, all rows, timesheets, and tokens. Type "DELETE" to confirm.',
-              );
-              if (typed === "DELETE") {
-                await api.deleteAccount();
-                window.location.href = "/signup";
-              }
-            }}
-            className="rounded-[7px] border border-danger px-4 py-2 text-xs text-danger hover:bg-[var(--accent-soft)]"
-          >
-            Delete account…
-          </button>
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

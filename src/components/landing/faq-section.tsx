@@ -30,12 +30,12 @@ const FAQS: FAQItem[] = [
   {
     category: "sync",
     q: "How does the AutoTempo rule engine work?",
-    a: "In Settings, you can configure your default Tempo investment account rules (e.g. mapping support bug rows to BAU and feature rows to Capitalized Projects) along with custom skip-days and bank holidays. When you trigger AutoTempo, it automatically fills the corresponding Tempo day logs for verified completed work.",
+    a: "In Settings, you can configure your default Tempo investment account rules (e.g. mapping support bug cards to BAU and feature cards to Capitalized Projects) along with custom skip-days and bank holidays. When you trigger AutoTempo, it automatically fills the corresponding Tempo day logs for verified completed work.",
   },
   {
     category: "security",
     q: "Can I export or delete my data anytime?",
-    a: "Yes. Waypoint respects complete data sovereignty. You can download a complete JSON export of all your rows, timestamps, and timesheet logs with one click from Settings, or permanently delete your account at any time.",
+    a: "Yes. Waypoint respects complete data sovereignty. You can download a complete JSON export of all your cards, timestamps, and timesheet logs with one click from Settings, or permanently delete your account at any time.",
   },
 ];
 

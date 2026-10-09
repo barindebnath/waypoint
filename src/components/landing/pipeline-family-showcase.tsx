@@ -39,7 +39,7 @@ const PIPELINE_FAMILIES: PipelineFamily[] = [
       { name: "Development", desc: "Fix code & raise PR" },
       { name: "Staging", desc: "Staging deploy & test" },
       { name: "QA & Review", desc: "Peer approval & sign-off" },
-      { name: "Production", desc: "Canary rollout & close" },
+      { name: "Production & Close-out", desc: "Canary rollout & close" },
     ],
   },
   {
@@ -74,7 +74,7 @@ const PIPELINE_FAMILIES: PipelineFamily[] = [
       { name: "Development", desc: "Feature branch & tests" },
       { name: "Staging", desc: "Preview staging test" },
       { name: "QA & Review", desc: "Design & QA sign-off" },
-      { name: "Production", desc: "Feature flag rollout" },
+      { name: "Production & Close", desc: "Feature flag rollout" },
     ],
   },
 ];

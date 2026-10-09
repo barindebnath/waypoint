@@ -2,6 +2,8 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { SparklesIcon } from "./icons";
+import { BoardCard, StaticPreviewProvider } from "@/components/board-card";
+import { sampleBoardRows, samplePreview } from "./board-fixtures";
 import {
   getColorThemePref,
   setColorThemePref,
@@ -115,21 +117,12 @@ export function ThemeShowcase() {
     activeFontTheme || "mono"
   );
   const [appliedGlobal, setAppliedGlobal] = useState(false);
+  // The Development card with an approved PR (OFF-13698).
+  const [previewRow] = useState(() => sampleBoardRows()[1]);
 
-  const palette = PALETTES.find((p) => p.key === selectedPalette)!;
 
   const isDark = selectedMode === "dark";
-  const surface = isDark ? palette.surfaceDark : palette.surfaceLight;
-  const accent = isDark ? palette.accentDark : palette.accentLight;
-  const ink = isDark ? palette.inkDark : palette.inkLight;
-  const edge = isDark ? palette.edgeDark : palette.edgeLight;
 
-  const fontClass =
-    selectedFont === "serif"
-      ? "font-serif"
-      : selectedFont === "mono"
-      ? "font-mono"
-      : "font-sans";
 
   const handleApplyGlobal = () => {
     setColorThemePref(selectedPalette);
@@ -249,42 +242,21 @@ export function ThemeShowcase() {
         ))}
       </div>
 
-      {/* Live Preview Card */}
+      {/*
+        Live preview: a real Board card inside a wrapper with its own theme attributes,
+        so it shows the selected palette, mode and font without changing the page theme.
+      */}
       <div
-        className={`rounded-xl border p-5 shadow-sm transition-all duration-300 ${fontClass}`}
-        style={{
-          backgroundColor: surface,
-          borderColor: edge,
-          color: ink,
-        }}
+        data-theme={selectedMode}
+        data-color-theme={selectedPalette}
+        data-font-theme={selectedFont}
+        className="rounded-xl border border-edge bg-bg p-4 text-ink transition-colors duration-300"
       >
-        <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: edge }}>
-          <div className="flex items-center gap-2">
-            <span
-              className="rounded-full px-2.5 py-0.5 font-mono text-[11px] font-semibold border"
-              style={{ borderColor: accent, color: accent }}
-            >
-              ZT-4821
-            </span>
-            <span className="text-xs opacity-75 font-mono">PES-1032</span>
+        <StaticPreviewProvider resolve={samplePreview}>
+          <div className="mx-auto max-w-[300px]">
+            <BoardCard row={previewRow} preview />
           </div>
-
-          <span className="text-xs font-semibold" style={{ color: accent }}>
-            Staging Milestone Active
-          </span>
-        </div>
-
-        <div className="mt-4 flex items-center justify-between text-xs sm:text-sm font-medium">
-          <span>Triage ✓</span>
-          <span>Development ✓</span>
-          <span className="font-bold" style={{ color: accent }}>Staging ●</span>
-          <span className="opacity-40">QA</span>
-          <span className="opacity-40">Production</span>
-        </div>
-
-        <p className="mt-3 text-xs opacity-80 italic leading-relaxed">
-          &quot;External memory for a developer who ships. References only, never card contents.&quot;
-        </p>
+        </StaticPreviewProvider>
       </div>
     </div>
   );

@@ -147,8 +147,8 @@ export default async function DocsPage() {
             </Link>
             <span className="rounded border border-edge px-2 py-0.5 font-mono text-[9px] text-ink-muted select-none">API v1</span>
             {session ? (
-              <Link href="/dashboard" className="rounded border border-edge px-2.5 py-1 text-xs text-ink-muted hover:border-edge-strong">
-                Dashboard
+              <Link href="/board" className="rounded border border-edge px-2.5 py-1 text-xs text-ink-muted hover:border-edge-strong">
+                Board
               </Link>
             ) : (
               <>
@@ -171,7 +171,7 @@ export default async function DocsPage() {
           <p className="mb-3 font-mono text-xs uppercase tracking-[0.22em] text-live">Integration guide</p>
           <h1 className="font-serif text-4xl font-medium tracking-tight">Automate your tracker with any AI.</h1>
           <p className="mt-4 max-w-2xl text-lg text-ink-muted">
-            Everything the Waypoint dashboard does is a small REST API — the dashboard itself is just
+            Everything the Waypoint board does is a small REST API — the board itself is just
             another client. Give an agent a token and it can create rows, tick sub-tasks, regress a
             bounced fix, and attest your timesheet, all as you.
           </p>
@@ -281,8 +281,7 @@ export default async function DocsPage() {
           <H2 id="ep-rows">Endpoints · Rows</H2>
           <Ep v="GET" path="/api/v1/rows">
             <p>List every row you own, with full milestone/sub-task state and resolved link URLs. The
-            dashboard&apos;s filters (hide completed, date-range inspection) are client-side — the API
-            always returns everything.</p>
+            API always returns everything, completed rows included; the Board hides completed rows on the client.</p>
           </Ep>
           <Ep v="POST" path="/api/v1/rows">
             <p>Create a row. Refs are normalized (<code className="font-mono">zt-100</code> →{" "}
@@ -310,16 +309,7 @@ export default async function DocsPage() {
             The identity ref is immutable.</p>
           </Ep>
           <Ep v="GET" path="/api/v1/pipelines">
-            <p>The live pipeline definitions — milestone and sub-task keys, labels, and{" "}
-            <code className="font-mono">humanUsual</code>{" "}flags. Fetch these; don&apos;t hardcode keys.</p>
-          </Ep>
-          <Ep v="POST" path="/api/v1/rows/reorder">
-            <p>Persist a new display order for all rows on the board.</p>
-            <Fields
-              rows={[
-                ["rowIds*", "uuid[]", "Ordered array of every row UUID the user owns. Missing or extra ids are rejected."],
-              ]}
-            />
+            <p>The live pipeline definitions — milestone and sub-task keys and labels. Fetch these; don&apos;t hardcode keys.</p>
           </Ep>
           <Ep v="POST" path="/api/v1/rows/{ref}/complete">
             <p>Fast-complete a row — checks every remaining sub-task across all milestones in one
@@ -412,8 +402,8 @@ export default async function DocsPage() {
                 ["githubPat", "string | null", "GitHub personal access token for PR status sync (write-only)."],
                 ["githubDefaultOrg", "string | null", "Default GitHub org for short-form PR refs (repo#123)."],
                 ["tempoApiToken", "string | null", "Tempo API token for auto-tempo (write-only)."],
-                ["colorTheme", '"paper" | "nord" | "forest" | "royal"', "Dashboard colour theme."],
-                ["fontTheme", '"serif" | "sans" | "mono"', "Dashboard font family."],
+                ["colorTheme", '"paper" | "nord" | "forest" | "royal"', "App colour theme."],
+                ["fontTheme", '"serif" | "sans" | "mono"', "App font family."],
                 ["showTimesheet", "boolean", "Show or hide the timesheet sidebar."],
                 ["autoTempoDefaultRule", "object | null", "Default auto-tempo logging rule."],
                 ["autoTempoSkipDays", "string[] | null", "Days to skip during auto-tempo (e.g. public holidays)."],
@@ -462,7 +452,6 @@ export default async function DocsPage() {
           </Code>
           <ul className="max-w-2xl list-disc space-y-2 pl-5 text-sm text-ink-muted">
             <li><b className="text-ink">Tick on truth</b> — tie writes to real events (PR opened, CI green, card moved), so the board reflects reality rather than intent.</li>
-            <li><b className="text-ink">Respect <code className="font-mono">humanUsual</code></b> — sub-tasks like local testing and deploys are usually done by the human; agents tick them only when told they happened.</li>
             <li><b className="text-ink">Refs only</b> — never card contents, customer data, names, or secrets. There is deliberately nowhere to put them.</li>
           </ul>
           <Note tone="danger" title="✕ Token hygiene for agents">

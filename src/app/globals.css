@@ -6,9 +6,14 @@
  * a pre-paint script in layout.tsx resolves the stored preference
  * (system/light/dark) so there is no flash. Values come verbatim from
  * the Claude Design file "Waypoint Redesign.dc.html".
+ *
+ * The theme rules match any element, not only <html>. An element with its own
+ * data-theme / data-color-theme / data-font-theme shows that theme inside it
+ * (the landing page theme preview uses this). Each palette block sets every variable.
  */
 
-:root {
+:root,
+[data-theme="light"] {
   --bg: #f5efe3;
   --surface: #fdfaf2;
   --surface2: #f0e9d8;
@@ -33,7 +38,7 @@
   color-scheme: light;
 }
 
-html[data-theme="dark"] {
+[data-theme="dark"] {
   --bg: #151109;
   --surface: #1d1811;
   --surface2: #272117;
@@ -85,7 +90,7 @@ html[data-theme="dark"] {
 }
 
 /* --- NORDIC FROST THEME --- */
-html[data-color-theme="nord"] {
+[data-color-theme="nord"] {
   --bg: #eef2f7;
   --surface: #f8fafc;
   --surface2: #e2e8f0;
@@ -108,7 +113,7 @@ html[data-color-theme="nord"] {
   --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 10px 28px -14px rgba(15, 23, 42, 0.18);
   color-scheme: light;
 }
-html[data-theme="dark"][data-color-theme="nord"] {
+[data-theme="dark"][data-color-theme="nord"] {
   --bg: #0f172a;
   --surface: #1e293b;
   --surface2: #334155;
@@ -133,7 +138,7 @@ html[data-theme="dark"][data-color-theme="nord"] {
 }
 
 /* --- FOREST SAGE THEME --- */
-html[data-color-theme="forest"] {
+[data-color-theme="forest"] {
   --bg: #edf1eb;
   --surface: #f7f9f6;
   --surface2: #dee5db;
@@ -156,7 +161,7 @@ html[data-color-theme="forest"] {
   --shadow: 0 1px 2px rgba(28, 40, 26, 0.05), 0 10px 28px -14px rgba(28, 40, 26, 0.18);
   color-scheme: light;
 }
-html[data-theme="dark"][data-color-theme="forest"] {
+[data-theme="dark"][data-color-theme="forest"] {
   --bg: #101912;
   --surface: #18231a;
   --surface2: #213123;
@@ -181,7 +186,7 @@ html[data-theme="dark"][data-color-theme="forest"] {
 }
 
 /* --- ROYAL PLUM THEME --- */
-html[data-color-theme="royal"] {
+[data-color-theme="royal"] {
   --bg: #f5f0f6;
   --surface: #faf8fc;
   --surface2: #ebdff0;
@@ -204,7 +209,7 @@ html[data-color-theme="royal"] {
   --shadow: 0 1px 2px rgba(36, 17, 44, 0.05), 0 10px 28px -14px rgba(36, 17, 44, 0.18);
   color-scheme: light;
 }
-html[data-theme="dark"][data-color-theme="royal"] {
+[data-theme="dark"][data-color-theme="royal"] {
   --bg: #150d1b;
   --surface: #1f1428;
   --surface2: #2d1e39;
@@ -235,13 +240,13 @@ html[data-theme="dark"][data-color-theme="royal"] {
  * `live` is kept as a legacy alias for the accent.
  */
 /* --- FONT STYLE THEMES --- */
-html[data-font-theme="serif"] {
+[data-font-theme="serif"] {
   --serif-font-family: var(--font-newsreader), "Newsreader", Georgia, serif;
 }
-html[data-font-theme="sans"] {
+[data-font-theme="sans"] {
   --serif-font-family: var(--font-sans);
 }
-html[data-font-theme="mono"] {
+[data-font-theme="mono"] {
   --serif-font-family: var(--font-mono);
 }
 

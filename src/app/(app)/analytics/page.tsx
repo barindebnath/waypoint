@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { CompletedCards } from "@/components/completed-cards";
 import Link from "next/link";
 import { api, type AnalyticsData, type AnalyticsOrigin } from "@/lib/client-api";
 import { DateRangePicker } from "@/components/date-range-picker";
@@ -461,9 +462,9 @@ export default function AnalyticsPage() {
                     {data.discipline.looseEndsRefs.slice(0, 3).map((r) => (
                       <Link
                         key={r}
-                        href="/dashboard"
+                        href="#completed-cards"
                         className="rounded-full border border-warn/40 bg-warn/10 px-2 py-[2px] font-mono text-[10px] text-warn hover:bg-warn/20 transition-colors"
-                        title="Inspect on dashboard"
+                        title="See it in Completed cards"
                       >
                         {r}
                       </Link>
@@ -828,9 +829,9 @@ export default function AnalyticsPage() {
                         >
                           <td className="py-2.5 pr-3">
                             <Link
-                              href="/dashboard"
+                              href="/board"
                               className="font-mono text-xs font-semibold text-accent hover:underline inline-flex items-center gap-1"
-                              title="Open in Dashboard"
+                              title="Open the Board"
                             >
                               {item.identityRef}
                               <span className="text-[10px] opacity-70">↗</span>
@@ -940,6 +941,8 @@ export default function AnalyticsPage() {
           </div>
         </div>
       )}
+
+      <CompletedCards />
     </main>
   );
 }

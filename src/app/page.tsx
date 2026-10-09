@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { InteractivePipelineDemo } from "@/components/landing/interactive-pipeline-demo";
+import { BoardShowcase } from "@/components/landing/board-showcase";
 import { PipelineFamilyShowcase } from "@/components/landing/pipeline-family-showcase";
 import { AiAgentShowcase } from "@/components/landing/ai-agent-showcase";
 import { IntegrationsShowcase } from "@/components/landing/integrations-showcase";
@@ -42,7 +42,7 @@ const INTEGRATION_PILLS = [
 export default async function LandingPage() {
   // Signed-in users land straight in the app.
   const session = await auth.api.getSession({ headers: await headers() });
-  if (session) redirect("/dashboard");
+  if (session) redirect("/board");
 
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-bg text-ink selection:bg-accent selection:text-accent-ink">
@@ -116,7 +116,7 @@ export default async function LandingPage() {
           </h1>
 
           <p className="mx-auto max-w-[640px] text-pretty text-base sm:text-lg leading-relaxed text-ink-muted">
-            One row per unit of work, moving through fixed milestone pipelines. Updated by your AI, synced with GitHub & Jira, with zero customer data stored.
+            One card per unit of work, moving across a Board of fixed milestone columns. Updated by your AI, synced with GitHub & Jira, with zero customer data stored.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -154,9 +154,9 @@ export default async function LandingPage() {
             ))}
           </div>
 
-          {/* Interactive Hero Sandbox */}
+          {/* Hero preview: the real Board with sample data */}
           <div className="pt-6">
-            <InteractivePipelineDemo />
+            <BoardShowcase />
           </div>
         </section>
 
@@ -223,10 +223,6 @@ export default async function LandingPage() {
                   <span className="h-4 w-4 rounded-full bg-done-soft text-done flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">✓</span>
                   <span><strong>Deterministic Idempotency:</strong> Safe retry mechanics with <code>Idempotency-Key</code> headers.</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="h-4 w-4 rounded-full bg-done-soft text-done flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">✓</span>
-                  <span><strong>humanUsual Safeguard:</strong> Testing and deploys wait for human confirmation — zero hallucinated ticks.</span>
-                </li>
               </ul>
             </div>
           </div>
@@ -244,7 +240,7 @@ export default async function LandingPage() {
                 Live GitHub PR & Jira Status Sync.
               </h2>
               <p className="text-sm text-ink-muted leading-relaxed">
-                Connect your Jira projects and GitHub repositories to automatically reflect PR states (open, checks passing, approved, merged) and board transitions into your status bar.
+                Connect Jira and GitHub, and every card shows its Jira status and title, and its PR: line changes, review state, conflicts, and unresolved threads. The Board syncs every 5 minutes.
               </p>
               <ul className="space-y-2.5 text-xs text-ink-muted pt-2">
                 <li className="flex items-start gap-2">
@@ -277,15 +273,15 @@ export default async function LandingPage() {
                 <span>Tempo Timesheet Peace</span>
               </div>
               <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-ink">
-                Weekly Tempo Attestation & AutoTempo.
+                Timesheets & AutoTempo.
               </h2>
               <p className="text-sm text-ink-muted leading-relaxed">
-                Never reconstruct your week on Friday afternoon. A lightweight 5-day attestation strip (Mon–Fri) plus an intelligent AutoTempo engine that maps work to official investment accounts.
+                Never reconstruct your week on Friday afternoon. A one-row timesheet bar sits at the bottom of the Board, and one click on Fill lets AutoTempo log the missing days to official investment accounts.
               </p>
               <ul className="space-y-2.5 text-xs text-ink-muted pt-2">
                 <li className="flex items-start gap-2">
                   <span className="h-4 w-4 rounded-full bg-done-soft text-done flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">✓</span>
-                  <span><strong>1-Click Daily Attestation:</strong> Ticking a day confirms Tempo logging is done.</span>
+                  <span><strong>1-Click Fill:</strong> AutoTempo finds the last filled day in Tempo and fills every day after it, up to today.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="h-4 w-4 rounded-full bg-done-soft text-done flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">✓</span>
@@ -321,7 +317,7 @@ export default async function LandingPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="h-4 w-4 rounded-full bg-done-soft text-done flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">✓</span>
-                  <span><strong>Loose Ends Radar:</strong> Flags rows whose final milestone is done but contain unchecked sub-tasks.</span>
+                  <span><strong>Loose Ends Radar:</strong> Flags cards whose final milestone is done but contain unchecked sub-tasks.</span>
                 </li>
               </ul>
             </div>

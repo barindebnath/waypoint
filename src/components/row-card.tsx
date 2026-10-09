@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, Fragment, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type EnrichedRowView } from "@/lib/client-api";
-import { inRange, type InspectRange } from "@/lib/inspect";
 import { RefPill } from "./ref-pill";
 import { useDeferredLoading } from "@/lib/use-deferred-loading";
 import { Spinner } from "./spinner";
 import { DeferredSpinner } from "./deferred-spinner";
 import { parsePrRef } from "@/lib/github";
-import { GithubPrBadge, JiraStatusBadge, GitPullRequestIcon } from "./status-badge";
+import { GithubPrBadge, GitPullRequestIcon } from "./status-badge";
 
 function SubtaskCheckbox({
   checked,
@@ -120,13 +119,11 @@ const PR_STATE_CLASS: Record<"open" | "closed" | "merged" | "draft", string> = {
 
 function PrRefPill({
   prRef,
-  readOnly,
   onRemove,
   isRemoving,
   className = "",
 }: {
   prRef: EnrichedRef;
-  readOnly?: boolean;
   onRemove?: () => void;
   isRemoving?: boolean;
   className?: string;
@@ -176,7 +173,7 @@ function PrRefPill({
         innerPill
       )}
 
-      {onRemove && !readOnly && (
+      {onRemove && (
         <>
           {showRemovingLoader ? (
             <span className="ml-1 inline-flex items-center justify-center">
@@ -281,16 +278,19 @@ function PrRefPill({
   );
 }
 
-export function RowCard({
+/**
+ * The editable row: the milestone grid with its sub-tasks, the PR and ref editors, and the row actions.
+ * The Board card modal shows it.
+ */
+export function RowDetails({
   row,
-  readOnly,
-  inspect,
+  showPrInput,
+  setShowPrInput,
 }: {
   row: EnrichedRowView;
-  readOnly: boolean;
-  inspect: InspectRange | null;
+  showPrInput: boolean;
+  setShowPrInput: (show: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [newRef, setNewRef] = useState("");
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ["rows"] });
@@ -320,7 +320,6 @@ export function RowCard({
 
   const [showLeftShadow, setShowLeftShadow] = useState(false);
   const [showRightShadow, setShowRightShadow] = useState(false);
-  const [showPrInput, setShowPrInput] = useState(false);
   const [showRefInput, setShowRefInput] = useState(false);
   const [prRefValue, setPrRefValue] = useState("");
   const [prError, setPrError] = useState<string | null>(null);
@@ -360,503 +359,314 @@ export function RowCard({
     setShowRightShadow(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
   };
 
+  // The component mounts only when the row is open, so these run once per open.
   useEffect(() => {
-    if (open) {
-      const el = scrollRef.current;
-      if (el) {
-        handleScroll();
-        el.addEventListener("scroll", handleScroll);
-        window.addEventListener("resize", handleScroll);
-        return () => {
-          el.removeEventListener("scroll", handleScroll);
-          window.removeEventListener("resize", handleScroll);
-        };
-      }
-    }
-  }, [open]);
+    const el = scrollRef.current;
+    if (!el) return;
+    handleScroll();
+    el.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleScroll);
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
 
   useEffect(() => {
-    if (showPrInput && open) {
+    if (showPrInput) {
       prInputRef.current?.focus();
       prInputRef.current?.select();
     }
-  }, [showPrInput, open]);
-
-  const doneCount = row.milestones.filter((m) => m.complete).length;
-  const isSupportLight = row.pipelineKey === "support_light";
-  const identityTone = isSupportLight
-    ? "identity-support-light"
-    : row.origin === "support"
-      ? "identity-support"
-      : "identity-product";
-  const current = row.milestones.find((m) => m.isCurrent);
-  const currentMilestone = current || row.milestones.find((m) => !m.complete);
-  const nextSubtask = currentMilestone?.subtasks.find((s) => !s.checked);
+  }, [showPrInput]);
 
   return (
-    <div
-      className={`rounded-xl border border-edge bg-surface shadow-card transition-opacity ${
-        row.isComplete ? "opacity-55" : ""
-      }`}
-    >
-      {/* Collapsed line */}
-      <div
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-3.5 px-4 py-[13px] text-left cursor-pointer select-none"
-      >
-        <span className="flex min-w-0 shrink-0 items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-          <RefPill
-            refText={row.identityRef}
-            url={row.identityResolvedUrl}
-            tone={identityTone}
-            jiraStatus={row.jiraStatus}
-            statusBadge={
-              row.jiraStatus ? (
-                <JiraStatusBadge
-                  statusName={row.jiraStatus.statusName}
-                  statusCategory={row.jiraStatus.statusCategory}
-                />
-              ) : undefined
-            }
-          />
+    <div className="border-t border-edge p-4 relative">
+      <div className="relative">
+        {/* Left shadow fade */}
+        <div
+          className={`absolute left-0 top-0 bottom-1.5 w-8 bg-gradient-to-r from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+            showLeftShadow ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        {/* Right shadow fade */}
+        <div
+          className={`absolute right-0 top-0 bottom-1.5 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+            showRightShadow ? "opacity-100" : "opacity-0"
+          }`}
+        />
 
-          {/* Dedicated GitHub PR Pill Badge (Desktop / Medium screens) */}
-          {prRef ? (
-            <PrRefPill
-              prRef={prRef}
-              readOnly={readOnly}
-              onRemove={() => refsMut.mutate({ action: "remove", ref: prRef.ref })}
-              isRemoving={refsMut.isPending && refsMut.variables?.action === "remove" && refsMut.variables?.ref === prRef.ref}
-              className="hidden sm:inline-flex"
-            />
-          ) : (
-            !readOnly && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpen(true);
-                  setShowPrInput(true);
-                }}
-                className="hidden sm:inline-flex items-center gap-1 rounded-full border border-dashed border-edge px-2 py-0.5 font-mono text-[11px] text-ink-muted hover:border-accent hover:text-accent transition-colors"
-                title="Link a GitHub PR to this card (1 PR limit)"
-              >
-                <span>+ Link PR</span>
-              </button>
-            )
-          )}
-
-          {/* Other Secondary Refs */}
-          <span className="hidden sm:inline-flex items-center gap-1.5">
-            {otherRefs.map((r) => (
-              <RefPill key={r.ref} refText={r.ref} url={r.resolvedUrl} tone="secondary" />
-            ))}
-          </span>
-        </span>
-
-        {/* Diamond milestone bar */}
-        <span
-          className="flex min-w-[120px] flex-1 items-center"
-          aria-label={`${doneCount}/${row.milestones.length} milestones`}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="grid gap-3 overflow-x-auto pb-1.5"
+          style={{ gridTemplateColumns: `repeat(${row.milestones.length}, minmax(180px, 1fr))` }}
         >
-          {row.milestones.map((m, i) => {
-            const grayed = inspect && (!m.complete || !inRange(m.updatedAt, inspect));
-            const nodeColor = m.complete ? "text-done" : m.isCurrent ? "text-accent" : "text-ink-faint";
+          {row.milestones.map((m) => {
             return (
-              <Fragment key={m.key}>
-                <span
-                  title={`${m.label} — ${m.complete ? "complete" : m.isCurrent ? `current (${fmtAge(m.updatedAt || m.createdAt)})` : "pending"} · ${fmt(m.updatedAt)}`}
-                  className={`text-[13px] leading-none ${nodeColor} ${m.isCurrent ? "animate-live" : ""} ${grayed ? "opacity-30" : ""}`}
-                >
-                  {m.complete || m.isCurrent ? "●" : "○"}
-                </span>
-                {i < row.milestones.length - 1 && (
-                  <span
-                    className={`mx-[3px] h-[1.5px] flex-1 ${m.complete ? "bg-done" : "bg-edge-strong"} ${grayed ? "opacity-30" : ""}`}
-                  />
-                )}
-              </Fragment>
-            );
-          })}
-        </span>
-
-        {/* 1-Click Fast-Advance "Next Action" Button */}
-        {!readOnly && !row.isComplete && nextSubtask && currentMilestone && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              subtaskMut.mutate({
-                milestone: currentMilestone.key,
-                subtask: nextSubtask.key,
-                checked: true,
-              });
-            }}
-            disabled={subtaskMut.isPending}
-            title={`Click to tick "${nextSubtask.label}" in ${currentMilestone.label}${nextSubtask.humanUsual ? " · (Done by you)" : ""}`}
-            className="hidden md:inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 hover:bg-accent hover:text-accent-ink px-2.5 py-1 text-[11px] font-medium text-accent transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95 disabled:opacity-50 shrink-0 select-none"
-          >
-            <DeferredSpinner
-              isPending={
-                subtaskMut.isPending &&
-                subtaskMut.variables?.milestone === currentMilestone.key &&
-                subtaskMut.variables?.subtask === nextSubtask.key
-              }
-              className="h-3 w-3 text-current"
-            />
-            <span className="font-mono text-[10px] opacity-75">Next:</span>
-            <span className="truncate max-w-[110px] font-medium">{nextSubtask.label}</span>
-            <span className="font-bold">✓</span>
-          </button>
-        )}
-
-        <div className="hidden sm:flex flex-col items-end shrink-0 w-[140px]">
-          <span
-            className={`w-full truncate text-right font-serif text-sm italic ${
-              row.isComplete ? "text-done" : "text-accent"
-            }`}
-          >
-            {row.isComplete ? (row.hasLooseEnds ? "won't fix" : "✓ complete") : current?.label}
-          </span>
-          <span className="text-[10px] text-ink-faint font-mono leading-none mt-0.5" title={`Card age: ${fmtAge(row.createdAt)}`}>
-            {row.isComplete
-              ? `Age: ${fmtAge(row.createdAt)}`
-              : current
-                ? `${fmtAge(current.updatedAt || current.createdAt)} in stage`
-                : `Age: ${fmtAge(row.createdAt)}`}
-          </span>
-        </div>
-        {row.hasLooseEnds && (
-          <span
-            className="shrink-0 rounded-full border border-warn px-2 py-0.5 font-serif text-[10px] italic tracking-[0.06em] text-warn"
-            title="Complete, but has unchecked sub-tasks"
-          >
-            loose ends
-          </span>
-        )}
-        <span className={`shrink-0 text-[13px] text-ink-faint transition-transform ${open ? "rotate-90" : ""}`}>
-          ›
-        </span>
-      </div>
-
-      {/* Expanded milestones */}
-      {open && (
-        <div className="border-t border-edge p-4 relative">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-edge/60 pb-2 text-[11px]">
-            <span className="font-mono text-ink-muted">
-              Card age: <span className="font-semibold text-ink">{fmtAge(row.createdAt)}</span> ({new Date(row.createdAt).toLocaleDateString()})
-            </span>
-            {current && !row.isComplete && (
-              <span className="font-mono text-ink-muted">
-                In <span className="font-serif italic text-accent">{current.label}</span>:{" "}
-                <span className="font-semibold text-ink">{fmtAge(current.updatedAt || current.createdAt)}</span>
-              </span>
-            )}
-          </div>
-          <div className="relative">
-            {/* Left shadow fade */}
-            <div
-              className={`absolute left-0 top-0 bottom-1.5 w-8 bg-gradient-to-r from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
-                showLeftShadow ? "opacity-100" : "opacity-0"
-              }`}
-            />
-            {/* Right shadow fade */}
-            <div
-              className={`absolute right-0 top-0 bottom-1.5 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
-                showRightShadow ? "opacity-100" : "opacity-0"
-              }`}
-            />
-
-            <div
-              ref={scrollRef}
-              onScroll={handleScroll}
-              className="grid gap-3 overflow-x-auto pb-1.5"
-              style={{ gridTemplateColumns: `repeat(${row.milestones.length}, minmax(180px, 1fr))` }}
-            >
-              {row.milestones.map((m) => {
-                const grayed = inspect && (!m.complete || !inRange(m.updatedAt, inspect));
-                return (
-                  <div
-                    key={m.key}
-                    className={`rounded-[9px] border bg-surface-2 px-3 py-[11px] transition-colors ${
-                      m.isCurrent
-                        ? "border-accent ring-1 ring-accent/20"
-                        : "border-edge"
-                    } ${grayed ? "opacity-30" : ""}`}
-                  >
-                    <div className="mb-2 flex items-center gap-[7px] border-b border-edge pb-2">
-                      <MilestoneCircle
-                        complete={m.complete}
-                        isCurrent={m.isCurrent}
-                        disabled={
-                          readOnly ||
-                          subtaskMut.isPending ||
-                          checkAllMut.isPending ||
-                          regressMut.isPending
-                        }
-                        isPending={
-                          (regressMut.isPending && regressMut.variables === m.key) ||
-                          (checkAllMut.isPending && checkAllMut.variables?.milestone === m.key) ||
-                          (subtaskMut.isPending && subtaskMut.variables?.milestone === m.key)
-                        }
-                        onCheckAll={() => {
-                          checkAllMut.mutate({ milestone: m.key, checked: true });
-                        }}
-                        onRegress={() => {
-                          if (
-                            window.confirm(
-                              `Regress to "${m.label}"? This clears all sub-tasks of this milestone and every milestone after it.`,
-                            )
-                          ) {
-                            regressMut.mutate(m.key);
-                          }
-                        }}
-                      />
-                      <span
-                        className={`truncate text-xs font-semibold ${
-                          m.complete ? "text-done" : m.isCurrent ? "text-accent" : "text-ink-muted"
-                        }`}
-                        title={`${m.label} · updated ${fmt(m.updatedAt)}`}
-                      >
-                        {m.label}
-                      </span>
-                    </div>
-                    <ul className="flex flex-col gap-[7px]">
-                      {m.subtasks.map((s) => {
-                        const sGrayed = inspect && (!s.checked || !inRange(s.updatedAt, inspect));
-                        return (
-                          <li key={s.key} className={sGrayed ? "opacity-30" : ""}>
-                            <label
-                              className={`flex items-start gap-[7px] text-xs ${
-                                readOnly || subtaskMut.isPending ? "cursor-not-allowed" : "cursor-pointer"
-                              } ${s.checked ? "text-ink-muted" : "text-ink"}`}
-                              title={`Updated ${fmt(s.updatedAt)}${s.humanUsual ? " · usually done by you" : ""}`}
-                            >
-                              <SubtaskCheckbox
-                                checked={s.checked}
-                                disabled={readOnly || subtaskMut.isPending}
-                                onChange={(checked) =>
-                                  subtaskMut.mutate({ milestone: m.key, subtask: s.key, checked })
-                                }
-                                isPending={
-                                  subtaskMut.isPending &&
-                                  subtaskMut.variables?.milestone === m.key &&
-                                  subtaskMut.variables?.subtask === s.key
-                                }
-                              />
-                              <span className={s.checked ? "line-through" : ""}>
-                                {s.label}
-                                {s.humanUsual && (
-                                  <span
-                                    className="ml-1 rounded border border-edge px-1 font-mono text-[9px] text-ink-faint"
-                                    title="Usually done by you, not the AI"
-                                  >
-                                    you
-                                  </span>
-                                )}
-                              </span>
-                            </label>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Dedicated Link GitHub PR Form */}
-          {showPrInput && (
-            <div className="mt-3 rounded-lg border border-edge bg-surface-2 p-3 text-xs shadow-card">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-semibold text-ink flex items-center gap-1.5">
-                  <GitPullRequestIcon className="h-3.5 w-3.5 text-accent" /> Link GitHub PR
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPrInput(false);
-                    setPrError(null);
-                  }}
-                  className="text-ink-faint hover:text-ink font-bold text-sm"
-                >
-                  ×
-                </button>
-              </div>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleLinkPr(prRefValue);
-                }}
-                className="flex flex-col sm:flex-row gap-2"
+              <div
+                key={m.key}
+                className={`rounded-[9px] border bg-surface-2 px-3 py-[11px] transition-colors ${
+                  m.isCurrent
+                    ? "border-accent ring-1 ring-accent/20"
+                    : "border-edge"
+                }`}
               >
-                <input
-                  ref={prInputRef}
-                  autoFocus
-                  type="text"
-                  value={prRefValue}
-                  onChange={(e) => setPrRefValue(e.target.value)}
-                  placeholder="repo#123 or https://github.com/owner/repo/pull/123"
-                  className="flex-1 rounded-[7px] border border-edge bg-surface px-2.5 py-1.5 font-mono text-xs outline-none focus:border-accent text-ink"
-                />
-                <button
-                  type="submit"
-                  disabled={refsMut.isPending || !prRefValue.trim()}
-                  className="rounded-[7px] bg-accent px-3.5 py-1.5 font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <DeferredSpinner isPending={refsMut.isPending} className="h-3 w-3 text-current" />
-                  {prRef ? "Replace PR" : "Link PR"}
-                </button>
-              </form>
-              {prError && <p className="text-danger text-[11px] mt-1.5">{prError}</p>}
-            </div>
-          )}
-
-          {/* Row actions */}
-          {!readOnly && (
-            <div className="mt-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
-              {showRefInput ? (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const val = newRef.trim();
-                    if (!val) return;
-                    if (val.includes("#") || val.toLowerCase().includes("github.com")) {
-                      alert("PR refs cannot be added here. Please use the dedicated '+ Link GitHub PR' button to link pull requests.");
-                      setPrRefValue(val);
-                      setShowPrInput(true);
-                      setNewRef("");
-                      setShowRefInput(false);
-                      return;
+                <div className="mb-2 flex items-center gap-[7px] border-b border-edge pb-2">
+                  <MilestoneCircle
+                    complete={m.complete}
+                    isCurrent={m.isCurrent}
+                    disabled={
+                      subtaskMut.isPending ||
+                      checkAllMut.isPending ||
+                      regressMut.isPending
                     }
-                    refsMut.mutate(
-                      { action: "add", ref: val },
-                      {
-                        onSuccess: () => {
-                          setNewRef("");
-                          setShowRefInput(false);
-                        },
-                      }
-                    );
-                  }}
-                  className="flex items-center gap-1.5 w-full sm:w-auto"
-                >
-                  <input
-                    value={newRef}
-                    onChange={(e) => setNewRef(e.target.value)}
-                    placeholder="Ref (PES-123, ZT-456)"
-                    className="flex-1 min-w-0 sm:w-[190px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 font-mono text-[11.5px] outline-none focus:border-accent"
-                    autoFocus
-                  />
-                  <button
-                    type="submit"
-                    disabled={refsMut.isPending || !newRef.trim()}
-                    className="rounded-[7px] bg-accent px-3 py-1.5 text-[11.5px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <DeferredSpinner isPending={refsMut.isPending && refsMut.variables?.action === "add"} className="h-3 w-3 text-current" />
-                    Add
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowRefInput(false);
-                      setNewRef("");
+                    isPending={
+                      (regressMut.isPending && regressMut.variables === m.key) ||
+                      (checkAllMut.isPending && checkAllMut.variables?.milestone === m.key) ||
+                      (subtaskMut.isPending && subtaskMut.variables?.milestone === m.key)
+                    }
+                    onCheckAll={() => {
+                      checkAllMut.mutate({ milestone: m.key, checked: true });
                     }}
-                    className="rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 text-[11.5px] font-medium text-ink-faint hover:text-ink cursor-pointer"
+                    onRegress={() => {
+                      if (
+                        window.confirm(
+                          `Regress to "${m.label}"? This clears all sub-tasks of this milestone and every milestone after it.`,
+                        )
+                      ) {
+                        regressMut.mutate(m.key);
+                      }
+                    }}
+                  />
+                  <span
+                    className={`truncate text-xs font-semibold ${
+                      m.complete ? "text-done" : m.isCurrent ? "text-accent" : "text-ink-muted"
+                    }`}
+                    title={`${m.label} · updated ${fmt(m.updatedAt)}`}
                   >
-                    Cancel
-                  </button>
-                </form>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowRefInput(true)}
-                  className="rounded-[7px] border border-edge bg-surface-2 hover:border-edge-strong px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:text-ink flex items-center gap-1.5 cursor-pointer transition-colors"
-                >
-                  + Add Secondary Ref
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowPrInput(!showPrInput)}
-                className="rounded-[7px] border border-edge bg-surface-2 hover:border-edge-strong px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:text-ink flex items-center gap-1.5 cursor-pointer transition-colors"
-              >
-                <GitPullRequestIcon className="h-3.5 w-3.5 text-accent" />
-                {prRef ? "Edit Linked PR" : "+ Link GitHub PR"}
-              </button>
-              {(otherRefs.length > 0 || prRef) && (
-                <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                  {/* PR ref at bottom only on small screens (sm:hidden) to save space on top */}
-                  {prRef && (
-                    <PrRefPill
-                      prRef={prRef}
-                      readOnly={readOnly}
-                      onRemove={() => refsMut.mutate({ action: "remove", ref: prRef.ref })}
-                      isRemoving={refsMut.isPending && refsMut.variables?.action === "remove" && refsMut.variables?.ref === prRef.ref}
-                      className="sm:hidden"
-                    />
-                  )}
-                  {otherRefs.map((r) => {
-                    const isRemoving =
-                      refsMut.isPending &&
-                      refsMut.variables?.action === "remove" &&
-                      refsMut.variables?.ref === r.ref;
+                    {m.label}
+                  </span>
+                </div>
+                <ul className="flex flex-col gap-[7px]">
+                  {m.subtasks.map((s) => {
                     return (
-                      <RefPill
-                        key={r.ref}
-                        refText={r.ref}
-                        url={r.resolvedUrl}
-                        tone="secondary"
-                        onRemove={() => refsMut.mutate({ action: "remove", ref: r.ref })}
-                        isRemoving={isRemoving}
-                      />
+                      <li key={s.key}>
+                        <label
+                          className={`flex items-start gap-[7px] text-xs ${ subtaskMut.isPending ? "cursor-not-allowed" : "cursor-pointer"
+                          } ${s.checked ? "text-ink-muted" : "text-ink"}`}
+                          title={`Updated ${fmt(s.updatedAt)}`}
+                        >
+                          <SubtaskCheckbox
+                            checked={s.checked}
+                            disabled={subtaskMut.isPending}
+                            onChange={(checked) =>
+                              subtaskMut.mutate({ milestone: m.key, subtask: s.key, checked })
+                            }
+                            isPending={
+                              subtaskMut.isPending &&
+                              subtaskMut.variables?.milestone === m.key &&
+                              subtaskMut.variables?.subtask === s.key
+                            }
+                          />
+                          <span className={s.checked ? "line-through" : ""}>
+                            {s.label}
+                          </span>
+                        </label>
+                      </li>
                     );
                   })}
-                </div>
-              )}
-              <div className="w-full sm:w-auto sm:ml-auto flex flex-wrap items-center gap-2">
-                {!row.isComplete && (
-                  <button
-                    type="button"
-                    disabled={wontFixMut.isPending || completeMut.isPending || deleteMut.isPending}
-                    onClick={() => wontFixMut.mutate()}
-                    className="flex-1 sm:flex-initial rounded-[7px] border border-edge bg-surface-2 hover:border-warn hover:text-warn px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:bg-warn/10 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-                    title="Mark row as Won't Fix and hide it"
-                  >
-                    <DeferredSpinner isPending={wontFixMut.isPending} className="h-3 w-3 text-current" />
-                    Won&apos;t fix
-                  </button>
-                )}
-                {!row.isComplete && (
-                  <button
-                    type="button"
-                    disabled={completeMut.isPending || wontFixMut.isPending || deleteMut.isPending}
-                    onClick={() => completeMut.mutate()}
-                    className="flex-1 sm:flex-initial rounded-[7px] border border-done/40 bg-done/10 hover:bg-done hover:text-accent-ink px-3 py-1.5 text-[11.5px] font-semibold text-done disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-                    title="Tick all remaining milestones & sub-tasks and complete row"
-                  >
-                    <DeferredSpinner isPending={completeMut.isPending} className="h-3 w-3 text-current" />
-                    Mark as complete
-                  </button>
-                )}
-                <button
-                  disabled={deleteMut.isPending}
-                  onClick={() => {
-                    if (window.confirm(`Delete the row for ${row.identityRef}? This cannot be undone.`)) {
-                      deleteMut.mutate();
-                    }
-                  }}
-                  className="flex-1 sm:flex-initial rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-faint hover:border-danger hover:text-danger hover:bg-danger/5 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-                >
-                  <DeferredSpinner isPending={deleteMut.isPending} className="h-3 w-3 text-current" />
-                  Delete row
-                </button>
+                </ul>
               </div>
-            </div>
-          )}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Dedicated Link GitHub PR Form */}
+      {showPrInput && (
+        <div className="mt-3 rounded-lg border border-edge bg-surface-2 p-3 text-xs shadow-card">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-semibold text-ink flex items-center gap-1.5">
+              <GitPullRequestIcon className="h-3.5 w-3.5 text-accent" /> Link GitHub PR
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setShowPrInput(false);
+                setPrError(null);
+              }}
+              className="text-ink-faint hover:text-ink font-bold text-sm"
+            >
+              ×
+            </button>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleLinkPr(prRefValue);
+            }}
+            className="flex flex-col sm:flex-row gap-2"
+          >
+            <input
+              ref={prInputRef}
+              autoFocus
+              type="text"
+              value={prRefValue}
+              onChange={(e) => setPrRefValue(e.target.value)}
+              placeholder="repo#123 or https://github.com/owner/repo/pull/123"
+              className="flex-1 rounded-[7px] border border-edge bg-surface px-2.5 py-1.5 font-mono text-xs outline-none focus:border-accent text-ink"
+            />
+            <button
+              type="submit"
+              disabled={refsMut.isPending || !prRefValue.trim()}
+              className="rounded-[7px] bg-accent px-3.5 py-1.5 font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <DeferredSpinner isPending={refsMut.isPending} className="h-3 w-3 text-current" />
+              {prRef ? "Replace PR" : "Link PR"}
+            </button>
+          </form>
+          {prError && <p className="text-danger text-[11px] mt-1.5">{prError}</p>}
         </div>
       )}
+
+      {/* Row actions */}
+      <div className="mt-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
+        {showRefInput ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const val = newRef.trim();
+              if (!val) return;
+              if (val.includes("#") || val.toLowerCase().includes("github.com")) {
+                alert("PR refs cannot be added here. Please use the dedicated '+ Link GitHub PR' button to link pull requests.");
+                setPrRefValue(val);
+                setShowPrInput(true);
+                setNewRef("");
+                setShowRefInput(false);
+                return;
+              }
+              refsMut.mutate(
+                { action: "add", ref: val },
+                {
+                  onSuccess: () => {
+                    setNewRef("");
+                    setShowRefInput(false);
+                  },
+                }
+              );
+            }}
+            className="flex items-center gap-1.5 w-full sm:w-auto"
+          >
+            <input
+              value={newRef}
+              onChange={(e) => setNewRef(e.target.value)}
+              placeholder="Ref (PES-123, ZT-456)"
+              className="flex-1 min-w-0 sm:w-[190px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 font-mono text-[11.5px] outline-none focus:border-accent"
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={refsMut.isPending || !newRef.trim()}
+              className="rounded-[7px] bg-accent px-3 py-1.5 text-[11.5px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+            >
+              <DeferredSpinner isPending={refsMut.isPending && refsMut.variables?.action === "add"} className="h-3 w-3 text-current" />
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowRefInput(false);
+                setNewRef("");
+              }}
+              className="rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 text-[11.5px] font-medium text-ink-faint hover:text-ink cursor-pointer"
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowRefInput(true)}
+            className="rounded-[7px] border border-edge bg-surface-2 hover:border-edge-strong px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:text-ink flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            + Add Secondary Ref
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowPrInput(!showPrInput)}
+          className="rounded-[7px] border border-edge bg-surface-2 hover:border-edge-strong px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:text-ink flex items-center gap-1.5 cursor-pointer transition-colors"
+        >
+          <GitPullRequestIcon className="h-3.5 w-3.5 text-accent" />
+          {prRef ? "Edit Linked PR" : "+ Link GitHub PR"}
+        </button>
+        {(otherRefs.length > 0 || prRef) && (
+          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+            {/* The linked PR, with a remove button */}
+            {prRef && (
+              <PrRefPill
+                prRef={prRef}
+                onRemove={() => refsMut.mutate({ action: "remove", ref: prRef.ref })}
+                isRemoving={refsMut.isPending && refsMut.variables?.action === "remove" && refsMut.variables?.ref === prRef.ref}
+              />
+            )}
+            {otherRefs.map((r) => {
+              const isRemoving =
+                refsMut.isPending &&
+                refsMut.variables?.action === "remove" &&
+                refsMut.variables?.ref === r.ref;
+              return (
+                <RefPill
+                  key={r.ref}
+                  refText={r.ref}
+                  url={r.resolvedUrl}
+                  tone="secondary"
+                  onRemove={() => refsMut.mutate({ action: "remove", ref: r.ref })}
+                  isRemoving={isRemoving}
+                />
+              );
+            })}
+          </div>
+        )}
+        <div className="w-full sm:w-auto sm:ml-auto flex flex-wrap items-center gap-2">
+          {!row.isComplete && (
+            <button
+              type="button"
+              disabled={wontFixMut.isPending || completeMut.isPending || deleteMut.isPending}
+              onClick={() => wontFixMut.mutate()}
+              className="flex-1 sm:flex-initial rounded-[7px] border border-edge bg-surface-2 hover:border-warn hover:text-warn px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:bg-warn/10 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              title="Mark row as Won't Fix and hide it"
+            >
+              <DeferredSpinner isPending={wontFixMut.isPending} className="h-3 w-3 text-current" />
+              Won&apos;t fix
+            </button>
+          )}
+          {!row.isComplete && (
+            <button
+              type="button"
+              disabled={completeMut.isPending || wontFixMut.isPending || deleteMut.isPending}
+              onClick={() => completeMut.mutate()}
+              className="flex-1 sm:flex-initial rounded-[7px] border border-done/40 bg-done/10 hover:bg-done hover:text-accent-ink px-3 py-1.5 text-[11.5px] font-semibold text-done disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              title="Tick all remaining milestones & sub-tasks and complete row"
+            >
+              <DeferredSpinner isPending={completeMut.isPending} className="h-3 w-3 text-current" />
+              Mark as complete
+            </button>
+          )}
+          <button
+            disabled={deleteMut.isPending}
+            onClick={() => {
+              if (window.confirm(`Delete the row for ${row.identityRef}? This cannot be undone.`)) {
+                deleteMut.mutate();
+              }
+            }}
+            className="flex-1 sm:flex-initial rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-faint hover:border-danger hover:text-danger hover:bg-danger/5 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <DeferredSpinner isPending={deleteMut.isPending} className="h-3 w-3 text-current" />
+            Delete row
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

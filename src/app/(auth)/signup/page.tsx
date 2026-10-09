@@ -31,7 +31,7 @@ export default function SignupPage() {
       setError(err.message ?? "Registration failed");
       return;
     }
-    router.push("/dashboard");
+    router.push("/board");
     router.refresh();
   }
 
