@@ -3,12 +3,17 @@
 export type FontThemePref = "serif" | "sans" | "mono";
 
 const KEY = "wp-font-theme";
+const DEFAULT: FontThemePref = "sans";
 const listeners = new Set<() => void>();
 
+/** Turn a saved value into a font theme that exists. An unknown or empty value gets the default. */
+export function normalizeFontTheme(v: string | null | undefined): FontThemePref {
+  return v === "serif" || v === "sans" || v === "mono" ? v : DEFAULT;
+}
+
 export function getFontThemePref(): FontThemePref {
-  if (typeof window === "undefined") return "mono";
-  const v = localStorage.getItem(KEY);
-  return v === "serif" || v === "sans" || v === "mono" ? v : "mono";
+  if (typeof window === "undefined") return DEFAULT;
+  return normalizeFontTheme(localStorage.getItem(KEY));
 }
 
 export function applyFontTheme(pref: FontThemePref) {

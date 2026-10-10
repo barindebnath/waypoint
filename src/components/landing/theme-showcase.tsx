@@ -3,6 +3,9 @@
 import { useState, useSyncExternalStore } from "react";
 import { SparklesIcon } from "./icons";
 import { BoardCard, StaticPreviewProvider } from "@/components/board-card";
+import { Chip } from "@/components/chip";
+import { BoardIcon, MoonIcon, PlusIcon, SunIcon } from "@/components/icons";
+import { btnPrimary } from "@/components/ui";
 import { sampleBoardRows, samplePreview } from "./board-fixtures";
 import {
   getColorThemePref,
@@ -17,7 +20,7 @@ import {
   type FontThemePref,
 } from "@/lib/font-theme";
 
-type ThemePalette = "paper" | "nord" | "forest" | "royal";
+type ThemePalette = "lime" | "paper" | "nord" | "royal";
 type ThemeMode = "light" | "dark";
 
 const PALETTES: {
@@ -35,6 +38,21 @@ const PALETTES: {
   inkDark: string;
   edgeDark: string;
 }[] = [
+  {
+    key: "lime",
+    name: "Charcoal & Lime",
+    desc: "Dark panels, lime accent.",
+    bgLight: "#f6f6f2",
+    surfaceLight: "#ffffff",
+    accentLight: "#93d00e",
+    inkLight: "#161612",
+    edgeLight: "#e3e3db",
+    bgDark: "#111111",
+    surfaceDark: "#181818",
+    accentDark: "#93d00e",
+    inkDark: "#f5f5f3",
+    edgeDark: "#262626",
+  },
   {
     key: "paper",
     name: "Paper & Lamplight",
@@ -66,21 +84,6 @@ const PALETTES: {
     edgeDark: "#334155",
   },
   {
-    key: "forest",
-    name: "Forest Sage",
-    desc: "Earthy pine & sage.",
-    bgLight: "#edf1eb",
-    surfaceLight: "#f7f9f6",
-    accentLight: "#2d6a4f",
-    inkLight: "#1c281a",
-    edgeLight: "#cbd7c7",
-    bgDark: "#101912",
-    surfaceDark: "#18231a",
-    accentDark: "#52b788",
-    inkDark: "#e7ece8",
-    edgeDark: "#243927",
-  },
-  {
     key: "royal",
     name: "Royal Plum",
     desc: "Rich amethyst & gold.",
@@ -97,24 +100,27 @@ const PALETTES: {
   },
 ];
 
+/** The small facts the preview shows: the layers of the palette, from the desk up to the accent. */
+const LAYER_SWATCHES = ["bg-desk", "bg-bg", "bg-surface", "bg-surface-2", "bg-surface-3", "bg-accent"];
+
 export function ThemeShowcase() {
   const activeColorTheme = useSyncExternalStore(
     subscribeColorTheme,
     getColorThemePref,
-    () => "forest" as ColorThemePref
+    () => "lime" as ColorThemePref
   );
   const activeFontTheme = useSyncExternalStore(
     subscribeFontTheme,
     getFontThemePref,
-    () => "mono" as FontThemePref
+    () => "sans" as FontThemePref
   );
 
   const [selectedPalette, setSelectedPalette] = useState<ThemePalette>(
-    (activeColorTheme as ThemePalette) || "forest"
+    (activeColorTheme as ThemePalette) || "lime"
   );
   const [selectedMode, setSelectedMode] = useState<ThemeMode>("dark");
   const [selectedFont, setSelectedFont] = useState<FontThemePref>(
-    activeFontTheme || "mono"
+    activeFontTheme || "sans"
   );
   const [appliedGlobal, setAppliedGlobal] = useState(false);
   // The Development card with an approved PR (OFF-13698).
@@ -122,6 +128,7 @@ export function ThemeShowcase() {
 
 
   const isDark = selectedMode === "dark";
+  const selected = PALETTES.find((p) => p.key === selectedPalette) ?? PALETTES[0];
 
 
   const handleApplyGlobal = () => {
@@ -132,92 +139,103 @@ export function ThemeShowcase() {
   };
 
   return (
-    <div className="w-full rounded-2xl border border-edge bg-surface p-5 sm:p-7 shadow-card space-y-5">
+    <div className="w-full space-y-5 rounded-3xl bg-surface p-4 sm:p-7">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-edge pb-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-serif text-base font-semibold text-ink">
-              Crafted Aesthetics & Personal Themes
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h3 className="font-serif text-lg font-semibold tracking-tight text-ink">
+              Crafted Aesthetics &amp; Personal Themes
             </h3>
-            <span className="rounded-full bg-accent-soft text-accent px-2 py-0.5 font-mono text-[10.5px] font-semibold">
-              4 Palettes
-            </span>
+            <Chip tone="lime">4 Palettes</Chip>
           </div>
-          <p className="text-xs text-ink-muted mt-0.5">
-            Designed like fine editorial stationery with complete light & dark mode parity.
+          <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-ink-muted">
+            Charcoal panels, round corners and one vivid accent, with complete light &amp; dark mode parity.
           </p>
         </div>
 
-        {/* Action button to apply theme to entire site */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleApplyGlobal}
-            className="flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent-soft px-3 py-1 text-xs font-semibold text-accent hover:bg-accent/20 transition cursor-pointer"
-            title="Applies the selected palette and typography to the live page"
-          >
-            <SparklesIcon className="h-3 w-3" />
-            <span>{appliedGlobal ? "Applied to Page!" : "Apply to Page"}</span>
-          </button>
-
           {/* Light/Dark Toggle */}
-          <div className="flex items-center gap-1 rounded-lg border border-edge bg-surface-2 p-1">
+          <div role="group" aria-label="Preview mode" className="flex items-center gap-1 rounded-full bg-surface-2 p-1">
             <button
+              type="button"
+              aria-pressed={selectedMode === "light"}
               onClick={() => setSelectedMode("light")}
-              className={`rounded px-2.5 py-1 text-xs transition cursor-pointer ${
+              className={`flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3 text-xs transition-colors ${
                 selectedMode === "light"
-                  ? "bg-surface font-semibold text-ink shadow-xs"
-                  : "text-ink-muted hover:text-ink"
+                  ? "bg-surface-3 font-semibold text-ink"
+                  : "font-medium text-ink-muted hover:text-ink"
               }`}
             >
-              ☀ Light
+              <SunIcon className="h-4 w-4" />
+              Light
             </button>
             <button
+              type="button"
+              aria-pressed={selectedMode === "dark"}
               onClick={() => setSelectedMode("dark")}
-              className={`rounded px-2.5 py-1 text-xs transition cursor-pointer ${
+              className={`flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3 text-xs transition-colors ${
                 selectedMode === "dark"
-                  ? "bg-surface font-semibold text-ink shadow-xs"
-                  : "text-ink-muted hover:text-ink"
+                  ? "bg-surface-3 font-semibold text-ink"
+                  : "font-medium text-ink-muted hover:text-ink"
               }`}
             >
-              ☾ Dark
+              <MoonIcon className="h-4 w-4" />
+              Dark
             </button>
           </div>
+
+          {/* Action button to apply theme to entire site */}
+          <button
+            type="button"
+            onClick={handleApplyGlobal}
+            className={btnPrimary}
+            title="Applies the selected palette and typography to the live page"
+          >
+            <SparklesIcon className="h-4 w-4" />
+            <span>{appliedGlobal ? "Applied to Page!" : "Apply to Page"}</span>
+          </button>
         </div>
       </div>
 
       {/* Palette Selection Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {PALETTES.map((p) => {
           const isSelected = p.key === selectedPalette;
           const pBg = isDark ? p.bgDark : p.bgLight;
+          const pSurface = isDark ? p.surfaceDark : p.surfaceLight;
           const pAccent = isDark ? p.accentDark : p.accentLight;
           const pInk = isDark ? p.inkDark : p.inkLight;
+          const pEdge = isDark ? p.edgeDark : p.edgeLight;
 
           return (
             <button
               key={p.key}
+              type="button"
+              aria-pressed={isSelected}
               onClick={() => setSelectedPalette(p.key)}
-              className={`flex flex-col gap-2 rounded-xl border p-3 text-left transition cursor-pointer ${
-                isSelected
-                  ? "border-accent bg-surface-2 ring-1 ring-accent/30 shadow-xs"
-                  : "border-edge bg-surface-2/50 hover:border-edge-strong hover:bg-surface-2"
+              className={`flex cursor-pointer flex-col gap-3 rounded-2xl p-3 text-left transition-colors ${
+                isSelected ? "bg-surface-2 ring-2 ring-accent" : "bg-surface-2/60 ring-1 ring-edge hover:bg-surface-2"
               }`}
             >
+              {/* A small picture of the window in this palette: the sidebar, the panel, the text and the accent */}
               <div
-                className="h-10 w-full rounded-md border border-edge flex items-center justify-between px-2.5 shadow-2xs"
-                style={{ backgroundColor: pBg }}
+                className="flex h-14 items-center gap-1.5 rounded-xl p-1.5"
+                style={{ backgroundColor: pBg, boxShadow: `inset 0 0 0 1px ${pEdge}` }}
               >
-                <span className="h-4 w-4 rounded-full" style={{ backgroundColor: pAccent }} />
-                <div className="space-y-1">
-                  <span className="block h-1.5 w-7 rounded-xs" style={{ backgroundColor: pInk, opacity: 0.6 }} />
-                  <span className="block h-1.5 w-4 rounded-xs" style={{ backgroundColor: pAccent, opacity: 0.8 }} />
-                </div>
+                <span className="h-full w-4 shrink-0 rounded-lg" style={{ backgroundColor: pSurface }} />
+                <span
+                  className="flex h-full min-w-0 flex-1 flex-col justify-center gap-1.5 rounded-lg px-2"
+                  style={{ backgroundColor: pSurface }}
+                >
+                  <span className="block h-1.5 w-8 rounded-full" style={{ backgroundColor: pInk, opacity: 0.6 }} />
+                  <span className="block h-1.5 w-5 rounded-full" style={{ backgroundColor: pAccent }} />
+                </span>
               </div>
 
               <div>
-                <div className="text-xs font-semibold text-ink">{p.name}</div>
-                <div className="text-[11px] text-ink-muted mt-0.5">{p.desc}</div>
+                <div className="text-[13px] font-semibold text-ink">{p.name}</div>
+                <div className="mt-0.5 text-[11.5px] text-ink-muted">{p.desc}</div>
               </div>
             </button>
           );
@@ -225,38 +243,85 @@ export function ThemeShowcase() {
       </div>
 
       {/* Font Switcher */}
-      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-edge">
-        <span className="text-xs text-ink-muted">Typography:</span>
+      <div className="flex flex-wrap items-center gap-2 border-t border-edge/60 pt-4">
+        <span className="mr-1 text-xs font-medium text-ink-muted">Typography:</span>
         {(["serif", "sans", "mono"] as FontThemePref[]).map((f) => (
           <button
             key={f}
+            type="button"
+            aria-pressed={selectedFont === f}
             onClick={() => setSelectedFont(f)}
-            className={`rounded-md border px-2.5 py-1 text-xs capitalize transition cursor-pointer ${
+            className={`h-8 cursor-pointer rounded-full px-3.5 text-xs transition-colors ${
               selectedFont === f
-                ? "border-accent bg-accent-soft font-semibold text-accent"
-                : "border-edge bg-surface-2 text-ink-muted hover:text-ink"
+                ? "bg-accent-soft font-semibold text-accent-fg ring-1 ring-accent/40"
+                : "bg-surface-2 font-medium text-ink-muted hover:bg-surface-3 hover:text-ink"
             }`}
           >
-            {f === "serif" ? "Newsreader Serif" : f === "sans" ? "System Sans" : "IBM Plex Mono"}
+            {f === "serif" ? "Newsreader Serif" : f === "sans" ? "Inter Sans" : "IBM Plex Mono"}
           </button>
         ))}
       </div>
 
       {/*
-        Live preview: a real Board card inside a wrapper with its own theme attributes,
-        so it shows the selected palette, mode and font without changing the page theme.
+        Live preview: a small window with a real Board card, inside a wrapper with its own theme attributes.
+        It shows the selected palette, mode and font without a change of the page theme.
+        The heading uses the heading font, so the typography choice is visible.
       */}
       <div
         data-theme={selectedMode}
         data-color-theme={selectedPalette}
         data-font-theme={selectedFont}
-        className="rounded-xl border border-edge bg-bg p-4 text-ink transition-colors duration-300"
+        className="rounded-panel bg-desk p-2.5 text-ink ring-1 ring-edge transition-colors duration-300"
       >
-        <StaticPreviewProvider resolve={samplePreview}>
-          <div className="mx-auto max-w-[300px]">
-            <BoardCard row={previewRow} preview />
+        <div className="rounded-3xl bg-bg p-4 sm:p-5">
+          <div className="flex flex-wrap items-center gap-3.5">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-surface text-accent-fg">
+              <BoardIcon className="h-6 w-6" />
+            </span>
+            <div className="min-w-0">
+              <p className="font-serif text-[24px] font-semibold leading-none tracking-tight">Board</p>
+              <p className="mt-1.5 text-[13px] text-ink-muted">{selected.name}</p>
+            </div>
+            <span className="ml-auto inline-flex h-10 items-center gap-2 rounded-2xl bg-accent px-4 text-[13px] font-semibold text-accent-ink">
+              <PlusIcon className="h-4 w-4" />
+              New card
+            </span>
           </div>
-        </StaticPreviewProvider>
+
+          <div className="mt-4 grid gap-3 rounded-lane bg-lane p-3 sm:grid-cols-2">
+            <StaticPreviewProvider resolve={samplePreview}>
+              <BoardCard row={previewRow} preview />
+            </StaticPreviewProvider>
+
+            <div className="flex flex-col gap-4 rounded-card bg-card p-4 shadow-card ring-1 ring-edge/70">
+              <div>
+                <p className="font-serif text-lg font-semibold tracking-tight">{selected.name}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">{selected.desc}</p>
+              </div>
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">Layers</p>
+                <div className="flex items-center gap-2">
+                  {LAYER_SWATCHES.map((swatch) => (
+                    <span key={swatch} className={`h-7 w-7 rounded-full ring-1 ring-edge-strong ${swatch}`} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Chip tone="accent">Accent</Chip>
+                <Chip tone="lilac">Product</Chip>
+                <Chip tone="yellow">Support</Chip>
+                <Chip tone="mint">Approved</Chip>
+              </div>
+              <div className="flex gap-1" aria-hidden="true">
+                <span className="h-1.5 flex-1 rounded-full bg-accent" />
+                <span className="h-1.5 flex-1 rounded-full bg-accent" />
+                <span className="h-1.5 flex-1 rounded-full bg-accent" />
+                <span className="h-1.5 flex-1 rounded-full bg-ink/10" />
+                <span className="h-1.5 flex-1 rounded-full bg-ink/10" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

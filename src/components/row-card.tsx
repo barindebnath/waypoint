@@ -9,6 +9,7 @@ import { Spinner } from "./spinner";
 import { DeferredSpinner } from "./deferred-spinner";
 import { parsePrRef } from "@/lib/github";
 import { GithubPrBadge, GitPullRequestIcon } from "./status-badge";
+import { AlertIcon, CloseIcon, PlusIcon, TrashIcon } from "./icons";
 
 function SubtaskCheckbox({
   checked,
@@ -25,8 +26,8 @@ function SubtaskCheckbox({
 
   if (showSpinner) {
     return (
-      <span className="mt-0.5 flex h-[13px] w-[13px] items-center justify-center">
-        <Spinner className="h-3 w-3 text-done" />
+      <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+        <Spinner className="h-3.5 w-3.5 text-accent-fg" />
       </span>
     );
   }
@@ -37,7 +38,7 @@ function SubtaskCheckbox({
       checked={checked}
       disabled={disabled || isPending}
       onChange={(e) => onChange(e.target.checked)}
-      className="mt-px accent-done cursor-pointer disabled:cursor-not-allowed"
+      className="wp-check"
     />
   );
 }
@@ -58,12 +59,12 @@ function MilestoneCircle({
   isPending: boolean;
 }) {
   const showSpinner = useDeferredLoading(isPending);
-  const nodeColor = complete ? "text-done" : isCurrent ? "text-accent" : "text-ink-faint";
+  const nodeColor = complete ? "text-done" : isCurrent ? "text-accent-fg" : "text-ink-faint";
 
   if (showSpinner) {
     return (
-      <span className="flex h-[13px] w-[13px] items-center justify-center">
-        <Spinner className={`h-3 w-3 ${nodeColor}`} />
+      <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center">
+        <Spinner className={`h-3.5 w-3.5 ${nodeColor}`} />
       </span>
     );
   }
@@ -79,9 +80,7 @@ function MilestoneCircle({
           ? "Click to regress this milestone"
           : "Click to tick all sub-tasks in this milestone"
       }
-      className={`h-[13px] w-[13px] ${
-        complete ? "accent-done" : ""
-      } ${!disabled ? "cursor-pointer" : "cursor-default"}`}
+      className="wp-check"
     />
   );
 }
@@ -113,7 +112,7 @@ type EnrichedRef = EnrichedRowView["secondaryRefs"][number];
 const PR_STATE_CLASS: Record<"open" | "closed" | "merged" | "draft", string> = {
   open: "border-done/40 text-done",
   closed: "border-danger/40 text-danger",
-  merged: "border-purple-400/40 text-purple-400",
+  merged: "border-product/40 text-product",
   draft: "border-edge text-ink-muted",
 };
 
@@ -140,8 +139,8 @@ function PrRefPill({
   });
 
   const innerPill = (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border border-edge bg-surface-2 px-2.5 py-[3px] font-mono text-[11px] text-ink-muted hover:border-edge-strong transition-colors cursor-pointer`}>
-      <GitPullRequestIcon className="h-3 w-3 text-accent shrink-0" />
+    <span className={`inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 font-mono text-[11.5px] text-ink-muted ring-1 ring-edge transition-colors hover:ring-edge-strong cursor-pointer`}>
+      <GitPullRequestIcon className="h-3.5 w-3.5 text-accent-fg shrink-0" />
       <span className="font-semibold text-ink">{prRef.ref}</span>
       {prRef.prStatus && (
         <GithubPrBadge
@@ -194,9 +193,9 @@ function PrRefPill({
       )}
 
       {/* Hover Popover Card */}
-      <div className="absolute left-0 top-full mt-1.5 hidden group-hover/pr:block z-30 w-80 rounded-xl border border-edge bg-surface p-3 shadow-xl text-xs text-ink pointer-events-none transition-all">
+      <div className="absolute left-0 top-full mt-2 hidden group-hover/pr:block z-30 w-80 rounded-2xl border border-edge bg-surface p-4 shadow-pop text-xs text-ink pointer-events-none transition-all">
         <div className="flex items-center justify-between border-b border-edge/60 pb-1.5 mb-2 font-mono text-[11px]">
-          <span className="font-semibold text-accent flex items-center gap-1">
+          <span className="font-semibold text-accent-fg flex items-center gap-1">
             <GitPullRequestIcon className="h-3.5 w-3.5" /> {prRef.ref}
           </span>
           <span className="text-[10px] text-ink-faint">GitHub PR</span>
@@ -239,8 +238,8 @@ function PrRefPill({
           </div>
         ) : isLoadingPreview ? (
           <div className="mb-2 pb-1.5 border-b border-edge/60">
-            <p className="text-[10.5px] text-ink-faint italic flex items-center gap-1.5">
-              <Spinner className="h-2.5 w-2.5 text-accent shrink-0" />
+            <p className="text-[10.5px] text-ink-faint flex items-center gap-1.5">
+              <Spinner className="h-2.5 w-2.5 text-accent-fg shrink-0" />
               <span>Loading PR details…</span>
             </p>
           </div>
@@ -261,15 +260,22 @@ function PrRefPill({
             <div className="flex justify-between">
               <span className="text-ink-muted">Mergeable:</span>
               <span className={prRef.prStatus.mergeableState === "dirty" ? "font-semibold text-danger" : "font-medium text-done"}>
-                {prRef.prStatus.mergeableState === "dirty" ? "⚠️ Has Conflicts" : "Clean"}
+                {prRef.prStatus.mergeableState === "dirty" ? (
+                  <span className="inline-flex items-center gap-1">
+                    <AlertIcon className="h-3 w-3" />
+                    Has Conflicts
+                  </span>
+                ) : (
+                  "Clean"
+                )}
               </span>
             </div>
           </div>
         ) : (
-          <p className="text-ink-faint text-[11px] italic">Live status pending sync…</p>
+          <p className="text-ink-faint text-[11px]">Live status pending sync…</p>
         )}
         {prRef.resolvedUrl && (
-          <div className="mt-2.5 pt-1.5 border-t border-edge/60 text-[10.5px] text-accent font-medium text-right">
+          <div className="mt-2.5 pt-1.5 border-t border-edge/60 text-[10.5px] text-accent-fg font-medium text-right">
             Click pill to open on GitHub ↗
           </div>
         )}
@@ -380,17 +386,17 @@ export function RowDetails({
   }, [showPrInput]);
 
   return (
-    <div className="border-t border-edge p-4 relative">
+    <div className="border-t border-edge p-4 sm:p-6 relative">
       <div className="relative">
         {/* Left shadow fade */}
         <div
-          className={`absolute left-0 top-0 bottom-1.5 w-8 bg-gradient-to-r from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+          className={`absolute left-0 top-0 bottom-1.5 w-8 bg-gradient-to-r from-bg to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
             showLeftShadow ? "opacity-100" : "opacity-0"
           }`}
         />
         {/* Right shadow fade */}
         <div
-          className={`absolute right-0 top-0 bottom-1.5 w-8 bg-gradient-to-l from-surface to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+          className={`absolute right-0 top-0 bottom-1.5 w-8 bg-gradient-to-l from-bg to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
             showRightShadow ? "opacity-100" : "opacity-0"
           }`}
         />
@@ -398,20 +404,20 @@ export function RowDetails({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="grid gap-3 overflow-x-auto pb-1.5"
+          className="grid gap-3.5 overflow-x-auto pb-1.5"
           style={{ gridTemplateColumns: `repeat(${row.milestones.length}, minmax(180px, 1fr))` }}
         >
           {row.milestones.map((m) => {
             return (
               <div
                 key={m.key}
-                className={`rounded-[9px] border bg-surface-2 px-3 py-[11px] transition-colors ${
+                className={`rounded-2xl border bg-surface px-4 py-3.5 transition-colors ${
                   m.isCurrent
-                    ? "border-accent ring-1 ring-accent/20"
+                    ? "border-accent ring-2 ring-accent/20"
                     : "border-edge"
                 }`}
               >
-                <div className="mb-2 flex items-center gap-[7px] border-b border-edge pb-2">
+                <div className="mb-3 flex items-center gap-2 border-b border-edge pb-3">
                   <MilestoneCircle
                     complete={m.complete}
                     isCurrent={m.isCurrent}
@@ -439,20 +445,20 @@ export function RowDetails({
                     }}
                   />
                   <span
-                    className={`truncate text-xs font-semibold ${
-                      m.complete ? "text-done" : m.isCurrent ? "text-accent" : "text-ink-muted"
+                    className={`truncate text-[13px] font-semibold ${
+                      m.complete ? "text-done" : m.isCurrent ? "text-accent-fg" : "text-ink-muted"
                     }`}
                     title={`${m.label} · updated ${fmt(m.updatedAt)}`}
                   >
                     {m.label}
                   </span>
                 </div>
-                <ul className="flex flex-col gap-[7px]">
+                <ul className="flex flex-col gap-2.5">
                   {m.subtasks.map((s) => {
                     return (
                       <li key={s.key}>
                         <label
-                          className={`flex items-start gap-[7px] text-xs ${ subtaskMut.isPending ? "cursor-not-allowed" : "cursor-pointer"
+                          className={`flex items-start gap-2.5 text-[13px] leading-snug ${ subtaskMut.isPending ? "cursor-not-allowed" : "cursor-pointer"
                           } ${s.checked ? "text-ink-muted" : "text-ink"}`}
                           title={`Updated ${fmt(s.updatedAt)}`}
                         >
@@ -484,10 +490,10 @@ export function RowDetails({
 
       {/* Dedicated Link GitHub PR Form */}
       {showPrInput && (
-        <div className="mt-3 rounded-lg border border-edge bg-surface-2 p-3 text-xs shadow-card">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-ink flex items-center gap-1.5">
-              <GitPullRequestIcon className="h-3.5 w-3.5 text-accent" /> Link GitHub PR
+        <div className="mt-4 rounded-2xl bg-surface p-4 text-xs">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-semibold text-ink flex items-center gap-1.5 text-[13px]">
+              <GitPullRequestIcon className="h-4 w-4 text-accent-fg" /> Link GitHub PR
             </span>
             <button
               type="button"
@@ -495,9 +501,10 @@ export function RowDetails({
                 setShowPrInput(false);
                 setPrError(null);
               }}
-              className="text-ink-faint hover:text-ink font-bold text-sm"
+              aria-label="Close"
+              className="grid h-7 w-7 place-items-center rounded-full text-ink-faint transition-colors hover:bg-surface-2 hover:text-ink"
             >
-              ×
+              <CloseIcon className="h-4 w-4" />
             </button>
           </div>
           <form
@@ -514,23 +521,23 @@ export function RowDetails({
               value={prRefValue}
               onChange={(e) => setPrRefValue(e.target.value)}
               placeholder="repo#123 or https://github.com/owner/repo/pull/123"
-              className="flex-1 rounded-[7px] border border-edge bg-surface px-2.5 py-1.5 font-mono text-xs outline-none focus:border-accent text-ink"
+              className="h-10 flex-1 rounded-xl border border-edge bg-surface-2 px-3.5 font-mono text-xs outline-none transition-colors placeholder:text-ink-faint focus:border-accent text-ink"
             />
             <button
               type="submit"
               disabled={refsMut.isPending || !prRefValue.trim()}
-              className="rounded-[7px] bg-accent px-3.5 py-1.5 font-semibold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+              className="h-10 rounded-xl bg-accent px-4 font-semibold text-accent-ink transition hover:brightness-110 disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               <DeferredSpinner isPending={refsMut.isPending} className="h-3 w-3 text-current" />
               {prRef ? "Replace PR" : "Link PR"}
             </button>
           </form>
-          {prError && <p className="text-danger text-[11px] mt-1.5">{prError}</p>}
+          {prError && <p role="alert" className="text-danger text-[11.5px] mt-2">{prError}</p>}
         </div>
       )}
 
       {/* Row actions */}
-      <div className="mt-3.5 flex flex-col sm:flex-row sm:items-center gap-3">
+      <div className="mt-5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
         {showRefInput ? (
           <form
             onSubmit={(e) => {
@@ -538,7 +545,7 @@ export function RowDetails({
               const val = newRef.trim();
               if (!val) return;
               if (val.includes("#") || val.toLowerCase().includes("github.com")) {
-                alert("PR refs cannot be added here. Please use the dedicated '+ Link GitHub PR' button to link pull requests.");
+                alert("PR refs cannot be added here. Please use the dedicated 'Link GitHub PR' button to link pull requests.");
                 setPrRefValue(val);
                 setShowPrInput(true);
                 setNewRef("");
@@ -561,13 +568,13 @@ export function RowDetails({
               value={newRef}
               onChange={(e) => setNewRef(e.target.value)}
               placeholder="Ref (PES-123, ZT-456)"
-              className="flex-1 min-w-0 sm:w-[190px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 font-mono text-[11.5px] outline-none focus:border-accent"
+              className="h-9 flex-1 min-w-0 sm:w-[200px] rounded-full border border-edge bg-surface px-4 font-mono text-xs outline-none transition-colors placeholder:text-ink-faint focus:border-accent"
               autoFocus
             />
             <button
               type="submit"
               disabled={refsMut.isPending || !newRef.trim()}
-              className="rounded-[7px] bg-accent px-3 py-1.5 text-[11.5px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+              className="h-9 rounded-full bg-accent px-4 text-xs font-semibold text-accent-ink transition hover:brightness-110 disabled:opacity-40 flex items-center gap-1.5"
             >
               <DeferredSpinner isPending={refsMut.isPending && refsMut.variables?.action === "add"} className="h-3 w-3 text-current" />
               Add
@@ -578,7 +585,7 @@ export function RowDetails({
                 setShowRefInput(false);
                 setNewRef("");
               }}
-              className="rounded-[7px] border border-edge bg-surface-2 px-2.5 py-1.5 text-[11.5px] font-medium text-ink-faint hover:text-ink cursor-pointer"
+              className="h-9 rounded-full px-3.5 text-xs font-medium text-ink-faint transition-colors hover:bg-surface hover:text-ink"
             >
               Cancel
             </button>
@@ -587,18 +594,19 @@ export function RowDetails({
           <button
             type="button"
             onClick={() => setShowRefInput(true)}
-            className="rounded-[7px] border border-edge bg-surface-2 hover:border-edge-strong px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:text-ink flex items-center gap-1.5 cursor-pointer transition-colors"
+            className="h-9 rounded-full bg-surface px-4 text-xs font-semibold text-ink-muted ring-1 ring-edge transition-colors hover:text-ink hover:ring-edge-strong flex items-center gap-1.5"
           >
-            + Add Secondary Ref
+            <PlusIcon className="h-3.5 w-3.5" />
+            Add Secondary Ref
           </button>
         )}
         <button
           type="button"
           onClick={() => setShowPrInput(!showPrInput)}
-          className="rounded-[7px] border border-edge bg-surface-2 hover:border-edge-strong px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:text-ink flex items-center gap-1.5 cursor-pointer transition-colors"
+          className="h-9 rounded-full bg-surface px-4 text-xs font-semibold text-ink-muted ring-1 ring-edge transition-colors hover:text-ink hover:ring-edge-strong flex items-center gap-1.5"
         >
-          <GitPullRequestIcon className="h-3.5 w-3.5 text-accent" />
-          {prRef ? "Edit Linked PR" : "+ Link GitHub PR"}
+          <GitPullRequestIcon className="h-3.5 w-3.5 text-accent-fg" />
+          {prRef ? "Edit Linked PR" : "Link GitHub PR"}
         </button>
         {(otherRefs.length > 0 || prRef) && (
           <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
@@ -634,7 +642,7 @@ export function RowDetails({
               type="button"
               disabled={wontFixMut.isPending || completeMut.isPending || deleteMut.isPending}
               onClick={() => wontFixMut.mutate()}
-              className="flex-1 sm:flex-initial rounded-[7px] border border-edge bg-surface-2 hover:border-warn hover:text-warn px-3 py-1.5 text-[11.5px] font-semibold text-ink-muted hover:bg-warn/10 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              className="h-9 flex-1 sm:flex-initial rounded-full bg-surface px-4 text-xs font-semibold text-ink-muted ring-1 ring-edge transition-colors hover:bg-warn/10 hover:text-warn hover:ring-warn/50 disabled:opacity-50 flex items-center justify-center gap-1.5"
               title="Mark row as Won't Fix and hide it"
             >
               <DeferredSpinner isPending={wontFixMut.isPending} className="h-3 w-3 text-current" />
@@ -646,7 +654,7 @@ export function RowDetails({
               type="button"
               disabled={completeMut.isPending || wontFixMut.isPending || deleteMut.isPending}
               onClick={() => completeMut.mutate()}
-              className="flex-1 sm:flex-initial rounded-[7px] border border-done/40 bg-done/10 hover:bg-done hover:text-accent-ink px-3 py-1.5 text-[11.5px] font-semibold text-done disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              className="h-9 flex-1 sm:flex-initial rounded-full bg-done-soft px-4 text-xs font-semibold text-done ring-1 ring-done/40 transition-colors hover:bg-done hover:text-accent-ink disabled:opacity-50 flex items-center justify-center gap-1.5"
               title="Tick all remaining milestones & sub-tasks and complete row"
             >
               <DeferredSpinner isPending={completeMut.isPending} className="h-3 w-3 text-current" />
@@ -660,9 +668,10 @@ export function RowDetails({
                 deleteMut.mutate();
               }
             }}
-            className="flex-1 sm:flex-initial rounded-[7px] border border-edge px-3 py-1.5 text-[11.5px] text-ink-faint hover:border-danger hover:text-danger hover:bg-danger/5 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+            className="h-9 flex-1 sm:flex-initial rounded-full px-4 text-xs font-medium text-ink-faint ring-1 ring-edge transition-colors hover:bg-danger/10 hover:text-danger hover:ring-danger/50 disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             <DeferredSpinner isPending={deleteMut.isPending} className="h-3 w-3 text-current" />
+            {!deleteMut.isPending && <TrashIcon className="h-3.5 w-3.5" />}
             Delete row
           </button>
         </div>

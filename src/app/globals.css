@@ -1,29 +1,139 @@
 @import "tailwindcss";
 
 /*
- * Waypoint design system — "paper & lamplight".
- * Two themes driven by CSS variables on <html data-theme="light|dark">;
- * a pre-paint script in layout.tsx resolves the stored preference
- * (system/light/dark) so there is no flash. Values come verbatim from
- * the Claude Design file "Waypoint Redesign.dc.html".
+ * Waypoint design system — "charcoal & lime".
+ *
+ * The app is a desk with two floating panels on it: the sidebar and the main
+ * panel. Each layer inside is a little lighter than the one below it (dark
+ * themes) or a little whiter (light themes):
+ *
+ *   --desk     the backdrop behind the panels
+ *   --bg       a panel; also the base colour of every page
+ *   --surface  a card on a panel, a modal, a popover
+ *   --surface2 an input, a nested well, a secondary button
+ *   --surface3 a hover state, a progress track
+ *   --lane     the Board surface that holds the columns
+ *   --card     a Board card
+ *
+ * Two themes are driven by CSS variables on <html data-theme="light|dark">.
+ * A pre-paint script in layout.tsx reads the stored preference
+ * (system/light/dark) so there is no flash. The default palette is "lime".
+ * Its dark values are sampled from the reference design.
  *
  * The theme rules match any element, not only <html>. An element with its own
  * data-theme / data-color-theme / data-font-theme shows that theme inside it
- * (the landing page theme preview uses this). Each palette block sets every variable.
+ * (the landing page theme preview uses this). So each palette block sets
+ * every variable.
  */
 
+/* --- LIME (default) --- */
 :root,
-[data-theme="light"] {
+[data-theme="light"],
+[data-color-theme="lime"] {
+  --desk: #dedfd8;
+  --bg: #f6f6f2;
+  --surface: #ffffff;
+  --surface2: #f0f0ea;
+  --surface3: #e4e4dd;
+  --lane: #ecece5;
+  --card: #ffffff;
+  --edge: #e3e3db;
+  --edge2: #c6c6bb;
+  --ink: #161612;
+  --muted: #5d5d55;
+  --faint: #93938a;
+  --accent: #93d00e;
+  --accent-fg: #4c7a06;
+  --accent-soft: rgba(110, 165, 8, 0.15);
+  --accent-ink: #11160a;
+  --done: #0b9d6a;
+  --done-soft: rgba(11, 157, 106, 0.13);
+  --support: #9a6700;
+  --support-light: #0b7a99;
+  --product: #6a4cd1;
+  --warn: #b45309;
+  --danger: #cf3f36;
+  --shadow: 0 1px 2px rgba(30, 30, 10, 0.05), 0 10px 26px -14px rgba(30, 30, 10, 0.16);
+  --serif-font-family: var(--font-sans);
+  color-scheme: light;
+}
+
+[data-theme="dark"],
+[data-theme="dark"][data-color-theme="lime"] {
+  --desk: #060606;
+  --bg: #111111;
+  --surface: #181818;
+  --surface2: #222222;
+  --surface3: #2c2c2c;
+  --lane: #181818;
+  --card: #2c2c2c;
+  --edge: #262626;
+  --edge2: #3b3b3b;
+  --ink: #f5f5f3;
+  --muted: #a3a39f;
+  --faint: #6f6f6b;
+  --accent: #93d00e;
+  --accent-fg: #93d00e;
+  --accent-soft: rgba(147, 208, 14, 0.14);
+  --accent-ink: #11160a;
+  --done: #3ddc97;
+  --done-soft: rgba(61, 220, 151, 0.15);
+  --support: #f2c94c;
+  --support-light: #56ccf2;
+  --product: #b8a1f8;
+  --warn: #f2994a;
+  --danger: #ff847e;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 28px -16px rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
+}
+
+/* System preference fallback when no explicit choice was applied yet. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    --desk: #060606;
+    --bg: #111111;
+    --surface: #181818;
+    --surface2: #222222;
+    --surface3: #2c2c2c;
+    --lane: #181818;
+    --card: #2c2c2c;
+    --edge: #262626;
+    --edge2: #3b3b3b;
+    --ink: #f5f5f3;
+    --muted: #a3a39f;
+    --faint: #6f6f6b;
+    --accent: #93d00e;
+    --accent-fg: #93d00e;
+    --accent-soft: rgba(147, 208, 14, 0.14);
+    --accent-ink: #11160a;
+    --done: #3ddc97;
+    --done-soft: rgba(61, 220, 151, 0.15);
+    --support: #f2c94c;
+    --support-light: #56ccf2;
+    --product: #b8a1f8;
+    --warn: #f2994a;
+    --danger: #ff847e;
+    --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 28px -16px rgba(0, 0, 0, 0.7);
+    color-scheme: dark;
+  }
+}
+
+/* --- PAPER & LAMPLIGHT THEME (the earlier default look) --- */
+[data-color-theme="paper"] {
+  --desk: #e8dfca;
   --bg: #f5efe3;
   --surface: #fdfaf2;
   --surface2: #f0e9d8;
   --surface3: #e6dec9;
+  --lane: #f0e9d8;
+  --card: #fdfaf2;
   --edge: #e2d9c2;
   --edge2: #c8bb9a;
   --ink: #241d10;
   --muted: #7d7156;
   --faint: #a89b7d;
   --accent: #b4501e;
+  --accent-fg: #b4501e;
   --accent-soft: rgba(180, 80, 30, 0.11);
   --accent-ink: #fdfaf2;
   --done: #33724f;
@@ -34,21 +144,23 @@
   --warn: #96670c;
   --danger: #a83a35;
   --shadow: 0 1px 2px rgba(70, 52, 20, 0.05), 0 10px 28px -14px rgba(70, 52, 20, 0.18);
-  --serif-font-family: var(--font-mono);
   color-scheme: light;
 }
-
-[data-theme="dark"] {
+[data-theme="dark"][data-color-theme="paper"] {
+  --desk: #0b0905;
   --bg: #151109;
   --surface: #1d1811;
   --surface2: #272117;
   --surface3: #322b1e;
+  --lane: #1d1811;
+  --card: #272117;
   --edge: #2f2818;
   --edge2: #4d442a;
   --ink: #ede4cd;
   --muted: #a3977a;
   --faint: #6f6650;
   --accent: #e08a4e;
+  --accent-fg: #e08a4e;
   --accent-soft: rgba(224, 138, 78, 0.14);
   --accent-ink: #1a140a;
   --done: #6cb98d;
@@ -62,45 +174,22 @@
   color-scheme: dark;
 }
 
-/* System preference fallback when no explicit choice was applied yet. */
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme]) {
-    --bg: #151109;
-    --surface: #1d1811;
-    --surface2: #272117;
-    --surface3: #322b1e;
-    --edge: #2f2818;
-    --edge2: #4d442a;
-    --ink: #ede4cd;
-    --muted: #a3977a;
-    --faint: #6f6650;
-    --accent: #e08a4e;
-    --accent-soft: rgba(224, 138, 78, 0.14);
-    --accent-ink: #1a140a;
-    --done: #6cb98d;
-    --done-soft: rgba(108, 185, 141, 0.15);
-    --support: #d9a83f;
-    --support-light: #22b8cf;
-    --product: #ab9ce8;
-    --warn: #d9a83f;
-    --danger: #e0736c;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -14px rgba(0, 0, 0, 0.5);
-    color-scheme: dark;
-  }
-}
-
 /* --- NORDIC FROST THEME --- */
 [data-color-theme="nord"] {
+  --desk: #dde4ee;
   --bg: #eef2f7;
   --surface: #f8fafc;
   --surface2: #e2e8f0;
   --surface3: #cbd5e1;
+  --lane: #e2e8f0;
+  --card: #f8fafc;
   --edge: #cbd5e1;
   --edge2: #94a3b8;
   --ink: #0f172a;
   --muted: #475569;
   --faint: #64748b;
   --accent: #0284c7;
+  --accent-fg: #0284c7;
   --accent-soft: rgba(2, 132, 199, 0.11);
   --accent-ink: #ffffff;
   --done: #0d9488;
@@ -114,16 +203,20 @@
   color-scheme: light;
 }
 [data-theme="dark"][data-color-theme="nord"] {
+  --desk: #070b16;
   --bg: #0f172a;
   --surface: #1e293b;
   --surface2: #334155;
   --surface3: #475569;
+  --lane: #1e293b;
+  --card: #334155;
   --edge: #334155;
   --edge2: #475569;
   --ink: #f8fafc;
   --muted: #cbd5e1;
   --faint: #94a3b8;
   --accent: #38bdf8;
+  --accent-fg: #38bdf8;
   --accent-soft: rgba(56, 189, 248, 0.14);
   --accent-ink: #0f172a;
   --done: #2dd4bf;
@@ -137,66 +230,22 @@
   color-scheme: dark;
 }
 
-/* --- FOREST SAGE THEME --- */
-[data-color-theme="forest"] {
-  --bg: #edf1eb;
-  --surface: #f7f9f6;
-  --surface2: #dee5db;
-  --surface3: #ced9cb;
-  --edge: #cbd7c7;
-  --edge2: #a3b89f;
-  --ink: #1c281a;
-  --muted: #4a5a47;
-  --faint: #768c72;
-  --accent: #2d6a4f;
-  --accent-soft: rgba(45, 106, 79, 0.11);
-  --accent-ink: #f7f9f6;
-  --done: #40916c;
-  --done-soft: rgba(64, 145, 108, 0.13);
-  --support: #977f1a;
-  --support-light: #9e4784;
-  --product: #3f72af;
-  --warn: #d6802a;
-  --danger: #b23a3a;
-  --shadow: 0 1px 2px rgba(28, 40, 26, 0.05), 0 10px 28px -14px rgba(28, 40, 26, 0.18);
-  color-scheme: light;
-}
-[data-theme="dark"][data-color-theme="forest"] {
-  --bg: #101912;
-  --surface: #18231a;
-  --surface2: #213123;
-  --surface3: #2a3e2d;
-  --edge: #243927;
-  --edge2: #3b593e;
-  --ink: #e7ece8;
-  --muted: #a3bca4;
-  --faint: #6d8c70;
-  --accent: #52b788;
-  --accent-soft: rgba(82, 183, 136, 0.14);
-  --accent-ink: #0d1710;
-  --done: #74c69d;
-  --done-soft: rgba(116, 198, 157, 0.15);
-  --support: #e9c46a;
-  --support-light: #d682b4;
-  --product: #93b5e1;
-  --warn: #e9c46a;
-  --danger: #e76f51;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -14px rgba(0, 0, 0, 0.5);
-  color-scheme: dark;
-}
-
 /* --- ROYAL PLUM THEME --- */
 [data-color-theme="royal"] {
+  --desk: #e8dfea;
   --bg: #f5f0f6;
   --surface: #faf8fc;
   --surface2: #ebdff0;
   --surface3: #dfcce5;
+  --lane: #ebdff0;
+  --card: #faf8fc;
   --edge: #dcc7e2;
   --edge2: #b796c3;
   --ink: #24112c;
   --muted: #684d75;
   --faint: #967fa2;
   --accent: #7b2cb1;
+  --accent-fg: #7b2cb1;
   --accent-soft: rgba(123, 44, 177, 0.11);
   --accent-ink: #faf8fc;
   --done: #1b8a5a;
@@ -210,16 +259,20 @@
   color-scheme: light;
 }
 [data-theme="dark"][data-color-theme="royal"] {
+  --desk: #0a060d;
   --bg: #150d1b;
   --surface: #1f1428;
   --surface2: #2d1e39;
   --surface3: #3a284a;
+  --lane: #1f1428;
+  --card: #2d1e39;
   --edge: #352443;
   --edge2: #583e6d;
   --ink: #ebdff0;
   --muted: #b69cc4;
   --faint: #7b628b;
   --accent: #d896ff;
+  --accent-fg: #d896ff;
   --accent-soft: rgba(216, 150, 255, 0.14);
   --accent-ink: #140a1b;
   --done: #4ade80;
@@ -233,13 +286,8 @@
   color-scheme: dark;
 }
 
-
-/*
- * Tailwind tokens map onto the theme variables so every existing utility
- * class (bg-surface, text-ink-muted, border-edge, …) follows the theme.
- * `live` is kept as a legacy alias for the accent.
- */
 /* --- FONT STYLE THEMES --- */
+/* The heading font. The `font-serif` utility reads it. The default is the sans font. */
 [data-font-theme="serif"] {
   --serif-font-family: var(--font-newsreader), "Newsreader", Georgia, serif;
 }
@@ -250,61 +298,257 @@
   --serif-font-family: var(--font-mono);
 }
 
+/* `dark:` follows the app theme (data-theme), not only the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Tailwind tokens map onto the theme variables so every utility class
+ * (bg-surface, text-ink-muted, border-edge, …) follows the theme.
+ * `live` is kept as a legacy alias for the accent.
+ */
 @theme inline {
+  --color-desk: var(--desk);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface2);
   --color-surface-3: var(--surface3);
+  --color-lane: var(--lane);
+  --color-card: var(--card);
   --color-edge: var(--edge);
   --color-edge-strong: var(--edge2);
   --color-ink: var(--ink);
   --color-ink-muted: var(--muted);
   --color-ink-faint: var(--faint);
   --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
   --color-accent-ink: var(--accent-ink);
-  --color-live: var(--accent);
+  --color-live: var(--accent-fg);
   --color-done: var(--done);
+  --color-done-soft: var(--done-soft);
   --color-support: var(--support);
   --color-support-light: var(--support-light);
   --color-product: var(--product);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Solid pastel pills with dark text. The values come from the reference design. */
+  --color-chip-pink: #f5deef;
+  --color-chip-yellow: #eddf82;
+  --color-chip-mint: #cffcf4;
+  --color-chip-aqua: #afe5dc;
+  --color-chip-salmon: #ff847e;
+  --color-chip-orange: #edbf78;
+  --color-chip-red: #d2766e;
+  --color-chip-slate: #d1d9df;
+  --color-chip-khaki: #b7b397;
+  --color-chip-lilac: #d4c6f8;
+  --color-chip-sky: #b9d8f7;
+  --color-chip-lime: #d6f27a;
+  --color-chip-ink: #17171a;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-serif: var(--serif-font-family);
   --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
 
+  /* Curvy edges everywhere. This scale replaces the default one, so every `rounded-*` class follows it. */
+  --radius: 0.5rem;
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  /* Named roles. Change one value here to change the shape of the whole app. */
+  --radius-panel: 1.75rem;
+  --radius-lane: 1.5rem;
+  --radius-card: 1.125rem;
+  --radius-control: 0.875rem;
+
   --shadow-card: var(--shadow);
+  --shadow-pop: 0 28px 70px -24px rgba(0, 0, 0, 0.65);
+
+  --animate-fade-in: wp-fade-in 0.18s ease-out both;
+  --animate-pop-in: wp-pop-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-slide-in: wp-slide-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes wp-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes wp-pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes wp-slide-in {
+    from {
+      transform: translateX(-24px);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
 }
 
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  transition:
-    background 0.25s ease,
-    color 0.25s ease;
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    transition:
+      background 0.25s ease,
+      color 0.25s ease;
+  }
+
+  /* A link without its own colour class uses the accent. A colour class wins over this rule. */
+  a {
+    color: var(--accent-fg);
+  }
+  a:hover {
+    color: var(--ink);
+  }
+
+  input,
+  select,
+  button,
+  textarea {
+    font-family: inherit;
+  }
+  input[type="date"] {
+    color-scheme: inherit;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  /* One focus ring for the whole app. A control that sets `outline-none` keeps its own focus style. */
+  :focus-visible {
+    outline: 2px solid var(--accent-fg);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--edge2) transparent;
+  }
 }
 
-a {
-  color: var(--accent);
-}
-a:hover {
-  color: var(--ink);
+@layer components {
+  /* A round-cornered checkbox. The tick is a mask, so it takes the colour of the theme. */
+  .wp-check {
+    appearance: none;
+    flex-shrink: 0;
+    display: inline-grid;
+    place-content: center;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    border-radius: 0.4rem;
+    border: 1.5px solid var(--edge2);
+    background: var(--surface2);
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
+  }
+  .wp-check:hover:not(:disabled) {
+    border-color: var(--accent-fg);
+  }
+  .wp-check:active:not(:disabled) {
+    transform: scale(0.92);
+  }
+  .wp-check:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .wp-check::after {
+    content: "";
+    width: 0.7rem;
+    height: 0.7rem;
+    background: var(--accent-ink);
+    transform: scale(0);
+    transition: transform 0.15s ease;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  .wp-check:checked::after {
+    transform: scale(1);
+  }
+  .wp-check:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Native dialogs: a soft blurred backdrop and a pop-in. */
+  dialog::backdrop {
+    background: rgb(0 0 0 / 0.62);
+    backdrop-filter: blur(6px);
+  }
+  dialog[open] {
+    animation: wp-pop-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
 }
 
-input,
-select,
-button {
-  font-family: inherit;
-}
-input[type="date"] {
-  color-scheme: inherit;
-}
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--edge2) transparent;
+/*
+ * The sidebar collapses to an icon rail. The state is a data attribute on <html>,
+ * set before first paint by the script in layout.tsx, so a reload does not flash.
+ */
+@media (min-width: 1024px) {
+  .wp-sidebar {
+    width: 15rem;
+    transition: width 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  html[data-sidebar="collapsed"] .wp-sidebar {
+    width: 5.25rem;
+  }
+  html[data-sidebar="collapsed"] .wp-sidebar .wp-label {
+    display: none;
+  }
+  html[data-sidebar="collapsed"] .wp-sidebar .wp-center {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  html[data-sidebar="collapsed"] .wp-sidebar .wp-head {
+    flex-direction: column;
+  }
+  html[data-sidebar="collapsed"] .wp-sidebar .wp-head > a {
+    flex: none;
+  }
+  html[data-sidebar="collapsed"] .wp-sidebar .wp-rail {
+    display: flex;
+  }
+  html[data-sidebar="collapsed"] .wp-sidebar .wp-badge {
+    position: absolute;
+    top: 0.3rem;
+    right: 0.3rem;
+    min-width: 0.5rem;
+    width: 0.5rem;
+    height: 0.5rem;
+    padding: 0;
+    font-size: 0;
+  }
 }
 
 @keyframes wp-pulse {
@@ -320,4 +564,20 @@ input[type="date"] {
 }
 .animate-live {
   animation: wp-pulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* A spinner shows that work is in progress. A frozen spinner looks like a hang, so it keeps its motion. */
+  .animate-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
+  }
 }

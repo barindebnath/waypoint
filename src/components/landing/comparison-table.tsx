@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckIcon } from "./icons";
+
 type ComparisonRow = {
   feature: string;
   waypoint: string;
@@ -48,44 +50,44 @@ const ROWS: ComparisonRow[] = [
 
 export function ComparisonTable() {
   return (
-    <div className="w-full rounded-2xl border border-edge bg-surface shadow-card overflow-hidden">
-      <div className="border-b border-edge bg-surface-2 p-5 sm:p-6">
-        <h3 className="font-serif text-lg font-semibold text-ink">
+    <div className="w-full overflow-hidden rounded-3xl bg-surface">
+      <div className="p-5 sm:p-7">
+        <h3 className="font-serif text-xl font-semibold tracking-tight text-ink">
           Why Waypoint?
         </h3>
-        <p className="text-xs text-ink-muted mt-1">
+        <p className="mt-1.5 text-[13px] text-ink-muted">
           Designed specifically as external memory for individual engineers who ship code.
         </p>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs border-collapse">
+        <table className="w-full min-w-[680px] border-collapse text-left text-[13px]">
           <thead>
-            <tr className="border-b border-edge bg-surface-2/40 font-mono text-[11px] text-ink-muted uppercase tracking-wider">
-              <th className="p-4 sm:px-6 w-1/4">Feature</th>
-              <th className="p-4 sm:px-6 w-1/3 bg-accent-soft/30 text-accent font-semibold">Waypoint</th>
-              <th className="p-4 sm:px-6 w-1/4">Jira / Linear</th>
-              <th className="p-4 sm:px-6 w-1/4">Spreadsheets / Notion</th>
+            <tr className="border-y border-edge/70 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+              <th scope="col" className="w-1/4 p-4 sm:px-7">Feature</th>
+              <th scope="col" className="w-1/3 bg-accent-soft p-4 text-accent-fg sm:px-7">Waypoint</th>
+              <th scope="col" className="w-1/4 p-4 sm:px-7">Jira / Linear</th>
+              <th scope="col" className="w-1/4 p-4 sm:px-7">Spreadsheets / Notion</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-edge">
+          <tbody className="divide-y divide-edge/60">
             {ROWS.map((r) => (
-              <tr key={r.feature} className="hover:bg-surface-2/40 transition">
-                <td className="p-4 sm:px-6 font-medium text-ink align-top">
+              <tr key={r.feature} className="transition-colors hover:bg-surface-2/60">
+                <td className="p-4 align-top font-medium text-ink sm:px-7">
                   {r.feature}
                 </td>
-                <td className="p-4 sm:px-6 bg-accent-soft/20 font-medium text-ink align-top">
-                  <div className="flex items-start gap-2">
-                    <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent !text-accent-ink text-[10px] mt-0.5 font-bold">
-                      ✓
+                <td className="bg-accent-soft p-4 align-top font-medium text-ink sm:px-7">
+                  <div className="flex items-start gap-2.5">
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent text-accent-ink">
+                      <CheckIcon className="h-3 w-3" />
                     </span>
                     <span>{r.waypoint}</span>
                   </div>
                 </td>
-                <td className="p-4 sm:px-6 text-ink-muted align-top">
+                <td className="p-4 align-top text-ink-muted sm:px-7">
                   {r.jiraLinear}
                 </td>
-                <td className="p-4 sm:px-6 text-ink-muted align-top">
+                <td className="p-4 align-top text-ink-muted sm:px-7">
                   {r.spreadsheets}
                 </td>
               </tr>

@@ -6,7 +6,9 @@ import { useQuery } from "@tanstack/react-query";
 import { api, type EnrichedRowView } from "@/lib/client-api";
 import type { EnrichedRef } from "@/lib/links";
 import { RowDetails } from "./row-card";
-import { GithubPrBadge, GitPullRequestIcon, JiraStatusBadge } from "./status-badge";
+import { Chip, PIPELINE_STYLE, pipelineChipText } from "./chip";
+import { ArrowUpRightIcon, CheckCircleIcon, ChevronRightIcon, ClockIcon, CloseIcon, PullRequestIcon } from "./icons";
+import { GithubPrBadge, JiraStatusBadge } from "./status-badge";
 
 /**
  * Compact, read-only card for the Board view.
@@ -27,7 +29,7 @@ function fmtAge(isoString: string): string {
   if (days > 0) return `${days}d`;
   if (hours > 0) return `${hours}h`;
   if (minutes > 0) return `${minutes}m`;
-  return "just now";
+  return "<1m";
 }
 
 const PREVIEW_STALE_MS = 10 * 60 * 1000;
@@ -73,48 +75,44 @@ function PrBlock({ pr }: { pr: EnrichedRef }) {
   const approved = pr.prStatus?.reviewDecision === "approved" && pr.prStatus.state !== "merged";
 
   return (
-    <div className={`rounded-[8px] border bg-surface-2 p-2 ${approved ? "border-done/50" : "border-edge"}`}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1 font-mono text-[11px] font-semibold text-ink">
-          <GitPullRequestIcon className="h-3 w-3 shrink-0 text-accent" />
-          <span className="truncate" title={pr.ref}>{label}</span>
-        </span>
-        {preview && (
-          <span className="shrink-0 rounded-[5px] border border-edge px-1.5 font-mono text-[10px]">
-            <span className="text-done">+{preview.additions}</span>{" "}
-            <span className="text-danger">-{preview.deletions}</span>
-          </span>
-        )}
-      </div>
-      {preview?.title && (
-        <p className="mt-1 truncate text-[11.5px] text-ink-muted" title={preview.title}>
-          {preview.title}
-        </p>
-      )}
-      <div className="mt-1.5 flex items-center justify-between gap-2">
-        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-          {pr.prStatus && (
-            <GithubPrBadge
-              state={pr.prStatus.state}
-              mergeableState={pr.prStatus.mergeableState}
-              reviewDecision={pr.prStatus.reviewDecision}
-            />
-          )}
-          {unresolved > 0 && (
-            <span className="rounded-[5px] border border-warn/50 bg-warn/10 px-1.5 text-[10.5px] font-semibold text-warn">
-              {unresolved} Unresolved
-            </span>
-          )}
+    <div className={`rounded-2xl bg-surface-2 p-3 ring-1 ${approved ? "ring-done/50" : "ring-edge"}`}>
+      <div className="flex items-center gap-1.5">
+        <PullRequestIcon className="h-3.5 w-3.5 shrink-0 text-accent-fg" />
+        <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] font-semibold text-ink" title={pr.ref}>
+          {label}
         </span>
         {pr.resolvedUrl && (
           <a
             href={pr.resolvedUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className="font-mono text-[10.5px] text-accent underline underline-offset-2 hover:opacity-80"
+            aria-label={`Inspect ${label} on GitHub`}
+            title="Inspect on GitHub"
+            className="-my-1 -mr-1 grid h-6 w-6 shrink-0 place-items-center rounded-full text-ink-faint transition-colors hover:bg-surface-3 hover:text-accent-fg"
           >
-            Inspect →
+            <ArrowUpRightIcon className="h-3.5 w-3.5" />
           </a>
+        )}
+      </div>
+      {preview?.title && (
+        <p className="mt-1.5 truncate text-[12px] text-ink-muted" title={preview.title}>
+          {preview.title}
+        </p>
+      )}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {pr.prStatus && (
+          <GithubPrBadge
+            state={pr.prStatus.state}
+            mergeableState={pr.prStatus.mergeableState}
+            reviewDecision={pr.prStatus.reviewDecision}
+          />
+        )}
+        {unresolved > 0 && <Chip tone="orange">{unresolved} Unresolved</Chip>}
+        {preview && (
+          <span className="ml-auto shrink-0 rounded-full bg-surface-3 px-2 py-0.5 font-mono text-[10.5px]">
+            <span className="text-done">+{preview.additions}</span>{" "}
+            <span className="text-danger">-{preview.deletions}</span>
+          </span>
         )}
       </div>
     </div>
@@ -156,17 +154,15 @@ export function BoardCard({ row, preview = false }: { row: EnrichedRowView; prev
       aria-label={preview ? undefined : `Open ${row.identityRef}`}
       onClick={onCardClick}
       onKeyDown={onCardKeyDown}
-      className={`rounded-[10px] border border-edge bg-surface p-3 shadow-card outline-none transition-[opacity,border-color] ${
-        preview ? "" : "cursor-pointer hover:border-edge-strong focus-visible:border-accent"
-      } ${
-        row.isComplete ? "opacity-70" : ""
-      }`}
+      className={`rounded-card bg-card p-3.5 shadow-card ring-1 ring-edge/70 transition-[transform,box-shadow,opacity] ${
+        preview ? "" : "cursor-pointer hover:-translate-y-0.5 hover:ring-edge-strong"
+      } ${row.isComplete ? "opacity-70" : ""}`}
     >
       <CardSummary row={row} />
 
       {/* Progress inside the current milestone */}
       {current && (
-        <div className="mt-2">
+        <div className="mt-3.5">
           {/* One dash for each sub-task. The column already shows the milestone, so the dashes have no label. */}
           <div
             className="flex gap-1"
@@ -177,14 +173,14 @@ export function BoardCard({ row, preview = false }: { row: EnrichedRowView; prev
             {current.subtasks.map((s, i) => (
               <span
                 key={i}
-                className={`h-1.5 flex-1 rounded-full transition-colors ${s.checked ? "bg-accent" : "bg-surface-3"}`}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${s.checked ? "bg-accent" : "bg-ink/10"}`}
               />
             ))}
           </div>
           {next && (
-            <div className="mt-1.5 truncate text-[11px] text-ink-muted" title={next.label}>
-              <span className="font-mono text-[10px] text-ink-faint">Next: </span>
-              {next.label}
+            <div className="mt-2 flex items-center gap-1 truncate text-[11.5px] text-ink-muted" title={next.label}>
+              <ChevronRightIcon className="h-3 w-3 shrink-0 text-ink-faint" />
+              <span className="truncate">{next.label}</span>
             </div>
           )}
         </div>
@@ -192,76 +188,80 @@ export function BoardCard({ row, preview = false }: { row: EnrichedRowView; prev
 
       {/* Done-section status */}
       {row.isComplete && (
-        <div className="mt-2 flex items-center gap-1.5">
-          <span className={`font-serif text-xs italic ${row.hasLooseEnds ? "text-warn" : "text-done"}`}>
-            {row.hasLooseEnds ? "won't fix / loose ends" : "✓ complete"}
-          </span>
+        <div className="mt-3">
+          <Chip tone={row.hasLooseEnds ? "orange" : "mint"} icon={<CheckCircleIcon className="h-3.5 w-3.5" />}>
+            {row.hasLooseEnds ? "won't fix / loose ends" : "complete"}
+          </Chip>
         </div>
       )}
+
+      {/* Time in stage and card age */}
+      <div className="mt-3.5 flex items-center justify-between gap-2 border-t border-edge/60 pt-3 text-[11.5px] text-ink-faint">
+        <span
+          className="flex items-center gap-1.5"
+          title={`Card age: ${fmtAge(row.createdAt)}`}
+        >
+          <ClockIcon className="h-3.5 w-3.5" />
+          {current ? `${fmtAge(current.updatedAt || current.createdAt)} in stage` : `age ${fmtAge(row.createdAt)}`}
+        </span>
+        {current && <span title="Card age">age {fmtAge(row.createdAt)}</span>}
+      </div>
 
       {open && <CardModal row={row} onClose={() => setOpen(false)} />}
     </div>
   );
 }
 
-/** Key, Jira status, title, issue type, time in stage and linked PRs, as the card shows them. */
+/** Key, Jira status, title, issue type and linked PRs, as the card shows them. */
 function CardSummary({ row }: { row: EnrichedRowView }) {
   const { data: identity } = usePreview(row.identityRef);
-  const dotTone =
-    row.pipelineKey === "support_light" ? "bg-support-light" : row.origin === "support" ? "bg-support" : "bg-product";
-  const current = row.milestones.find((m) => m.isCurrent);
   const prs = row.secondaryRefs.filter((r) => r.kind === "github_pr");
-  // If Jira does not give an issue type, show the pipeline label.
-  const typeLabel = identity?.issueType || `${row.pipelineLabel}${row.subType ? ` · ${row.subType}` : ""}`;
+  const style = PIPELINE_STYLE[row.pipelineKey];
 
   return (
     <>
-        {/* Key + Jira status */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${dotTone}`} aria-hidden />
-            {row.identityResolvedUrl ? (
-              <a
-                href={row.identityResolvedUrl}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="truncate font-mono text-[12px] font-semibold text-ink hover:underline"
-              >
-                {row.identityRef}
-              </a>
-            ) : (
-              <span className="truncate font-mono text-[12px] font-semibold text-ink">{row.identityRef}</span>
-            )}
-          </span>
-          {row.jiraStatus && (
-            <span className="shrink-0">
-              <JiraStatusBadge statusName={row.jiraStatus.statusName} statusCategory={row.jiraStatus.statusCategory} />
-            </span>
-          )}
-        </div>
-
-        {/* Title from Jira (or from GitHub, if the identity is a PR) */}
-        {identity?.title && (
-          <p className="mt-1.5 line-clamp-2 text-[13px] font-medium leading-snug text-ink" title={identity.title}>
-            {identity.title}
-          </p>
+      {/* Key + Jira status */}
+      <div className="flex items-center justify-between gap-2">
+        {row.identityResolvedUrl ? (
+          <a
+            href={row.identityResolvedUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="max-w-[65%] shrink-0 truncate font-mono text-[12.5px] font-semibold text-ink hover:underline"
+          >
+            {row.identityRef}
+          </a>
+        ) : (
+          <span className="max-w-[65%] shrink-0 truncate font-mono text-[12.5px] font-semibold text-ink">{row.identityRef}</span>
         )}
-
-        <div className="mt-1.5 flex items-center justify-between gap-2 text-[10.5px] font-mono text-ink-faint">
-          <span className="truncate">{typeLabel}</span>
-          <span title={`Card age: ${fmtAge(row.createdAt)}`} className="shrink-0">
-            {current ? `${fmtAge(current.updatedAt || current.createdAt)} in stage` : `age ${fmtAge(row.createdAt)}`}
+        {row.jiraStatus && (
+          <span className="min-w-0">
+            <JiraStatusBadge statusName={row.jiraStatus.statusName} statusCategory={row.jiraStatus.statusCategory} />
           </span>
-        </div>
-
-        {/* Linked PRs */}
-        {prs.length > 0 && (
-          <div className="mt-2.5 flex flex-col gap-1.5 border-t border-edge/60 pt-2.5">
-            {prs.map((r) => (
-              <PrBlock key={r.ref} pr={r} />
-            ))}
-          </div>
         )}
+      </div>
+
+      {/* Title from Jira (or from GitHub, if the identity is a PR) */}
+      {identity?.title && (
+        <p className="mt-2 line-clamp-2 text-[14px] font-medium leading-snug text-ink" title={identity.title}>
+          {identity.title}
+        </p>
+      )}
+
+      {/* The pipeline, and the issue type from Jira */}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <Chip tone={style?.tone ?? "slate"}>{pipelineChipText(row)}</Chip>
+        {identity?.issueType && <Chip tone="ghost">{identity.issueType}</Chip>}
+      </div>
+
+      {/* Linked PRs */}
+      {prs.length > 0 && (
+        <div className="mt-3 flex flex-col gap-2">
+          {prs.map((r) => (
+            <PrBlock key={r.ref} pr={r} />
+          ))}
+        </div>
+      )}
     </>
   );
 }
@@ -272,51 +272,49 @@ function CardSummary({ row }: { row: EnrichedRowView }) {
  */
 function ModalHeader({ row, onClose }: { row: EnrichedRowView; onClose: () => void }) {
   const { data: identity } = usePreview(row.identityRef);
-  const dotTone =
-    row.pipelineKey === "support_light" ? "bg-support-light" : row.origin === "support" ? "bg-support" : "bg-product";
   const current = row.milestones.find((m) => m.isCurrent);
   const prs = row.secondaryRefs.filter((r) => r.kind === "github_pr");
-  const typeLabel = identity?.issueType || `${row.pipelineLabel}${row.subType ? ` · ${row.subType}` : ""}`;
+  const style = PIPELINE_STYLE[row.pipelineKey];
 
   return (
-    <header className="relative flex flex-col gap-3 p-4 pr-12 md:flex-row md:items-start md:gap-5">
+    <header className="relative flex flex-col gap-4 p-5 pr-16 sm:p-6 sm:pr-16 md:flex-row md:items-start md:gap-6">
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] text-ink-faint">
-          <span className={`h-2 w-2 shrink-0 rounded-full ${dotTone}`} aria-hidden />
+        <div className="flex flex-wrap items-center gap-2">
           {row.identityResolvedUrl ? (
             <a
               href={row.identityResolvedUrl}
               target="_blank"
               rel="noreferrer noopener"
-              className="text-[13px] font-semibold text-ink hover:underline"
+              className="font-mono text-[15px] font-semibold text-ink hover:underline"
             >
               {row.identityRef}
             </a>
           ) : (
-            <span className="text-[13px] font-semibold text-ink">{row.identityRef}</span>
+            <span className="font-mono text-[15px] font-semibold text-ink">{row.identityRef}</span>
           )}
           {row.jiraStatus && (
             <JiraStatusBadge statusName={row.jiraStatus.statusName} statusCategory={row.jiraStatus.statusCategory} />
           )}
-          <span aria-hidden>·</span>
-          <span>{typeLabel}</span>
-          <span aria-hidden>·</span>
-          <span title={new Date(row.createdAt).toLocaleDateString()}>age {fmtAge(row.createdAt)}</span>
-          {current && !row.isComplete && (
-            <>
-              <span aria-hidden>·</span>
-              <span>
-                {fmtAge(current.updatedAt || current.createdAt)} in <span className="font-serif italic text-accent">{current.label}</span>
-              </span>
-            </>
-          )}
+          <Chip tone={style?.tone ?? "slate"}>{pipelineChipText(row)}</Chip>
+          {identity?.issueType && <Chip tone="ghost">{identity.issueType}</Chip>}
         </div>
         {identity?.title && (
-          <h2 className="mt-1.5 text-[15px] font-medium leading-snug text-ink">{identity.title}</h2>
+          <h2 className="mt-3 text-[20px] font-semibold leading-snug tracking-tight text-ink">{identity.title}</h2>
         )}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-ink-faint">
+          <span className="flex items-center gap-1.5" title={new Date(row.createdAt).toLocaleDateString()}>
+            <ClockIcon className="h-3.5 w-3.5" />
+            age {fmtAge(row.createdAt)}
+          </span>
+          {current && !row.isComplete && (
+            <span>
+              {fmtAge(current.updatedAt || current.createdAt)} in <span className="font-medium text-accent-fg">{current.label}</span>
+            </span>
+          )}
+        </div>
       </div>
       {prs.length > 0 && (
-        <div className="flex w-full shrink-0 flex-col gap-1.5 md:w-[360px]">
+        <div className="flex w-full shrink-0 flex-col gap-2 md:w-[360px]">
           {prs.map((r) => (
             <PrBlock key={r.ref} pr={r} />
           ))}
@@ -326,9 +324,9 @@ function ModalHeader({ row, onClose }: { row: EnrichedRowView; onClose: () => vo
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="absolute right-3 top-3 rounded-[6px] px-2 py-0.5 text-lg leading-none text-ink-faint hover:bg-surface-2 hover:text-ink cursor-pointer"
+        className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-surface-2 text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink sm:right-5 sm:top-5"
       >
-        ×
+        <CloseIcon className="h-[18px] w-[18px]" />
       </button>
     </header>
   );
@@ -364,7 +362,7 @@ function CardModal({ row, onClose }: { row: EnrichedRowView; onClose: () => void
         // A click on the backdrop has the dialog itself as the target.
         if (e.target === e.currentTarget) onClose();
       }}
-      className="m-auto w-[min(1100px,calc(100vw-2rem))] max-h-[calc(100dvh-4rem)] overflow-y-auto rounded-xl border border-edge bg-surface p-0 text-ink shadow-xl outline-none backdrop:bg-black/60"
+      className="m-auto w-[min(1180px,calc(100vw-1.5rem))] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[28px] border border-edge bg-bg p-0 text-ink shadow-pop outline-none"
     >
       <ModalHeader row={row} onClose={onClose} />
       <RowDetails row={row} showPrInput={showPrInput} setShowPrInput={setShowPrInput} />
