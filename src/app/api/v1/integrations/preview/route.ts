@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { handle } from "@/lib/api-helpers";
-import { db, schema } from "@/lib/db";
 import { fetchGithubPrPreview, parseGithubOrg, parsePrRef } from "@/lib/github";
 import { fetchJiraIssueDetails } from "@/lib/jira";
 import { demoIntegrationsEnabled, demoPreview } from "@/lib/demo-integrations";
-import { eq } from "drizzle-orm";
+
+/**
+ * A resolved preview may live in the browser cache for 5 minutes. The header is
+ * "private", so no shared cache stores it. A failed lookup (null title) is never
+ * cached, so the next request can retry.
+ */
+function previewJson(body: { ref: string; title: string | null } & Record<string, unknown>) {
+  return NextResponse.json(body, {
+    headers: body.title ? { "Cache-Control": "private, max-age=300" } : undefined,
+  });
+}
 
 export async function GET(req: NextRequest) {
   return handle(async () => {
     const user = await requireUser();
-    const userId = user.userId;
     const ref = req.nextUrl.searchParams.get("ref")?.trim();
 
     if (!ref) {
@@ -23,13 +31,8 @@ export async function GET(req: NextRequest) {
       if (demo) return NextResponse.json(demo);
     }
 
-    const settings = await db.query.userSettings.findFirst({
-      where: eq(schema.userSettings.userId, userId),
-    });
-
-    if (!settings) {
-      return NextResponse.json({ ref, title: null });
-    }
+    // requireUser already loaded the settings row, so no second database query is needed.
+    const settings = user;
 
     // Check if ref is a GitHub PR
     if (ref.includes("#") || ref.toLowerCase().includes("github.com")) {
@@ -46,7 +49,7 @@ export async function GET(req: NextRequest) {
           parsed.repo,
           parsed.pullNumber
         );
-        return NextResponse.json({ ref, title: pr?.title || null, pr });
+        return previewJson({ ref, title: pr?.title || null, pr });
       }
     }
 
@@ -58,7 +61,7 @@ export async function GET(req: NextRequest) {
         settings.jiraApiToken,
         ref
       );
-      return NextResponse.json({ ref, title: issue?.summary ?? null, issueType: issue?.issueType ?? null });
+      return previewJson({ ref, title: issue?.summary ?? null, issueType: issue?.issueType ?? null });
     }
 
     return NextResponse.json({ ref, title: null });
