@@ -85,7 +85,12 @@ const patchSchema = z.object({
   githubBaseUrl: z.string().url().max(500).nullable().optional(),
   githubPat: secretField(500),
   githubDefaultOrg: z.string().max(100).nullable().optional(),
-  colorTheme: z.enum(["paper", "nord", "forest", "royal"]).optional(),
+  // "forest" was the default palette before the lime redesign. An old client can still send it.
+  // The server stores it as "lime".
+  colorTheme: z
+    .enum(["lime", "paper", "nord", "forest", "royal"])
+    .transform((v) => (v === "forest" ? "lime" : v))
+    .optional(),
   fontTheme: z.enum(["serif", "sans", "mono"]).optional(),
   showTimesheet: z.boolean().optional(),
   tempoApiToken: secretField(500),

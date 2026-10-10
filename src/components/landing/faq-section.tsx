@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronDownIcon } from "./icons";
 
 type FAQCategory = "all" | "security" | "ai" | "sync";
@@ -39,6 +39,19 @@ const FAQS: FAQItem[] = [
   },
 ];
 
+/** The text between two backticks shows as code. This makes React elements, so no HTML string is needed. */
+function renderAnswer(text: string): ReactNode[] {
+  return text.split("`").map((part, i) =>
+    i % 2 === 1 ? (
+      <code key={i} className="rounded-md bg-surface-3 px-1.5 py-0.5 font-mono text-[12.5px] text-ink">
+        {part}
+      </code>
+    ) : (
+      part
+    ),
+  );
+}
+
 export function FaqSection() {
   const [selectedCategory, setSelectedCategory] = useState<FAQCategory>("all");
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -55,7 +68,7 @@ export function FaqSection() {
   return (
     <div className="w-full space-y-4">
       {/* Category Filter */}
-      <div className="flex flex-wrap items-center justify-center gap-1.5 font-mono text-xs">
+      <div role="group" aria-label="Filter the questions" className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-1 rounded-3xl bg-surface p-1">
         {[
           { key: "all", label: "All Questions" },
           { key: "security", label: "Security & Privacy" },
@@ -64,14 +77,16 @@ export function FaqSection() {
         ].map((tab) => (
           <button
             key={tab.key}
+            type="button"
+            aria-pressed={selectedCategory === tab.key}
             onClick={() => {
               setSelectedCategory(tab.key as FAQCategory);
               setOpenIndex(0);
             }}
-            className={`rounded-lg px-3 py-1.5 transition cursor-pointer ${
+            className={`h-9 cursor-pointer rounded-full px-3.5 text-[13px] font-medium transition-colors ${
               selectedCategory === tab.key
-                ? "bg-accent font-semibold !text-accent-ink shadow-xs"
-                : "border border-edge bg-surface text-ink-muted hover:border-edge-strong hover:text-ink"
+                ? "bg-accent font-semibold text-accent-ink"
+                : "text-ink-muted hover:bg-surface-2 hover:text-ink"
             }`}
           >
             {tab.label}
@@ -86,25 +101,31 @@ export function FaqSection() {
           return (
             <div
               key={faq.q}
-              className="rounded-xl border border-edge bg-surface transition overflow-hidden"
+              className="overflow-hidden rounded-3xl bg-surface"
             >
               <button
+                type="button"
+                aria-expanded={isOpen}
                 onClick={() => toggle(idx)}
-                className="flex w-full items-center justify-between p-4 sm:p-5 text-left transition hover:bg-surface-2 cursor-pointer"
+                className="flex w-full cursor-pointer items-center justify-between gap-4 p-4 text-left transition-colors hover:bg-surface-2 sm:px-6 sm:py-5"
               >
-                <span className="font-serif text-sm sm:text-base font-semibold text-ink pr-4">
+                <span className="font-serif text-[15px] font-semibold leading-snug tracking-tight text-ink sm:text-base">
                   {faq.q}
                 </span>
-                <ChevronDownIcon
-                  className={`h-4 w-4 shrink-0 text-ink-muted transition-transform duration-200 ${
-                    isOpen ? "rotate-180 text-accent" : ""
+                <span
+                  className={`grid h-8 w-8 shrink-0 place-items-center rounded-full transition-colors ${
+                    isOpen ? "bg-accent text-accent-ink" : "bg-surface-2 text-ink-muted"
                   }`}
-                />
+                >
+                  <ChevronDownIcon
+                    className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                  />
+                </span>
               </button>
 
               {isOpen && (
-                <div className="border-t border-edge bg-surface-2/40 p-4 sm:p-5 text-xs sm:text-sm text-ink-muted leading-relaxed">
-                  {faq.a}
+                <div className="px-4 pb-5 text-sm leading-relaxed text-ink-muted sm:px-6 sm:pb-6">
+                  {renderAnswer(faq.a)}
                 </div>
               )}
             </div>

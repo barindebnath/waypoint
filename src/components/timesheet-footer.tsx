@@ -6,6 +6,20 @@ import { api } from "@/lib/client-api";
 import { DAY_KEYS, type AutoTempoResult } from "@/lib/timesheet-shared";
 import { useDeferredLoading } from "@/lib/use-deferred-loading";
 import { Spinner } from "./spinner";
+import {
+  AlertIcon,
+  BoardIcon,
+  CalendarIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  SlidersIcon,
+  SparkleIcon,
+  TimesheetIcon,
+  UndoIcon,
+} from "./icons";
 
 export function TimesheetDayBadge({
   dayLabel,
@@ -40,27 +54,22 @@ export function TimesheetDayBadge({
           onUnfill();
         }
       }}
-      className={`relative flex h-[22px] w-[22px] items-center justify-center rounded-lg border text-[9px] font-semibold select-none transition-all duration-200 ${
-        isToday ? "ring-1 ring-accent ring-offset-2 ring-offset-surface" : ""
+      className={`relative flex h-7 w-7 items-center justify-center rounded-[10px] text-[11px] font-semibold tabular-nums select-none transition-all duration-200 ${
+        isToday ? "ring-2 ring-accent-fg ring-offset-2 ring-offset-surface" : ""
       } ${
         isUnfilling
-          ? "border-ink-faint/40 bg-surface-2/60 text-ink-faint"
+          ? "bg-surface-2 text-ink-faint"
           : showUndo
-            ? "border-ink-muted/50 bg-surface-3 !text-ink-muted shadow-sm cursor-pointer scale-110"
+            ? "scale-110 cursor-pointer bg-surface-3 text-ink-muted shadow-sm"
             : checked
-              ? "border-accent bg-accent !text-accent-ink shadow-sm"
-              : "border-edge/60 bg-surface-2/40 text-ink-faint/60"
-      } ${isToday && !checked ? "!text-accent" : ""}`}
+              ? "bg-accent text-accent-ink"
+              : "bg-surface-2 text-ink-faint"
+      } ${isToday && !checked ? "text-accent-fg" : ""}`}
     >
-      {isToday && (
-        <span aria-hidden className="absolute -bottom-[6px] left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full bg-accent" />
-      )}
       {isUnfilling ? (
-        <Spinner className="h-2.5 w-2.5 text-ink-faint" />
+        <Spinner className="h-3 w-3 text-ink-faint" />
       ) : showUndo ? (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-[11px] h-[11px]">
-          <path strokeLinecap="round" strokeLinejoin="round" d="m9 14-4-4m0 0 4-4m-4 4h11a4 4 0 0 1 0 8h-1" />
-        </svg>
+        <UndoIcon className="h-3.5 w-3.5" />
       ) : (
         dayLabel
       )}
@@ -87,8 +96,8 @@ function TimesheetSubmitButton({
 
   if (showSpinner) {
     return (
-      <span className="flex h-4 w-4 items-center justify-center">
-        <Spinner className="h-3 w-3 text-accent" />
+      <span className="grid h-7 w-7 place-items-center">
+        <Spinner className="h-3.5 w-3.5 text-accent-fg" />
       </span>
     );
   }
@@ -98,26 +107,23 @@ function TimesheetSubmitButton({
       disabled={disabled}
       title={title}
       onClick={onClick}
-      className={`cursor-pointer flex items-center justify-center p-0.5 rounded transition-all duration-200 ${
+      className={`group grid h-7 w-7 place-items-center rounded-full transition-all duration-200 ${
         submitted
-          ? "text-accent hover:scale-110 active:scale-95"
+          ? "bg-accent-soft text-accent-fg hover:scale-110 active:scale-95"
           : submittable
-            ? "text-accent hover:scale-115 hover:rotate-6 active:scale-95"
-            : "text-ink-faint/50"
+            ? "animate-pulse bg-accent text-accent-ink hover:scale-110 active:scale-95"
+            : "bg-surface-2 text-ink-faint"
       } disabled:cursor-not-allowed`}
     >
       {submitted ? (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-[13px] h-[13px] text-accent transition-all">
-          <path strokeLinecap="round" strokeLinejoin="round" d="m9 14-4-4m0 0 4-4m-4 4h11a4 4 0 0 1 0 8h-1" />
-        </svg>
+        <>
+          <CheckIcon className="h-3.5 w-3.5 group-hover:hidden" />
+          <UndoIcon className="hidden h-3.5 w-3.5 group-hover:block" />
+        </>
       ) : submittable ? (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-[13px] h-[13px] animate-pulse text-accent">
-          <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-        </svg>
+        <CheckIcon className="h-3.5 w-3.5" />
       ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-[11px] h-[11px] text-ink-muted/30 hover:text-ink-muted/50 transition-colors">
-          <circle cx={12} cy={12} r={9} />
-        </svg>
+        <span className="h-1.5 w-1.5 rounded-full bg-current opacity-60" />
       )}
     </button>
   );
@@ -139,12 +145,12 @@ export function AutoTempoFeedback({
   const isNoOp = result.worklogsCreated === 0 && result.messages.length > 0;
 
   return (
-    <div className="mx-1 mb-2 rounded-xl border border-accent/30 bg-surface-2/80 backdrop-blur-sm p-3 text-xs shadow-sm transition-all animate-fade-in">
+    <div className="mb-3 animate-fade-in rounded-2xl bg-surface-2 p-4 text-xs">
       {/* Hero Summary Header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/20 text-accent text-[11px] font-bold">
-            ✓
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent text-accent-ink">
+            <CheckIcon className="h-3.5 w-3.5" />
           </span>
           <span className="font-semibold text-ink">AutoTempo Complete</span>
           {isNoOp ? (
@@ -163,10 +169,10 @@ export function AutoTempoFeedback({
                   {result.days.map((d) => (
                     <span
                       key={d.date}
-                      className="inline-flex items-center gap-1 rounded-md border border-edge/60 bg-surface-3 px-1.5 py-0.5 text-[10px] font-medium text-ink-muted"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-surface-3 px-2.5 py-0.5 text-[10.5px] font-medium text-ink-muted"
                     >
                       <span>{d.date}</span>
-                      <span className="font-semibold text-accent">{d.totalHours.toFixed(1)}h</span>
+                      <span className="font-semibold text-accent-fg">{d.totalHours.toFixed(1)}h</span>
                     </span>
                   ))}
                 </div>
@@ -179,28 +185,20 @@ export function AutoTempoFeedback({
           {hasWorklogs && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="cursor-pointer flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-accent hover:bg-accent/10 transition-colors"
+              className="flex items-center gap-1 rounded-full px-3 py-1.5 text-[11.5px] font-medium text-accent-fg transition-colors hover:bg-accent-soft"
             >
               <span>{isExpanded ? "Hide Details" : "View Details"}</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-              </svg>
+              <ChevronDownIcon className={`h-3 w-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
             </button>
           )}
 
           <button
             onClick={onDismiss}
             title="Dismiss"
-            className="cursor-pointer p-1 text-ink-muted hover:text-ink rounded hover:bg-surface-3 transition-colors text-[11px]"
+            aria-label="Dismiss"
+            className="grid h-7 w-7 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
           >
-            ✕
+            <CloseIcon className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -212,13 +210,14 @@ export function AutoTempoFeedback({
             {result.days.map((day) => (
               <div
                 key={day.date}
-                className="rounded-lg border border-edge/60 bg-surface/80 p-2.5 flex flex-col gap-2"
+                className="flex flex-col gap-2 rounded-2xl bg-surface p-3"
               >
-                <div className="flex items-center justify-between border-b border-edge/40 pb-1.5">
+                <div className="flex items-center justify-between border-b border-edge/60 pb-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-ink">📅 {day.date}</span>
+                    <CalendarIcon className="h-3.5 w-3.5 text-ink-muted" />
+                    <span className="text-[11.5px] font-bold text-ink">{day.date}</span>
                   </div>
-                  <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                  <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-bold text-accent-fg">
                     {day.totalHours.toFixed(1)} hrs
                   </span>
                 </div>
@@ -227,18 +226,18 @@ export function AutoTempoFeedback({
                   {day.worklogs.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between gap-2 text-[11px] rounded bg-surface-2/40 px-2 py-1 hover:bg-surface-2 transition-colors"
+                      className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-2.5 py-1.5 text-[11px] transition-colors hover:bg-surface-3"
                     >
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        <span className="shrink-0 text-xs" title={item.type === "meeting" ? "Meeting" : "Waypoint Card"}>
-                          {item.type === "meeting" ? "🗓️" : "🎫"}
+                        <span className="shrink-0 text-ink-muted" title={item.type === "meeting" ? "Meeting" : "Waypoint Card"}>
+                          {item.type === "meeting" ? <CalendarIcon className="h-3.5 w-3.5" /> : <BoardIcon className="h-3.5 w-3.5" />}
                         </span>
                         <span className="truncate font-medium text-ink" title={item.title}>
                           {item.type === "card" && item.ref ? item.ref : item.title}
                         </span>
                         {item.accountName && (
                           <span
-                            className="hidden sm:inline-block truncate text-[9px] text-ink-faint rounded bg-surface-3 px-1.5 py-0.5"
+                            className="hidden sm:inline-block truncate rounded-full bg-surface-3 px-2 py-0.5 text-[9.5px] text-ink-faint"
                             title={`Account: ${item.account} (${item.accountName})`}
                           >
                             {item.accountName}
@@ -247,7 +246,7 @@ export function AutoTempoFeedback({
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="font-semibold text-accent tabular-nums">
+                        <span className="font-semibold text-accent-fg tabular-nums">
                           {item.hours.toFixed(1)}h
                         </span>
                       </div>
@@ -263,14 +262,15 @@ export function AutoTempoFeedback({
             <div className="pt-1">
               <button
                 onClick={() => setShowDiagnostics(!showDiagnostics)}
-                className="cursor-pointer text-[10px] text-ink-faint hover:text-ink-muted flex items-center gap-1 transition-colors"
+                className="flex items-center gap-1.5 text-[10.5px] text-ink-faint transition-colors hover:text-ink-muted"
               >
-                <span>⚙️ {showDiagnostics ? "Hide Sync Diagnostics" : "View Sync Diagnostics"}</span>
+                <SlidersIcon className="h-3.5 w-3.5" />
+                <span>{showDiagnostics ? "Hide Sync Diagnostics" : "View Sync Diagnostics"}</span>
                 <span className="text-[9px]">({result.diagnostics.length} entries)</span>
               </button>
 
               {showDiagnostics && (
-                <div className="mt-1.5 rounded bg-surface-3/50 p-2 text-[10px] font-mono text-ink-muted space-y-0.5 max-h-32 overflow-y-auto">
+                <div className="mt-1.5 max-h-32 space-y-0.5 overflow-y-auto rounded-xl bg-surface-3/60 p-3 font-mono text-[10px] text-ink-muted">
                   {result.diagnostics.map((diag, i) => (
                     <div key={i} className="leading-relaxed">• {diag}</div>
                   ))}
@@ -374,13 +374,14 @@ export function TimesheetFooter() {
       }}
       title="AutoTempo: find the last filled day in Tempo and fill the missing days up to today"
       aria-label="Fill missing days with AutoTempo"
-      className="cursor-pointer flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold text-accent hover:bg-accent hover:text-accent-ink transition-all disabled:opacity-40"
+      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-accent-soft px-3.5 text-xs font-semibold text-accent-fg transition-all hover:bg-accent hover:text-accent-ink disabled:opacity-40"
     >
       {autoTempoMut.isPending ? (
-        <Spinner className="h-3 w-3 text-current" />
+        <Spinner className="h-3.5 w-3.5 text-current" />
       ) : (
-        "Fill"
+        <SparkleIcon className="h-3.5 w-3.5" />
       )}
+      Fill
     </button>
   );
 
@@ -389,32 +390,32 @@ export function TimesheetFooter() {
       <button
         disabled={safeIndex >= months.length - 1}
         onClick={() => setActiveMonthIndex(safeIndex + 1)}
-        className="cursor-pointer p-1 rounded hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent text-ink-muted transition-colors"
+        className="grid h-8 w-8 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
         title="Previous Month"
+        aria-label="Previous month"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-        </svg>
+        <ChevronLeftIcon className="h-4 w-4" />
       </button>
 
       <span
-        className={`text-xs font-semibold flex items-center gap-1.5 min-w-[80px] sm:min-w-[90px] justify-center select-none ${activeMonth.allSubmitted ? "text-done" : "text-ink-muted"}`}
+        className={`flex min-w-[92px] select-none items-center justify-center gap-1.5 text-[13px] font-semibold sm:min-w-[120px] ${activeMonth.allSubmitted ? "text-done" : "text-ink-muted"}`}
       >
         {activeMonth.label}
         {activeMonth.allSubmitted && (
-          <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-done-soft text-done text-[9px] font-bold">✓</span>
+          <span className="grid h-4 w-4 place-items-center rounded-full bg-done-soft text-done">
+            <CheckIcon className="h-2.5 w-2.5" />
+          </span>
         )}
       </span>
 
       <button
         disabled={safeIndex <= 0}
         onClick={() => setActiveMonthIndex(safeIndex - 1)}
-        className="cursor-pointer p-1 rounded hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent text-ink-muted transition-colors"
+        className="grid h-8 w-8 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
         title="Next Month"
+        aria-label="Next month"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-        </svg>
+        <ChevronRightIcon className="h-4 w-4" />
       </button>
     </>
   );
@@ -422,16 +423,18 @@ export function TimesheetFooter() {
   const feedback = (
     <>
       {autoTempoError && (
-        <div className="mx-1 mb-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400 flex items-center justify-between animate-fade-in">
+        <div className="mb-3 flex animate-fade-in items-center justify-between rounded-2xl bg-danger/10 p-4 text-xs text-danger">
           <div className="flex items-center gap-2">
-            <span className="font-bold">⚠️ AutoTempo Error:</span>
+            <AlertIcon className="h-4 w-4 shrink-0" />
+            <span className="font-bold">AutoTempo Error:</span>
             <span>{autoTempoError}</span>
           </div>
           <button
             onClick={() => setAutoTempoError(null)}
-            className="text-red-500 hover:opacity-75 text-[11px] font-bold cursor-pointer ml-2"
+            aria-label="Dismiss"
+            className="ml-2 grid h-7 w-7 place-items-center rounded-full transition-colors hover:bg-danger/15"
           >
-            ✕
+            <CloseIcon className="h-4 w-4" />
           </button>
         </div>
       )}
@@ -446,7 +449,7 @@ export function TimesheetFooter() {
   );
 
   const emptyNote = (
-    <span className="font-serif text-xs italic text-ink-faint">
+    <span className="text-xs text-ink-faint">
       Nothing to show here right now.
     </span>
   );
@@ -467,7 +470,7 @@ export function TimesheetFooter() {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex flex-row flex-nowrap items-center gap-5 pl-2 pt-1 pb-2 overflow-x-auto"
+        className="flex flex-row flex-nowrap items-center gap-5 overflow-x-auto px-2 py-2"
       >
         {[...activeMonth.weeks].reverse().map((week, index, arr) => {
           const submitted = week.submit.status === "submitted";
@@ -497,13 +500,13 @@ export function TimesheetFooter() {
                           tickMut.variables?.day === d
                         }
                         onUnfill={() => tickMut.mutate({ weekId: week.weekId, day: d })}
-                isToday={dateStr === todayIso}
+                        isToday={dateStr === todayIso}
                       />
                     );
                   })}
                 </div>
 
-                <div className="h-[20px] flex items-center justify-center">
+                <div className="flex items-center justify-center">
                   <TimesheetSubmitButton
                     disabled={
                       submitMut.isPending ||
@@ -546,12 +549,13 @@ export function TimesheetFooter() {
   // One row: title and AutoTempo on the left, the dates in the middle (they scroll), the month on the right.
   // An AutoTempo result or error shows above the row until the user dismisses it.
   return (
-    <footer className="footer-panel fixed inset-x-0 bottom-0 z-30 border-t border-edge bg-surface/95 shadow-[0_-6px_16px_-8px_rgba(0,0,0,0.25)] backdrop-blur-md">
-      <div className="mx-auto max-w-[1500px] px-3 sm:px-7">
-        {(autoTempoError || autoTempoResult) && <div className="max-h-64 overflow-y-auto pt-2">{feedback}</div>}
-        <div className="flex items-center gap-3 sm:gap-5 py-1.5">
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-[0.16em] text-ink select-none">
+    <footer className="shrink-0 rounded-[22px] bg-surface">
+      <div className="px-3 sm:px-5">
+        {(autoTempoError || autoTempoResult) && <div className="max-h-64 overflow-y-auto pt-3">{feedback}</div>}
+        <div className="flex items-center gap-3 py-2 sm:gap-5">
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="hidden select-none items-center gap-2 text-[13px] font-semibold text-ink sm:flex">
+              <TimesheetIcon className="h-[18px] w-[18px] text-ink-muted" />
               Timesheets
             </span>
             {autoTempoButton}

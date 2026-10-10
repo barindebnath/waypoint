@@ -6,9 +6,19 @@ import { api, type EnrichedRowView } from "@/lib/client-api";
 import { useAutoSync } from "@/lib/use-auto-sync";
 import { BoardCard } from "@/components/board-card";
 import { COLUMNS, columnIndex } from "@/lib/board-columns";
-import { DeferredSpinner } from "@/components/deferred-spinner";
+import { PIPELINE_STYLE } from "@/components/chip";
+import {
+  BoardIcon,
+  CodeIcon,
+  CompassIcon,
+  FlagIcon,
+  FlaskIcon,
+  RefreshIcon,
+  ShieldCheckIcon,
+} from "@/components/icons";
 import { TimesheetFooter } from "@/components/timesheet-footer";
 import { NewRowForm } from "@/components/new-row-form";
+import { PageHeader } from "@/components/ui";
 
 function fmtSince(ms: number): string {
   const mins = Math.floor((Date.now() - ms) / 60000);
@@ -42,15 +52,27 @@ function SyncStatus() {
       onClick={() => sync.refetch()}
       disabled={sync.isFetching}
       title={sync.isError ? `${sync.error.message} · click to retry` : "Jira, GitHub & Tempo sync automatically every 30 min · click to sync now"}
-      className={`ml-auto flex items-center gap-1.5 font-mono text-[11px] cursor-pointer disabled:cursor-default ${
-        sync.isError ? "text-danger" : "text-ink-faint hover:text-ink"
+      aria-label={label}
+      className={`inline-flex h-10 w-10 items-center justify-center gap-2 rounded-2xl bg-surface text-xs font-medium transition-colors hover:bg-surface-2 disabled:cursor-default sm:w-auto sm:px-3.5 ${
+        sync.isError ? "text-danger" : "text-ink-muted hover:text-ink"
       }`}
     >
-      <DeferredSpinner isPending={sync.isFetching} className="h-3 w-3 text-current" />
-      {label}
+      <RefreshIcon className={`h-4 w-4 ${sync.isFetching ? "animate-spin" : ""}`} />
+      <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }
+
+/** The look of each Board column: an icon for the stage on a pastel tile. The order matches COLUMNS. */
+const LANE_STYLE = [
+  { icon: CompassIcon, tile: "bg-chip-sky" },
+  { icon: CodeIcon, tile: "bg-chip-lilac" },
+  { icon: FlaskIcon, tile: "bg-chip-yellow" },
+  { icon: ShieldCheckIcon, tile: "bg-chip-orange" },
+  { icon: FlagIcon, tile: "bg-chip-mint" },
+];
+
+type Filter = "all" | keyof typeof PIPELINE_STYLE;
 
 /**
  * Board view: one column per milestone position.
@@ -61,56 +83,106 @@ function SyncStatus() {
 export default function BoardPage() {
   const { data, isLoading } = useQuery({ queryKey: ["rows"], queryFn: api.rows });
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
+  const [filter, setFilter] = useState<Filter>("all");
   const showTimesheet = me?.showTimesheet ?? true;
 
   const rows = data?.rows ?? [];
   const active = rows.filter((r) => !r.isComplete);
+  const shown = filter === "all" ? active : active.filter((r) => r.pipelineKey === filter);
   const columns = COLUMNS.map((c) => ({ ...c, rows: [] as EnrichedRowView[] }));
-  for (const r of active) columns[columnIndex(r)].rows.push(r);
+  for (const r of shown) columns[columnIndex(r)].rows.push(r);
+
+  const filters: { key: Filter; label: string; dot?: string; count: number }[] = [
+    { key: "all", label: "All", count: active.length },
+    ...Object.entries(PIPELINE_STYLE).map(([key, p]) => ({
+      key,
+      label: p.label,
+      dot: p.dot,
+      count: active.filter((r) => r.pipelineKey === key).length,
+    })),
+  ];
 
   return (
-    <main className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col px-3 sm:px-7 pb-5 pt-3 sm:pt-[26px]">
-      <div className="mb-3 sm:mb-[18px] flex flex-row flex-wrap items-baseline gap-2.5 sm:gap-4">
-        <h1 className="font-serif text-xl sm:text-[32px] font-medium tracking-tight">Board</h1>
-        <span className="font-serif text-xs sm:text-[15px] italic text-ink-muted">
-          {active.length} in flight
-        </span>
-        <SyncStatus />
-        <div className="self-center">
-          <NewRowForm />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <PageHeader
+        icon={<BoardIcon />}
+        title="Board"
+        subtitle={isLoading ? "Loading…" : `${active.length} in flight`}
+        actions={
+          <>
+            <SyncStatus />
+            <NewRowForm />
+          </>
+        }
+      >
+        {/* Filter by pipeline */}
+        <div role="group" aria-label="Filter by pipeline" className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-surface p-1">
+          {filters.map((f) => {
+            const on = filter === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setFilter(f.key)}
+                className={`flex h-9 shrink-0 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium transition-colors ${
+                  on ? "bg-accent text-accent-ink" : "text-ink-muted hover:bg-surface-2 hover:text-ink"
+                }`}
+              >
+                {f.dot && <span className={`h-2 w-2 rounded-full ${f.dot}`} aria-hidden />}
+                {f.label}
+                <span className={`font-mono text-[11px] tabular-nums ${on ? "text-accent-ink/70" : "text-ink-faint"}`}>{f.count}</span>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </PageHeader>
 
-      {isLoading ? (
-        <p className="text-sm text-ink-muted">Loading…</p>
-      ) : (
-        <div className="grid grid-flow-col auto-cols-[minmax(240px,1fr)] gap-3 overflow-x-auto pb-2">
-          {columns.map((col) => (
-            <section key={col.title} className="flex min-h-[200px] flex-col rounded-xl border border-edge bg-surface-2/60 p-2.5">
-              <header className="mb-2.5 flex items-baseline justify-between px-1">
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">{col.title}</h2>
-                <span className="font-mono text-[11px] text-ink-faint">{col.rows.length}</span>
-              </header>
-              <div className="flex flex-col gap-2">
-                {col.rows.map((r) => (
-                  <BoardCard key={r.id} row={r} />
-                ))}
-                {col.rows.length === 0 && (
-                  <p className="px-1 py-4 text-center font-serif text-xs italic text-ink-faint">Empty</p>
-                )}
-              </div>
-            </section>
-          ))}
+      <main className="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3 sm:px-4 sm:pb-4">
+        <div className="min-h-0 flex-1 snap-x snap-proximity scroll-px-3 overflow-x-auto rounded-lane bg-lane p-3">
+          <div className="grid h-full grid-flow-col auto-cols-[minmax(216px,1fr)] gap-3">
+            {columns.map((col, i) => {
+              const style = LANE_STYLE[i] ?? LANE_STYLE[0];
+              return (
+                <section key={col.title} aria-label={col.title} className="flex min-h-0 snap-start flex-col">
+                  <header className="mb-3 flex min-h-9 items-center gap-2 px-1">
+                    <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-[10px] text-chip-ink ${style.tile}`}>
+                      <style.icon className="h-4 w-4" />
+                    </span>
+                    <h2 className="min-w-0 flex-1 text-[14px] font-semibold leading-tight tracking-tight">{col.title}</h2>
+                    <span className="shrink-0 rounded-full bg-surface-3 px-2 py-0.5 font-mono text-[11px] tabular-nums text-ink-muted">
+                      {isLoading ? "–" : col.rows.length}
+                    </span>
+                  </header>
+                  <div className="-mr-1.5 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-1 pr-1.5">
+                    {isLoading ? (
+                      <>
+                        <div className="h-32 animate-pulse rounded-card bg-card/60" />
+                        <div className="h-24 animate-pulse rounded-card bg-card/40" />
+                      </>
+                    ) : (
+                      <>
+                        {col.rows.map((r) => (
+                          <BoardCard key={r.id} row={r} />
+                        ))}
+                        {col.rows.length === 0 && (
+                          <p className="rounded-card border border-dashed border-edge-strong/60 px-3 py-6 text-center text-[13px] text-ink-faint">
+                            No cards here
+                          </p>
+                        )}
+                        {/* New cards start in the first column, so the add row is only there. */}
+                        {i === 0 && <NewRowForm variant="lane" />}
+                      </>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
         </div>
-      )}
 
-      {showTimesheet && (
-        <>
-          {/* The bar is fixed to the window bottom. This spacer keeps the last cards above its closed height. */}
-          <div className="h-12 shrink-0" aria-hidden />
-          <TimesheetFooter />
-        </>
-      )}
-    </main>
+        {showTimesheet && <TimesheetFooter />}
+      </main>
+    </div>
   );
 }

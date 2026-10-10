@@ -6,10 +6,28 @@ import { api } from "@/lib/client-api";
 import { authClient } from "@/lib/auth-client";
 import { OFFICIAL_ACCOUNTS, OFFICIAL_INVESTMENT_CATEGORIES, SYSTEM_COMMON_RULES } from "@/lib/timesheet-shared";
 import { getThemePref, setThemePref, subscribeTheme, type ThemePref } from "@/lib/theme";
-import { getColorThemePref, setColorThemePref, subscribeColorTheme, type ColorThemePref } from "@/lib/color-theme";
-import { getFontThemePref, setFontThemePref, subscribeFontTheme, type FontThemePref } from "@/lib/font-theme";
+import { getColorThemePref, normalizeColorTheme, setColorThemePref, subscribeColorTheme, type ColorThemePref } from "@/lib/color-theme";
+import { getFontThemePref, normalizeFontTheme, setFontThemePref, subscribeFontTheme, type FontThemePref } from "@/lib/font-theme";
 import { DeferredSpinner } from "@/components/deferred-spinner";
-import { RefreshIcon } from "@/components/status-badge";
+import {
+  AlertIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  CloseIcon,
+  KeyIcon,
+  LinkIcon,
+  MonitorIcon,
+  MoonIcon,
+  PlusIcon,
+  RefreshIcon,
+  SearchIcon,
+  SlidersIcon,
+  SparkleIcon,
+  SunIcon,
+  TimesheetIcon,
+  UserIcon,
+} from "@/components/icons";
+import { PageHeader, btnDanger, btnPrimary, btnSecondary } from "@/components/ui";
 
 type ApiKeyRow = {
   id: string;
@@ -31,54 +49,108 @@ function scopesOf(metadata: unknown): string {
   return "read";
 }
 
-/* Swatch data straight from the design's themeOptions. */
+/** A swatch colour that is split on a slant: the light value on the left, the dark value on the right. */
+const split = (light: string, dark: string, at = 55) => `linear-gradient(105deg, ${light} ${at}%, ${dark} ${at}%)`;
+
+/** The title of a settings section: a small icon tile and the text. */
+function SectionTitle({ icon, children, className = "mb-1" }: { icon: React.ReactNode; children: React.ReactNode; className?: string }) {
+  return (
+    <h2 className={`flex items-center gap-2.5 text-[15px] font-semibold tracking-tight ${className}`}>
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-surface-2 text-accent-fg [&>svg]:h-4 [&>svg]:w-4">
+        {icon}
+      </span>
+      {children}
+    </h2>
+  );
+}
+
+/** A choice card with a preview, a label and a line of text. The chosen card has a lime outline and a tick. */
+function ChoiceCard({
+  on,
+  disabled = false,
+  onClick,
+  preview,
+  label,
+  desc,
+}: {
+  on: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  preview: React.ReactNode;
+  label: React.ReactNode;
+  desc: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      disabled={disabled}
+      onClick={onClick}
+      className={`relative flex flex-col gap-2.5 rounded-2xl border-2 bg-surface-2 p-3 text-left transition-colors ${
+        on ? "border-accent" : "border-transparent hover:border-edge-strong"
+      } ${disabled ? "cursor-not-allowed opacity-75" : ""}`}
+    >
+      {preview}
+      <span className={`flex items-center gap-1.5 text-[13px] font-semibold ${on ? "text-accent-fg" : "text-ink"}`}>{label}</span>
+      <span className="text-[11.5px] leading-tight text-ink-faint">{desc}</span>
+      {on && (
+        <span className="absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full bg-accent text-accent-ink">
+          <CheckIcon className="h-3 w-3" />
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** A small preview of a palette: a background with three bars. */
+function Swatch({ bg, ink, accent, muted }: { bg: string; ink: string; accent: string; muted: string }) {
+  return (
+    <span className="relative block h-12 overflow-hidden rounded-xl border border-edge" style={{ background: bg }}>
+      <span className="absolute left-2.5 top-2.5 h-1.5 w-11 rounded-full" style={{ background: ink }} />
+      <span className="absolute left-2.5 top-[22px] h-1.5 w-7 rounded-full" style={{ background: accent }} />
+      <span className="absolute left-2.5 top-[34px] h-1.5 w-14 rounded-full" style={{ background: muted }} />
+    </span>
+  );
+}
+
+/* Swatches of the default (lime) palette in each mode. */
 const THEME_CARDS: {
   key: ThemePref;
   label: string;
-  glyph: string;
+  icon: typeof SunIcon;
   desc: string;
   swBg: string;
   swInk: string;
   swAccent: string;
   swMuted: string;
 }[] = [
-  { key: "light", label: "Light", glyph: "☀", desc: "Warm paper, always.", swBg: "#f5efe3", swInk: "#241d10", swAccent: "#b4501e", swMuted: "#c8bb9a" },
-  { key: "dark", label: "Dark", glyph: "☾", desc: "Lamplight, always.", swBg: "#151109", swInk: "#ede4cd", swAccent: "#e08a4e", swMuted: "#4d442a" },
-  { key: "system", label: "System", glyph: "◐", desc: "Follows your OS setting.", swBg: "linear-gradient(105deg,#f5efe3 50%,#151109 50%)", swInk: "linear-gradient(105deg,#241d10 60%,#ede4cd 60%)", swAccent: "#b4501e", swMuted: "linear-gradient(105deg,#c8bb9a 70%,#4d442a 70%)" },
+  { key: "light", label: "Light", icon: SunIcon, desc: "Soft white panels, always.", swBg: "#f6f6f2", swInk: "#161612", swAccent: "#93d00e", swMuted: "#c6c6bb" },
+  { key: "dark", label: "Dark", icon: MoonIcon, desc: "Charcoal panels, always.", swBg: "#111111", swInk: "#f5f5f3", swAccent: "#93d00e", swMuted: "#3b3b3b" },
+  { key: "system", label: "System", icon: MonitorIcon, desc: "Follows your OS setting.", swBg: split("#f6f6f2", "#111111"), swInk: split("#161612", "#f5f5f3", 60), swAccent: "#93d00e", swMuted: split("#c6c6bb", "#3b3b3b", 70) },
 ];
 
 function AppearanceSection() {
   const pref = useSyncExternalStore(subscribeTheme, getThemePref, () => "dark" as const);
   return (
-    <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-      <h2 className="mb-1 text-sm font-semibold">Appearance</h2>
-      <p className="mb-3.5 text-xs text-ink-muted">Theme applies instantly and is remembered on this device.</p>
+    <section className="rounded-2xl border border-edge bg-surface p-5">
+      <SectionTitle icon={<MoonIcon />}>Appearance</SectionTitle>
+      <p className="mb-4 text-xs leading-relaxed text-ink-muted">Theme applies instantly and is remembered on this device.</p>
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3" suppressHydrationWarning>
-        {THEME_CARDS.map((t) => {
-          const on = pref === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setThemePref(t.key)}
-              className={`flex flex-col gap-2 rounded-[10px] border-[1.5px] bg-surface-2 p-2.5 text-left ${
-                on ? "border-accent" : "border-edge hover:border-edge-strong"
-              }`}
-            >
-              <span
-                className="relative block h-11 overflow-hidden rounded-md border border-edge"
-                style={{ background: t.swBg }}
-              >
-                <span className="absolute left-2 top-2 h-[5px] w-11 rounded" style={{ background: t.swInk }} />
-                <span className="absolute left-2 top-[18px] h-[5px] w-7 rounded" style={{ background: t.swAccent }} />
-                <span className="absolute left-2 top-7 h-[5px] w-14 rounded" style={{ background: t.swMuted }} />
-              </span>
-              <span className={`flex items-center gap-1.5 text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"}`}>
-                {t.glyph} {t.label}
-              </span>
-              <span className="text-[11px] text-ink-faint">{t.desc}</span>
-            </button>
-          );
-        })}
+        {THEME_CARDS.map((t) => (
+          <ChoiceCard
+            key={t.key}
+            on={pref === t.key}
+            onClick={() => setThemePref(t.key)}
+            preview={<Swatch bg={t.swBg} ink={t.swInk} accent={t.swAccent} muted={t.swMuted} />}
+            label={
+              <>
+                <t.icon className="h-4 w-4" />
+                {t.label}
+              </>
+            }
+            desc={t.desc}
+          />
+        ))}
       </div>
     </section>
   );
@@ -93,14 +165,14 @@ const COLOR_THEME_CARDS: {
   swAccent: string;
   swMuted: string;
 }[] = [
-  { key: "paper", label: "Paper", desc: "Warm sepia, amber accent.", swBg: "#f5efe3", swInk: "#241d10", swAccent: "#b4501e", swMuted: "#c8bb9a" },
-  { key: "nord", label: "Nordic", desc: "Cool grey, blue/teal accent.", swBg: "#eef2f7", swInk: "#0f172a", swAccent: "#0284c7", swMuted: "#94a3b8" },
-  { key: "forest", label: "Forest", desc: "Earthy sage, pine accent.", swBg: "#edf1eb", swInk: "#1c281a", swAccent: "#2d6a4f", swMuted: "#a3b89f" },
-  { key: "royal", label: "Royal", desc: "Rich purple, gold/lavender.", swBg: "#f5f0f6", swInk: "#24112c", swAccent: "#7b2cb1", swMuted: "#b796c3" },
+  { key: "lime", label: "Lime", desc: "Charcoal panels, lime accent.", swBg: split("#f6f6f2", "#111111"), swInk: split("#161612", "#f5f5f3", 60), swAccent: "#93d00e", swMuted: split("#c6c6bb", "#3b3b3b", 70) },
+  { key: "paper", label: "Paper", desc: "Warm sepia, amber accent.", swBg: split("#f5efe3", "#151109"), swInk: split("#241d10", "#ede4cd", 60), swAccent: split("#b4501e", "#e08a4e", 40), swMuted: split("#c8bb9a", "#4d442a", 70) },
+  { key: "nord", label: "Nordic", desc: "Cool grey, blue/teal accent.", swBg: split("#eef2f7", "#0f172a"), swInk: split("#0f172a", "#f8fafc", 60), swAccent: split("#0284c7", "#38bdf8", 40), swMuted: split("#94a3b8", "#475569", 70) },
+  { key: "royal", label: "Royal", desc: "Rich purple, gold/lavender.", swBg: split("#f5f0f6", "#150d1b"), swInk: split("#24112c", "#ebdff0", 60), swAccent: split("#7b2cb1", "#d896ff", 40), swMuted: split("#b796c3", "#583e6d", 70) },
 ];
 
 function ColorPaletteSection() {
-  const pref = useSyncExternalStore(subscribeColorTheme, getColorThemePref, () => "forest" as const);
+  const pref = useSyncExternalStore(subscribeColorTheme, getColorThemePref, () => "lime" as const);
   const qc = useQueryClient();
 
   const themeMut = useMutation({
@@ -111,40 +183,29 @@ function ColorPaletteSection() {
   });
 
   return (
-    <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-      <h2 className="mb-1 text-sm font-semibold">Color Palette</h2>
-      <p className="mb-3.5 text-xs text-ink-muted">Choose a theme variant. Applies to both light and dark modes.</p>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4" suppressHydrationWarning>
-        {COLOR_THEME_CARDS.map((t) => {
-          const on = pref === t.key;
-          return (
-            <button
-              key={t.key}
-              disabled={themeMut.isPending}
-              onClick={() => {
-                setColorThemePref(t.key);
-                themeMut.mutate(t.key);
-              }}
-              className={`flex flex-col gap-2 rounded-[10px] border-[1.5px] bg-surface-2 p-2.5 text-left transition-all ${
-                on ? "border-accent" : "border-edge hover:border-edge-strong"
-              } ${themeMut.isPending ? "opacity-75 cursor-not-allowed" : ""}`}
-            >
-              <span
-                className="relative block h-11 overflow-hidden rounded-md border border-edge"
-                style={{ background: t.swBg }}
-              >
-                <span className="absolute left-2 top-2 h-[5px] w-11 rounded" style={{ background: t.swInk }} />
-                <span className="absolute left-2 top-[18px] h-[5px] w-7 rounded" style={{ background: t.swAccent }} />
-                <span className="absolute left-2 top-7 h-[5px] w-14 rounded" style={{ background: t.swMuted }} />
-              </span>
-              <span className={`text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"} flex items-center gap-1.5`}>
+    <section className="rounded-2xl border border-edge bg-surface p-5">
+      <SectionTitle icon={<SparkleIcon />}>Color Palette</SectionTitle>
+      <p className="mb-4 text-xs leading-relaxed text-ink-muted">Choose a theme variant. Applies to both light and dark modes.</p>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:grid-cols-2 2xl:grid-cols-4" suppressHydrationWarning>
+        {COLOR_THEME_CARDS.map((t) => (
+          <ChoiceCard
+            key={t.key}
+            on={pref === t.key}
+            disabled={themeMut.isPending}
+            onClick={() => {
+              setColorThemePref(t.key);
+              themeMut.mutate(t.key);
+            }}
+            preview={<Swatch bg={t.swBg} ink={t.swInk} accent={t.swAccent} muted={t.swMuted} />}
+            label={
+              <>
                 {t.label}
                 <DeferredSpinner isPending={themeMut.isPending && themeMut.variables === t.key} className="h-3 w-3" />
-              </span>
-              <span className="text-[11px] text-ink-faint leading-tight">{t.desc}</span>
-            </button>
-          );
-        })}
+              </>
+            }
+            desc={t.desc}
+          />
+        ))}
       </div>
     </section>
   );
@@ -153,16 +214,15 @@ function ColorPaletteSection() {
 const FONT_THEME_CARDS: {
   key: FontThemePref;
   label: string;
-  fontFamilyClass: string;
   desc: string;
 }[] = [
-  { key: "serif", label: "Serif", fontFamilyClass: "font-serif", desc: "Warm literary style." },
-  { key: "sans", label: "Sans-Serif", fontFamilyClass: "font-sans", desc: "Clean & contemporary." },
-  { key: "mono", label: "Monospace", fontFamilyClass: "font-mono", desc: "Bold developer feel." },
+  { key: "sans", label: "Sans-Serif", desc: "Clean & contemporary." },
+  { key: "serif", label: "Serif", desc: "Warm literary style." },
+  { key: "mono", label: "Monospace", desc: "Bold developer feel." },
 ];
 
 function FontStyleSection() {
-  const pref = useSyncExternalStore(subscribeFontTheme, getFontThemePref, () => "mono" as const);
+  const pref = useSyncExternalStore(subscribeFontTheme, getFontThemePref, () => "sans" as const);
   const qc = useQueryClient();
 
   const fontMut = useMutation({
@@ -174,54 +234,49 @@ function FontStyleSection() {
 
   const getFamilyStyle = (key: FontThemePref) => {
     if (key === "serif") return { fontFamily: "var(--font-newsreader), Georgia, serif" };
-    if (key === "sans") return { fontFamily: "ui-sans-serif, system-ui, -apple-system, sans-serif" };
+    if (key === "sans") return { fontFamily: "var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif" };
     if (key === "mono") return { fontFamily: "var(--font-plex-mono), ui-monospace, monospace" };
     return {};
   };
 
   return (
-    <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-      <h2 className="mb-1 text-sm font-semibold">Font Style</h2>
-      <p className="mb-3.5 text-xs text-ink-muted">Choose your preferred typography category for headings and UI accents.</p>
+    <section className="rounded-2xl border border-edge bg-surface p-5">
+      <SectionTitle icon={<span className="text-[15px] font-semibold leading-none">Aa</span>}>Font Style</SectionTitle>
+      <p className="mb-4 text-xs leading-relaxed text-ink-muted">Choose your preferred typography category for headings and UI accents.</p>
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3" suppressHydrationWarning>
-        {FONT_THEME_CARDS.map((t) => {
-          const on = pref === t.key;
-          return (
-            <button
-              key={t.key}
-              disabled={fontMut.isPending}
-              onClick={() => {
-                setFontThemePref(t.key);
-                fontMut.mutate(t.key);
-              }}
-              className={`flex flex-col gap-2 rounded-[10px] border-[1.5px] bg-surface-2 p-2.5 text-left transition-all ${
-                on ? "border-accent" : "border-edge hover:border-edge-strong"
-              } ${fontMut.isPending ? "opacity-75 cursor-not-allowed" : ""}`}
-            >
+        {FONT_THEME_CARDS.map((t) => (
+          <ChoiceCard
+            key={t.key}
+            on={pref === t.key}
+            disabled={fontMut.isPending}
+            onClick={() => {
+              setFontThemePref(t.key);
+              fontMut.mutate(t.key);
+            }}
+            preview={
               <span
-                className="relative flex h-11 items-center justify-center rounded-md border border-edge bg-surface"
+                className="relative flex h-12 items-center justify-center rounded-xl border border-edge bg-surface"
                 style={getFamilyStyle(t.key)}
               >
                 <span className="text-2xl font-medium text-ink">Aa</span>
               </span>
-              <span
-                className={`text-[12.5px] font-semibold ${on ? "text-accent" : "text-ink"} flex items-center gap-1.5`}
-                style={getFamilyStyle(t.key)}
-              >
+            }
+            label={
+              <span className="flex items-center gap-1.5" style={getFamilyStyle(t.key)}>
                 {t.label}
                 <DeferredSpinner isPending={fontMut.isPending && fontMut.variables === t.key} className="h-3 w-3" />
               </span>
-              <span className="text-[11px] text-ink-faint leading-tight">{t.desc}</span>
-            </button>
-          );
-        })}
+            }
+            desc={t.desc}
+          />
+        ))}
       </div>
     </section>
   );
 }
 
 const inputCls =
-  "w-full rounded-[7px] border border-edge bg-surface-2 px-2.5 py-2 outline-none focus:border-accent";
+  "h-10 w-full rounded-xl border border-edge bg-surface-2 px-3.5 text-[13px] text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent";
 
 /* Integration secrets are write-only: /me reports only whether each one is set. */
 type SecretKey = "jiraApiToken" | "githubPat" | "tempoApiToken" | "msClientSecret" | "msRefreshToken";
@@ -263,13 +318,13 @@ function SecretInput({
       : placeholder;
   return (
     <div className="block">
-      <span className="mb-1.5 flex items-center justify-between text-xs text-ink-muted">
+      <span className="mb-1.5 flex items-center justify-between text-xs font-medium text-ink-muted">
         <span>{label}</span>
         {(isSet || draft.clear) && (
           <button
             type="button"
             onClick={() => onChange({ value: "", clear: !draft.clear })}
-            className="text-[11px] font-semibold text-ink-muted hover:text-ink cursor-pointer"
+            className="text-[11px] font-semibold text-ink-muted transition-colors hover:text-ink"
           >
             {draft.clear ? "Undo clear" : "Clear"}
           </button>
@@ -298,7 +353,7 @@ export default function SettingsPage() {
   const { data: me } = useQuery({ queryKey: ["me"], queryFn: api.me });
   if (!me) {
     return (
-      <main className="flex-1 py-16 text-center font-serif text-base italic text-ink-faint">Loading…</main>
+      <div className="flex flex-1 items-center justify-center text-sm text-ink-faint">Loading…</div>
     );
   }
   return <SettingsForm key={me.userId} me={me} />;
@@ -378,18 +433,20 @@ function SettingsForm({
 
   useEffect(() => {
     if (me.colorTheme) {
-      const currentLocal = getColorThemePref();
-      if (currentLocal !== me.colorTheme) {
-        setColorThemePref(me.colorTheme as ColorThemePref);
+      // A saved "forest" (the old default palette) shows as "lime".
+      const saved = normalizeColorTheme(me.colorTheme);
+      if (getColorThemePref() !== saved) {
+        setColorThemePref(saved);
       }
     }
   }, [me.colorTheme]);
 
   useEffect(() => {
     if (me.fontTheme) {
-      const currentLocal = getFontThemePref();
-      if (currentLocal !== me.fontTheme) {
-        setFontThemePref(me.fontTheme as FontThemePref);
+      // An old saved value that is not a font theme shows as the default.
+      const saved = normalizeFontTheme(me.fontTheme);
+      if (getFontThemePref() !== saved) {
+        setFontThemePref(saved);
       }
     }
   }, [me.fontTheme]);
@@ -501,16 +558,18 @@ function SettingsForm({
   if (timezone && !timezones.includes(timezone)) timezones.unshift(timezone);
 
   return (
-    <main className="mx-auto flex w-full max-w-[680px] lg:max-w-[1240px] xl:max-w-[1500px] flex-1 flex-col gap-4 px-7 pb-16 pt-[26px]">
-      <h1 className="font-serif text-[32px] font-medium tracking-tight">Settings</h1>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <PageHeader icon={<SlidersIcon />} title="Settings" subtitle="Appearance, integrations, tokens and your data" />
+      <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 sm:px-6">
 
       {/*
         Three column groups: appearance | AutoTempo | links, tokens and data.
-        Two columns from lg (the third group goes under the first), three from xl.
+        From lg there are two columns. AutoTempo is on the right and spans both rows,
+        so the third group sits under the first with no gap. From 2xl there are three columns.
         Narrow screens stack the groups in the original section order.
       */}
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-1">
           <AppearanceSection />
           <ColorPaletteSection />
           <FontStyleSection />
@@ -518,11 +577,11 @@ function SettingsForm({
 
         </div>
 
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 2xl:row-span-1">
           {/* AutoTempo Integration & Rules */}
-          <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-            <h2 className="mb-1 text-sm font-semibold">AutoTempo Integration &amp; Rules</h2>
-            <p className="mb-3.5 text-xs text-ink-muted">
+          <section className="rounded-2xl border border-edge bg-surface p-5">
+            <SectionTitle icon={<TimesheetIcon />}>AutoTempo Integration &amp; Rules</SectionTitle>
+            <p className="mb-4 text-xs leading-relaxed text-ink-muted">
               Configure Tempo API token, Jira Account ID, Microsoft Outlook Graph credentials, and matching rules to auto-fill worklogs.
             </p>
             <div className="flex flex-col gap-3.5 text-[13px]">
@@ -577,7 +636,7 @@ function SettingsForm({
               </div>
 
               {/* Waypoint Rows Allocation Notice */}
-              <div className="rounded-lg border border-edge bg-surface-2/60 p-3.5 flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 rounded-xl bg-surface-2 p-4">
                 <span className="text-xs font-semibold text-ink">Waypoint Rows Auto-Fill</span>
                 <p className="text-[11px] text-ink-muted">
                   AutoTempo allocates remaining workday hours directly across your active Waypoint rows (cards you worked on), looking up Jira issue IDs and mapping Tempo finance account categories automatically.
@@ -600,13 +659,15 @@ function SettingsForm({
                             isSkipped ? skipDays.filter((d) => d !== dayName) : [...skipDays, dayName]
                           )
                         }
-                        className={`cursor-pointer rounded-md border px-2.5 py-1 text-xs font-semibold transition-all ${
+                        aria-pressed={isSkipped}
+                        className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold transition-colors ${
                           isSkipped
-                            ? "border-accent bg-accent/20 text-accent"
-                            : "border-edge bg-surface-2 text-ink-faint hover:border-edge-strong hover:text-ink"
+                            ? "bg-accent-soft text-accent-fg ring-1 ring-accent/40"
+                            : "bg-surface-2 text-ink-faint hover:bg-surface-3 hover:text-ink"
                         }`}
                       >
-                        {dayName} {isSkipped ? "✓" : ""}
+                        {dayName}
+                        {isSkipped && <CheckIcon className="h-3 w-3" />}
                       </button>
                     );
                   })}
@@ -614,12 +675,12 @@ function SettingsForm({
               </div>
 
               {/* Weekly schedule opt-in */}
-              <label className="flex items-start gap-2.5 rounded-lg border border-edge bg-surface-2/60 p-3.5 cursor-pointer">
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-surface-2 p-4">
                 <input
                   type="checkbox"
                   checked={autoTempoScheduled}
                   onChange={(e) => setAutoTempoScheduled(e.target.checked)}
-                  className="mt-0.5 cursor-pointer accent-accent"
+                  className="wp-check mt-0.5"
                 />
                 <span className="flex flex-col gap-1">
                   <span className="text-xs font-semibold text-ink">Run AutoTempo every Friday</span>
@@ -632,11 +693,14 @@ function SettingsForm({
               {/* Company Common Rules Banner & Personal Overrides */}
               <div className="flex flex-col gap-3">
                 {/* Company Common Rules Banner */}
-                <div className="rounded-lg border border-done/30 bg-done-soft/20 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 rounded-xl bg-done-soft p-4">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-done">✓ Company-Wide Common Rules</span>
-                      <span className="rounded-full bg-done-soft px-2 py-0.5 text-[10px] font-bold text-done">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-done">
+                        <CheckCircleIcon className="h-4 w-4" />
+                        Company-Wide Common Rules
+                      </span>
+                      <span className="rounded-full bg-done/20 px-2 py-0.5 text-[10px] font-bold text-done">
                         {SYSTEM_COMMON_RULES.length} Global Rules Active
                       </span>
                     </div>
@@ -648,7 +712,7 @@ function SettingsForm({
                   <button
                     type="button"
                     onClick={() => setShowSystemRules(!showSystemRules)}
-                    className="cursor-pointer rounded-md border border-edge bg-surface px-3 py-1.5 text-xs font-semibold text-ink-muted hover:text-ink transition-all shrink-0"
+                    className="h-9 shrink-0 rounded-full bg-surface px-4 text-xs font-semibold text-ink-muted ring-1 ring-edge transition-colors hover:text-ink hover:ring-edge-strong"
                   >
                     {showSystemRules ? "Hide System Rules" : `Inspect System Rules (${SYSTEM_COMMON_RULES.length})`}
                   </button>
@@ -656,16 +720,20 @@ function SettingsForm({
 
                 {/* Read-Only System Rules Viewer */}
                 {showSystemRules && (
-                  <div className="rounded-lg border border-edge bg-surface-2 p-3.5 flex flex-col gap-2.5 animate-fade-in">
+                  <div className="flex animate-fade-in flex-col gap-2.5 rounded-xl bg-surface-2 p-4">
                     <div className="flex items-center justify-between gap-2 border-b border-edge/60 pb-2">
                       <span className="text-xs font-semibold text-ink">System Common Rules Directory</span>
-                      <input
-                        type="text"
-                        value={ruleSearch}
-                        onChange={(e) => setRuleSearch(e.target.value)}
-                        placeholder="🔍 Search system rules..."
-                        className={`${inputCls} w-44 sm:w-56 text-xs py-1`}
-                      />
+                      <div className="relative">
+                        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+                        <input
+                          type="text"
+                          value={ruleSearch}
+                          onChange={(e) => setRuleSearch(e.target.value)}
+                          placeholder="Search system rules…"
+                          aria-label="Search system rules"
+                          className="h-9 w-44 rounded-full border border-edge bg-surface pl-9 pr-3.5 text-xs text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent sm:w-56"
+                        />
+                      </div>
                     </div>
 
                     <div className="max-h-64 overflow-y-auto flex flex-col gap-1.5 pr-1">
@@ -686,7 +754,7 @@ function SettingsForm({
                           (r.account && r.account.toLowerCase().includes(search))
                         );
                       }).map((r, i) => (
-                        <div key={i} className="rounded border border-edge/60 bg-surface p-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center text-xs">
+                        <div key={i} className="grid grid-cols-1 items-center gap-2 rounded-xl bg-surface p-2.5 text-xs sm:grid-cols-12">
                           <div className="sm:col-span-5 font-mono text-[11.5px] text-ink">
                             {Array.isArray(r.rule) ? r.rule.join(", ") : r.rule}
                             {r.skip && <span className="ml-2 text-[10px] text-warn font-semibold">(Skipped)</span>}
@@ -694,7 +762,7 @@ function SettingsForm({
                           <div className="sm:col-span-2 font-mono text-ink-muted text-[11px]">
                             {r.issue || "—"}
                           </div>
-                          <div className="sm:col-span-3 font-mono text-accent text-[11px]">
+                          <div className="sm:col-span-3 font-mono text-accent-fg text-[11px]">
                             {r.account || "—"}
                           </div>
                           <div className="sm:col-span-2 text-ink-muted text-[11px]">
@@ -707,8 +775,8 @@ function SettingsForm({
                 )}
 
                 {/* Personal Overrides Section */}
-                <div className="rounded-lg border border-edge bg-surface-2 p-3.5 flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2.5 rounded-xl bg-surface-2 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <span className="text-xs font-semibold text-ink">Personal Custom Overrides</span>
                       <p className="text-[11px] text-ink-muted mt-0.5">
@@ -730,14 +798,15 @@ function SettingsForm({
                           ...rulesList,
                         ])
                       }
-                      className="cursor-pointer rounded-md border border-edge bg-surface px-2.5 py-1 text-xs font-semibold text-accent hover:border-accent shrink-0"
+                      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-surface px-4 text-xs font-semibold text-accent-fg ring-1 ring-edge transition-colors hover:ring-accent"
                     >
-                      + Add Personal Rule
+                      <PlusIcon className="h-3.5 w-3.5" />
+                      Add Personal Rule
                     </button>
                   </div>
 
                   {rulesList.length === 0 ? (
-                    <div className="rounded-md border border-dashed border-edge/80 p-3 text-center text-xs text-ink-muted font-serif italic">
+                    <div className="rounded-xl border border-dashed border-edge-strong/60 p-4 text-center text-xs text-ink-muted">
                       No personal rules added. All 32 company-wide common rules apply automatically.
                     </div>
                   ) : (
@@ -753,7 +822,7 @@ function SettingsForm({
                       {rulesList.map((r, idx) => (
                         <div
                           key={r.id}
-                          className="rounded-md border border-edge/80 bg-surface p-2 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center"
+                          className="grid grid-cols-1 items-center gap-2 rounded-xl bg-surface p-2.5 sm:grid-cols-12"
                         >
                           <div className="sm:col-span-4">
                             <input
@@ -819,10 +888,11 @@ function SettingsForm({
                             <button
                               type="button"
                               onClick={() => setRulesList(rulesList.filter((item) => item.id !== r.id))}
-                              className="cursor-pointer text-ink-muted hover:text-danger p-1 text-xs transition-colors"
+                              className="grid h-8 w-8 place-items-center rounded-full text-ink-muted transition-colors hover:bg-danger/10 hover:text-danger"
                               title="Delete Rule"
+                              aria-label="Delete rule"
                             >
-                              ✕
+                              <CloseIcon className="h-4 w-4" />
                             </button>
                           </div>
                         </div>
@@ -837,10 +907,17 @@ function SettingsForm({
                   type="button"
                   onClick={() => saveMut.mutate()}
                   disabled={saveMut.isPending}
-                  className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-bold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  className={btnPrimary}
                 >
                   <DeferredSpinner isPending={saveMut.isPending} className="h-3.5 w-3.5 text-current" />
-                  {saved ? "Saved AutoTempo Config ✓" : "Save AutoTempo Settings"}
+                  {saved ? (
+                    <>
+                      <CheckIcon className="h-4 w-4" />
+                      Saved AutoTempo Config
+                    </>
+                  ) : (
+                    "Save AutoTempo Settings"
+                  )}
                 </button>
               </div>
             </div>
@@ -848,10 +925,10 @@ function SettingsForm({
 
         </div>
 
-        <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-2 2xl:col-start-3 2xl:row-start-1">
           {/* Timezone & link templates */}
-          <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-            <h2 className="mb-3.5 text-sm font-semibold">Timezone &amp; link templates</h2>
+          <section className="rounded-2xl border border-edge bg-surface p-5">
+            <SectionTitle icon={<LinkIcon />} className="mb-4">Timezone &amp; link templates</SectionTitle>
             <div className="flex flex-col gap-3.5 text-[13px]">
               <label className="block">
                 <span className="mb-1.5 block text-xs text-ink-muted">
@@ -936,27 +1013,37 @@ function SettingsForm({
                   type="button"
                   onClick={() => saveMut.mutate()}
                   disabled={saveMut.isPending}
-                  className="rounded-[7px] bg-accent px-[18px] py-[9px] text-[13px] font-bold text-accent-ink hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  className={btnPrimary}
                 >
                   <DeferredSpinner isPending={saveMut.isPending} className="h-3.5 w-3.5 text-current" />
-                  {saved ? "Saved ✓" : "Save"}
+                  {saved ? (
+                    <>
+                      <CheckIcon className="h-4 w-4" />
+                      Saved
+                    </>
+                  ) : (
+                    "Save"
+                  )}
                 </button>
                 <button
                   type="button"
                   disabled={syncMut.isPending}
                   onClick={() => syncMut.mutate()}
-                  className="rounded-[7px] border border-edge bg-surface-2 px-3.5 py-[9px] text-[13px] font-semibold text-ink hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  className={btnSecondary}
                 >
                   <DeferredSpinner isPending={syncMut.isPending} className="h-3.5 w-3.5 text-current" />
-                  {!syncMut.isPending && <RefreshIcon className="h-3.5 w-3.5 text-ink-muted" />}
+                  {!syncMut.isPending && <RefreshIcon className="h-4 w-4 text-ink-muted" />}
                   Sync Integrations Now
                 </button>
               </div>
-              {syncStatus && <p className="text-xs text-accent font-medium mt-1">{syncStatus}</p>}
+              {syncStatus && <p className="text-xs text-accent-fg font-medium mt-1">{syncStatus}</p>}
               {syncMessages.length > 0 && (
-                <div className="mt-2 rounded-md border border-warn/40 bg-warn/10 p-2.5 text-xs text-warn flex flex-col gap-1">
+                <div className="mt-2 flex flex-col gap-1.5 rounded-xl bg-warn/10 p-3 text-xs text-warn">
                   {syncMessages.map((msg, i) => (
-                    <p key={i}>⚠️ {msg}</p>
+                    <p key={i} className="flex items-start gap-1.5">
+                      <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" />
+                      {msg}
+                    </p>
                   ))}
                 </div>
               )}
@@ -964,9 +1051,9 @@ function SettingsForm({
           </section>
 
           {/* PATs */}
-          <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-            <h2 className="mb-1 text-sm font-semibold">Personal access tokens</h2>
-            <p className="mb-3.5 text-xs text-ink-muted">
+          <section className="rounded-2xl border border-edge bg-surface p-5">
+            <SectionTitle icon={<KeyIcon />}>Personal access tokens</SectionTitle>
+            <p className="mb-4 text-xs leading-relaxed text-ink-muted">
               For AI agents and scripts. Shown once, hashed at rest, revocable. Point your agent at{" "}
               <a href="/llms.txt" target="_blank" className="font-mono">
                 /llms.txt
@@ -975,33 +1062,33 @@ function SettingsForm({
             </p>
 
             {freshToken && (
-              <div className="mb-3.5 rounded-[9px] border border-warn bg-[var(--accent-soft)] px-[13px] py-[11px] text-xs">
-                <p className="mb-[7px] font-semibold text-warn">
+              <div className="mb-4 rounded-2xl border border-warn/60 bg-warn/10 p-4 text-xs">
+                <p className="mb-2 font-semibold text-warn">
                   Copy this token now — it won&apos;t be shown again:
                 </p>
-                <code className="block select-all break-all rounded-md bg-surface-2 p-[9px] font-mono text-[11.5px]">
+                <code className="block select-all break-all rounded-xl bg-surface-2 p-3 font-mono text-[11.5px]">
                   {freshToken}
                 </code>
                 <button
                   onClick={() => setFreshToken(null)}
-                  className="mt-[7px] text-[11.5px] text-ink-muted underline"
+                  className="mt-2.5 text-[11.5px] text-ink-muted underline transition-colors hover:text-ink"
                 >
                   Done, hide it
                 </button>
               </div>
             )}
 
-            <form onSubmit={createToken} className="mb-3.5 flex flex-wrap gap-2">
+            <form onSubmit={createToken} className="mb-4 flex flex-wrap gap-2">
               <input
                 value={tokenName}
                 onChange={(e) => setTokenName(e.target.value)}
                 placeholder="Token name (e.g. claude-code)"
-                className="w-[190px] rounded-[7px] border border-edge bg-surface-2 px-2.5 py-[7px] text-xs outline-none focus:border-accent"
+                className="h-10 w-[190px] rounded-xl border border-edge bg-surface-2 px-3.5 text-xs outline-none transition-colors placeholder:text-ink-faint focus:border-accent"
               />
               <select
                 value={tokenScope}
                 onChange={(e) => setTokenScope(e.target.value as "read" | "read,write")}
-                className="rounded-[7px] border border-edge bg-surface-2 px-2 py-[7px] text-xs"
+                className="h-10 rounded-xl border border-edge bg-surface-2 px-3 text-xs outline-none focus:border-accent"
               >
                 <option value="read,write">read + write</option>
                 <option value="read">read only</option>
@@ -1009,7 +1096,7 @@ function SettingsForm({
               <button
                 type="submit"
                 disabled={creatingToken}
-                className="rounded-[7px] border border-edge px-3.5 py-[7px] text-xs text-ink-muted hover:border-edge-strong disabled:opacity-50 flex items-center gap-1.5"
+                className={btnSecondary}
               >
                 <DeferredSpinner isPending={creatingToken} className="h-3 w-3 text-current" />
                 Create token
@@ -1019,13 +1106,13 @@ function SettingsForm({
 
             <ul className="text-xs">
               {(keys ?? []).map((k) => (
-                <li key={k.id} className="flex items-center gap-3 border-t border-edge py-[9px]">
+                <li key={k.id} className="flex flex-wrap items-center gap-3 border-t border-edge py-3">
                   <span className="font-semibold">{k.name ?? "unnamed"}</span>
                   <span className="font-mono text-ink-faint">{k.start}…</span>
                   <span className="text-ink-faint">
                     {k.lastRequest ? `last used ${new Date(k.lastRequest).toLocaleDateString()}` : "never used"}
                   </span>
-                  <span className="rounded border border-edge px-1.5 py-px font-mono text-[10px] text-ink-muted">
+                  <span className="rounded-full bg-surface-3 px-2 py-0.5 font-mono text-[10px] text-ink-muted">
                     {scopesOf(k.metadata)}
                   </span>
                   <button
@@ -1041,7 +1128,7 @@ function SettingsForm({
                         }
                       }
                     }}
-                    className="ml-auto rounded-md border border-edge px-2.5 py-[3px] text-[11px] text-ink-faint hover:border-danger hover:text-danger disabled:opacity-50 flex items-center gap-1.5"
+                    className="ml-auto flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[11px] text-ink-faint ring-1 ring-edge transition-colors hover:bg-danger/10 hover:text-danger hover:ring-danger/40 disabled:opacity-50"
                   >
                     <DeferredSpinner isPending={revokingKeyId === k.id} className="h-3 w-3 text-current" />
                     Revoke
@@ -1049,15 +1136,15 @@ function SettingsForm({
                 </li>
               ))}
               {(keys ?? []).length === 0 && (
-                <li className="border-t border-edge py-[9px] font-serif italic text-ink-faint">No tokens yet.</li>
+                <li className="border-t border-edge py-3 text-ink-faint">No tokens yet.</li>
               )}
             </ul>
           </section>
 
           {/* Data rights */}
-          <section className="rounded-xl border border-edge bg-surface p-5 shadow-card">
-            <h2 className="mb-1 text-sm font-semibold">Your data</h2>
-            <p className="mb-3.5 text-xs text-ink-muted">
+          <section className="rounded-2xl border border-edge bg-surface p-5">
+            <SectionTitle icon={<UserIcon />}>Your data</SectionTitle>
+            <p className="mb-4 text-xs leading-relaxed text-ink-muted">
               Export everything as JSON, or permanently delete the account and all its data. See{" "}
               <a href="/privacy">privacy</a>.
             </p>
@@ -1065,7 +1152,7 @@ function SettingsForm({
               <a
                 href="/api/v1/export"
                 download
-                className="rounded-[7px] border border-edge px-4 py-2 text-xs !text-ink-muted no-underline hover:border-edge-strong"
+                className={`${btnSecondary} no-underline`}
               >
                 Export JSON
               </a>
@@ -1079,7 +1166,7 @@ function SettingsForm({
                     window.location.href = "/signup";
                   }
                 }}
-                className="rounded-[7px] border border-danger px-4 py-2 text-xs text-danger hover:bg-[var(--accent-soft)]"
+                className={btnDanger}
               >
                 Delete account…
               </button>
@@ -1087,6 +1174,7 @@ function SettingsForm({
           </section>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -6,6 +6,20 @@ import { CompletedCards } from "@/components/completed-cards";
 import Link from "next/link";
 import { api, type AnalyticsData, type AnalyticsOrigin } from "@/lib/client-api";
 import { DateRangePicker } from "@/components/date-range-picker";
+import { PageHeader } from "@/components/ui";
+import {
+  AlertIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ArrowUpRightIcon,
+  BoltIcon,
+  CalendarIcon,
+  ChartIcon,
+  CheckIcon,
+  ClockIcon,
+  CloseIcon,
+  CopyIcon,
+} from "@/components/icons";
 
 /* Palette definitions matching Waypoint design system tokens */
 const SERIES = {
@@ -184,112 +198,103 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1240px] flex-1 px-4 sm:px-7 pb-16 pt-[26px]">
-      {/* Header & Filter Controls */}
-      <div className="mb-6 space-y-4 border-b border-edge/60 pb-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
-          <div>
-            <h1 className="font-serif text-[32px] font-medium tracking-tight text-ink">Analytics</h1>
-            <p className="text-xs text-ink-muted mt-0.5">
-              Flow metrics, lead time &amp; delivery intelligence
-            </p>
-          </div>
-
-          {/* Date Presets & Custom Pickers */}
-          <div className="flex flex-col sm:items-end gap-2.5 w-full sm:w-auto">
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <div className="flex gap-1.5 shrink-0">
-                {PRESETS.map((p) => {
-                  const on = preset === p.label;
-                  return (
-                    <button
-                      key={p.label}
-                      onClick={() => {
-                        setPreset(p.label);
-                        setFrom(isoDaysAgo(p.days));
-                        setTo(isoDaysAgo(0));
-                      }}
-                      className={`rounded-full border px-3 py-1 text-xs cursor-pointer transition-colors ${
-                        on
-                          ? "border-accent bg-[var(--accent-soft)] text-accent font-semibold shadow-xs"
-                          : "border-edge text-ink-muted hover:border-edge-strong bg-surface"
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Single Date Range Picker Popover */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowDatePicker(!showDatePicker)}
-                  className={`rounded-[7px] border px-2.5 py-1 text-xs font-mono flex items-center gap-1.5 cursor-pointer transition-colors ${
-                    showDatePicker || preset === ""
-                      ? "border-accent bg-accent/10 text-accent font-semibold"
-                      : "border-edge bg-surface-2 text-ink hover:border-edge-strong"
-                  }`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" className="w-3.5 h-3.5 text-accent">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                  </svg>
-                  <span>{from} → {to}</span>
-                </button>
-
-                {showDatePicker && (
-                  <div className="absolute right-0 top-full mt-1.5 z-40 w-72 max-w-[calc(100vw-24px)] rounded-xl border border-edge bg-surface p-3.5 shadow-2xl text-xs text-ink animate-fade-in">
-                    <div className="flex items-center justify-between border-b border-edge/60 pb-1.5 mb-2.5">
-                      <span className="font-semibold text-xs text-ink">Select Date Range</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowDatePicker(false)}
-                        className="text-ink-faint hover:text-ink text-xs font-bold cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    <DateRangePicker
-                      value={{ from, to }}
-                      onApply={(range) => {
-                        setFrom(range.from);
-                        setTo(range.to);
-                        setPreset("");
-                        setShowDatePicker(false);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <PageHeader
+        icon={<ChartIcon />}
+        title="Analytics"
+        subtitle="Flow metrics, lead time & delivery intelligence"
+        actions={
+          <>
+            {/* Date presets */}
+            <div role="group" aria-label="Date range presets" className="flex items-center gap-1 rounded-full bg-surface p-1">
+              {PRESETS.map((p) => {
+                const on = preset === p.label;
+                return (
+                  <button
+                    key={p.label}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      setPreset(p.label);
+                      setFrom(isoDaysAgo(p.days));
+                      setTo(isoDaysAgo(0));
+                    }}
+                    className={`h-9 rounded-full px-3.5 text-[13px] font-medium transition-colors ${
+                      on ? "bg-accent text-accent-ink" : "text-ink-muted hover:bg-surface-2 hover:text-ink"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
             </div>
-            <span className="font-serif text-[12px] italic text-ink-faint">
-              vs the previous equal period
-            </span>
-          </div>
-        </div>
 
-        {/* Work Type Filter Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-          <span className="text-[11px] font-mono text-ink-faint uppercase tracking-wider mr-1">
-            Filter:
-          </span>
+            {/* Single date range picker popover */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowDatePicker(!showDatePicker)}
+                aria-expanded={showDatePicker}
+                className={`inline-flex h-11 items-center gap-2 rounded-2xl px-4 font-mono text-xs transition-colors ${
+                  showDatePicker || preset === ""
+                    ? "bg-accent-soft text-accent-fg ring-1 ring-accent/40"
+                    : "bg-surface text-ink hover:bg-surface-2"
+                }`}
+              >
+                <CalendarIcon className="h-4 w-4 text-accent-fg" />
+                <span>{from} → {to}</span>
+              </button>
+
+              {showDatePicker && (
+                <div className="absolute right-0 top-full z-40 mt-2 w-72 max-w-[calc(100vw-24px)] animate-fade-in rounded-2xl border border-edge bg-surface p-4 text-xs text-ink shadow-pop">
+                  <div className="mb-3 flex items-center justify-between border-b border-edge/60 pb-2">
+                    <span className="text-[13px] font-semibold text-ink">Select Date Range</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowDatePicker(false)}
+                      aria-label="Close"
+                      className="grid h-7 w-7 place-items-center rounded-full text-ink-faint transition-colors hover:bg-surface-2 hover:text-ink"
+                    >
+                      <CloseIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <DateRangePicker
+                    value={{ from, to }}
+                    onApply={(range) => {
+                      setFrom(range.from);
+                      setTo(range.to);
+                      setPreset("");
+                      setShowDatePicker(false);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        }
+      />
+
+      {/* Work type filter */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pb-4 sm:px-6">
+        <div role="group" aria-label="Filter by work type" className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-surface p-1">
           {ORIGIN_FILTERS.map((f) => {
             const active = origin === f.key;
+            const activeTone =
+              f.key === "support_bug"
+                ? "bg-chip-yellow text-chip-ink"
+                : f.key === "support_task"
+                  ? "bg-chip-mint text-chip-ink"
+                  : f.key === "product"
+                    ? "bg-chip-lilac text-chip-ink"
+                    : "bg-accent text-accent-ink";
             return (
               <button
                 key={f.key}
+                type="button"
+                aria-pressed={active}
                 onClick={() => setOrigin(f.key)}
-                className={`rounded-full border px-3 py-1 text-xs cursor-pointer whitespace-nowrap transition-all ${
-                  active
-                    ? f.key === "support_bug"
-                      ? "border-support bg-support/15 text-support font-semibold shadow-xs"
-                      : f.key === "support_task"
-                        ? "border-done bg-done-soft text-done font-semibold shadow-xs"
-                        : f.key === "product"
-                          ? "border-product bg-product/15 text-product font-semibold shadow-xs"
-                          : "border-accent bg-[var(--accent-soft)] text-accent font-semibold shadow-xs"
-                    : "border-edge bg-surface text-ink-muted hover:border-edge-strong hover:text-ink"
+                className={`h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-colors ${
+                  active ? activeTone : "text-ink-muted hover:bg-surface-2 hover:text-ink"
                 }`}
               >
                 {f.label}
@@ -297,12 +302,14 @@ export default function AnalyticsPage() {
             );
           })}
         </div>
+        <span className="text-xs text-ink-faint">Changes compare with the previous equal period.</span>
       </div>
 
+      <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 sm:px-6">
       {isLoading && (
         <div className="py-24 flex flex-col items-center justify-center gap-3">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          <p className="font-serif text-base italic text-ink-muted">
+          <p className="text-sm text-ink-muted">
             Crunching flow metrics &amp; delivery intelligence…
           </p>
         </div>
@@ -338,7 +345,10 @@ export default function AnalyticsPage() {
                         data.velocity.deltaPct >= 0 ? "text-done" : "text-danger"
                       }`}
                     >
-                      {data.velocity.deltaPct >= 0 ? "▲" : "▼"} {Math.abs(data.velocity.deltaPct)}%{" "}
+                      <span className="inline-flex items-center gap-1">
+                        {data.velocity.deltaPct >= 0 ? <ArrowUpIcon className="h-3.5 w-3.5" /> : <ArrowDownIcon className="h-3.5 w-3.5" />}
+                        {Math.abs(data.velocity.deltaPct)}%
+                      </span>{" "}
                       <span className="font-normal text-ink-muted text-xs">
                         vs {data.velocity.previous} last period
                       </span>
@@ -377,8 +387,10 @@ export default function AnalyticsPage() {
                             data.leadTime.deltaPct < 0 ? "text-done" : "text-danger"
                           }`}
                         >
-                          {data.leadTime.deltaPct < 0 ? "▼" : "▲"}{" "}
-                          {Math.abs(data.leadTime.deltaPct)}%{" "}
+                          <span className="inline-flex items-center gap-0.5 align-middle">
+                            {data.leadTime.deltaPct < 0 ? <ArrowDownIcon className="h-3 w-3" /> : <ArrowUpIcon className="h-3 w-3" />}
+                            {Math.abs(data.leadTime.deltaPct)}%
+                          </span>{" "}
                           <span className="font-normal text-ink-muted">
                             {data.leadTime.deltaPct < 0 ? "faster" : "slower"}
                           </span>
@@ -391,16 +403,18 @@ export default function AnalyticsPage() {
               <div className="mt-4 border-t border-edge/60 pt-2.5 text-[11px] font-mono text-ink-muted">
                 {data.leadTime.fastest && data.leadTime.slowest ? (
                   <div className="flex items-center justify-between gap-1 truncate">
-                    <span className="text-done truncate" title={`Fastest: ${data.leadTime.fastest.ref}`}>
-                      ⚡ {data.leadTime.fastest.ref} ({data.leadTime.fastest.days}d)
+                    <span className="flex items-center gap-1 truncate text-done" title={`Fastest: ${data.leadTime.fastest.ref}`}>
+                      <BoltIcon className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{data.leadTime.fastest.ref} ({data.leadTime.fastest.days}d)</span>
                     </span>
                     <span className="text-ink-faint shrink-0">·</span>
-                    <span className="text-warn truncate" title={`Slowest: ${data.leadTime.slowest.ref}`}>
-                      🐢 {data.leadTime.slowest.ref} ({data.leadTime.slowest.days}d)
+                    <span className="flex items-center gap-1 truncate text-warn" title={`Slowest: ${data.leadTime.slowest.ref}`}>
+                      <ClockIcon className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{data.leadTime.slowest.ref} ({data.leadTime.slowest.days}d)</span>
                     </span>
                   </div>
                 ) : (
-                  <span className="font-serif italic text-ink-faint">Intake to production closeout</span>
+                  <span className="text-ink-faint">Intake to production closeout</span>
                 )}
               </div>
             </section>
@@ -416,19 +430,21 @@ export default function AnalyticsPage() {
                 </p>
                 <div className="mt-2.5 text-[12.5px]">
                   {data.wip.stalledCount > 0 ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-warn/40 bg-warn/10 px-2.5 py-0.5 text-xs font-semibold text-warn">
-                      ⚠️ {data.wip.stalledCount} aging &ge; 7d
+<span className="inline-flex items-center gap-1.5 rounded-full bg-warn/15 px-2.5 py-1 text-xs font-semibold text-warn">
+                      <AlertIcon className="h-3.5 w-3.5" />
+                      {data.wip.stalledCount} aging &ge; 7d
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-xs text-done font-medium">
-                      ✓ Flow healthy (0 stalled)
+                    <span className="inline-flex items-center gap-1.5 text-xs text-done font-medium">
+                      <CheckIcon className="h-3.5 w-3.5" />
+                      Flow healthy (0 stalled)
                     </span>
                   )}
                 </div>
               </div>
-              <div className="mt-4 border-t border-edge/60 pt-2.5 font-serif text-xs italic text-ink-muted flex items-center justify-between">
+              <div className="mt-4 border-t border-edge/60 pt-2.5 text-xs text-ink-muted flex items-center justify-between">
                 <span>Active cards in flight</span>
-                <span className="font-mono text-[11px] not-italic text-ink-faint">
+                <span className="font-mono text-[11px] text-ink-faint">
                   {data.wip.agingList.filter((a) => !a.isStalled).length} on pace
                 </span>
               </div>
@@ -445,13 +461,15 @@ export default function AnalyticsPage() {
                 </p>
                 <div className="mt-2.5 text-[12.5px]">
                   {data.discipline.looseEndsCount > 0 ? (
-                    <span className="text-warn text-xs font-semibold">
-                      ⚠️ {data.discipline.looseEndsCount} loose end
+<span className="inline-flex items-center gap-1.5 text-warn text-xs font-semibold">
+                      <AlertIcon className="h-3.5 w-3.5" />
+                      {data.discipline.looseEndsCount} loose end
                       {data.discipline.looseEndsCount > 1 ? "s" : ""} active
                     </span>
                   ) : (
-                    <span className="text-done text-xs font-medium">
-                      ✓ 100% clean closeouts
+                    <span className="inline-flex items-center gap-1.5 text-done text-xs font-medium">
+                      <CheckIcon className="h-3.5 w-3.5" />
+                      100% clean closeouts
                     </span>
                   )}
                 </div>
@@ -463,7 +481,7 @@ export default function AnalyticsPage() {
                       <Link
                         key={r}
                         href="#completed-cards"
-                        className="rounded-full border border-warn/40 bg-warn/10 px-2 py-[2px] font-mono text-[10px] text-warn hover:bg-warn/20 transition-colors"
+                        className="rounded-full bg-warn/15 px-2.5 py-0.5 font-mono text-[10.5px] text-warn transition-colors hover:bg-warn/25"
                         title="See it in Completed cards"
                       >
                         {r}
@@ -476,7 +494,7 @@ export default function AnalyticsPage() {
                     )}
                   </div>
                 ) : (
-                  <p className="font-serif text-xs italic text-ink-faint">
+                  <p className="text-xs text-ink-faint">
                     Subtasks verified before release
                   </p>
                 )}
@@ -500,7 +518,7 @@ export default function AnalyticsPage() {
                   </p>
                 </div>
                 {bottleneckStage && (
-                  <span className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-full border border-warn/50 bg-warn/15 px-2.5 py-1 text-xs font-semibold text-warn">
+                  <span className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-full bg-warn/15 px-3 py-1 text-xs font-semibold text-warn">
                     <span className="h-2 w-2 rounded-full bg-warn animate-pulse" />
                     Bottleneck: {bottleneckStage.label} ({bottleneckStage.avgDays}d)
                   </span>
@@ -508,7 +526,7 @@ export default function AnalyticsPage() {
               </div>
 
               {data.stageDwellTimes.length === 0 ? (
-                <p className="py-8 text-center font-serif text-sm italic text-ink-faint">
+                <p className="py-8 text-center text-sm text-ink-faint">
                   No completed cards with milestone history in this range.
                 </p>
               ) : (
@@ -546,7 +564,7 @@ export default function AnalyticsPage() {
                       return (
                         <div
                           key={s.milestoneKey}
-                          className={`rounded-lg border p-2.5 flex flex-col justify-between transition-colors ${
+                          className={`rounded-xl border p-3 flex flex-col justify-between transition-colors ${
                             s.isBottleneck
                               ? "border-warn/60 bg-warn/10 shadow-xs"
                               : "border-edge bg-surface-2"
@@ -563,7 +581,7 @@ export default function AnalyticsPage() {
                               </span>
                             </span>
                             {s.isBottleneck && (
-                              <span className="shrink-0 rounded px-1 py-[1px] text-[9px] font-bold uppercase tracking-wider bg-warn text-surface font-mono">
+                              <span className="shrink-0 rounded-full bg-chip-orange px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-chip-ink">
                                 Peak
                               </span>
                             )}
@@ -599,7 +617,7 @@ export default function AnalyticsPage() {
               </div>
 
               {breakdownTotal === 0 ? (
-                <p className="py-8 text-center font-serif text-sm italic text-ink-faint">
+                <p className="py-8 text-center text-sm text-ink-faint">
                   Nothing completed in this range.
                 </p>
               ) : (
@@ -721,8 +739,8 @@ export default function AnalyticsPage() {
                       )}
 
                       {/* Tooltip on Hover */}
-                      <div className="pointer-events-none absolute -top-16 left-1/2 z-30 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-edge bg-surface p-2 shadow-card text-[11px] group-hover:flex flex-col gap-0.5 text-ink">
-                        <div className="font-mono font-semibold text-accent">{t.bucket}</div>
+                      <div className="pointer-events-none absolute -top-16 left-1/2 z-30 hidden -translate-x-1/2 whitespace-nowrap rounded-xl border border-edge bg-surface-2 px-3 py-2 shadow-pop text-[11px] group-hover:flex flex-col gap-0.5 text-ink">
+                        <div className="font-mono font-semibold text-accent-fg">{t.bucket}</div>
                         <div className="text-ink-muted">
                           <span className="font-semibold text-ink">{t.count}</span> completed
                         </div>
@@ -751,8 +769,8 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Collapsible Granular Table View */}
-              <details className="mt-3 rounded-lg border border-edge bg-surface-2/40 p-3 text-xs text-ink-muted group">
-                <summary className="cursor-pointer font-medium text-ink hover:text-accent select-none">
+              <details className="mt-3 rounded-xl border border-edge bg-surface-2/60 p-4 text-xs text-ink-muted group">
+                <summary className="cursor-pointer font-medium text-ink hover:text-accent-fg select-none">
                   Granular Table View ({data.throughput.filter((t) => t.count > 0).length} active intervals)
                 </summary>
                 <div className="mt-3 overflow-x-auto">
@@ -806,7 +824,7 @@ export default function AnalyticsPage() {
               </div>
 
               {data.wip.agingList.length === 0 ? (
-                <p className="py-8 text-center font-serif text-sm italic text-ink-faint">
+                <p className="py-8 text-center text-sm text-ink-faint">
                   No active cards currently in flight.
                 </p>
               ) : (
@@ -830,11 +848,11 @@ export default function AnalyticsPage() {
                           <td className="py-2.5 pr-3">
                             <Link
                               href="/board"
-                              className="font-mono text-xs font-semibold text-accent hover:underline inline-flex items-center gap-1"
+                              className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-accent-fg hover:underline"
                               title="Open the Board"
                             >
                               {item.identityRef}
-                              <span className="text-[10px] opacity-70">↗</span>
+                              <ArrowUpRightIcon className="h-3 w-3 opacity-70" />
                             </Link>
                           </td>
                           <td className="py-2.5 pr-3">
@@ -848,12 +866,12 @@ export default function AnalyticsPage() {
                           </td>
                           <td className="py-2.5 text-right">
                             {item.isStalled ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-warn/40 bg-warn/15 px-2 py-0.5 text-[10.5px] font-semibold text-warn">
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-warn/15 px-2.5 py-0.5 text-[10.5px] font-semibold text-warn">
                                 <span className="h-1.5 w-1.5 rounded-full bg-warn animate-pulse" />
                                 Stalled (&ge; 7d)
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-edge bg-surface-2 px-2 py-0.5 text-[10.5px] font-medium text-ink-muted">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-surface-3 px-2.5 py-0.5 text-[10.5px] font-medium text-ink-muted">
                                 Active
                               </span>
                             )}
@@ -879,31 +897,31 @@ export default function AnalyticsPage() {
                 </div>
 
                 {/* Mini Preview Box */}
-                <div className="rounded-lg border border-edge bg-surface-2 p-3 space-y-2 text-xs">
+                <div className="rounded-xl bg-surface-2 p-4 space-y-2.5 text-xs">
                   <div className="flex items-center justify-between text-ink">
-                    <span className="font-serif font-medium">Shipped in Period:</span>
+                    <span className="font-medium">Shipped in Period:</span>
                     <span className="font-mono font-semibold">{data.velocity.completed} cards</span>
                   </div>
                   <div className="flex items-center justify-between text-ink">
-                    <span className="font-serif font-medium">Mean Lead Time:</span>
+                    <span className="font-medium">Mean Lead Time:</span>
                     <span className="font-mono font-semibold">
                       {data.leadTime.avgDays !== null ? `${data.leadTime.avgDays}d` : "N/A"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-ink">
-                    <span className="font-serif font-medium">Active WIP / Stalled:</span>
+                    <span className="font-medium">Active WIP / Stalled:</span>
                     <span className="font-mono font-semibold">
                       {data.wip.total} / {data.wip.stalledCount}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-ink">
-                    <span className="font-serif font-medium">Bottleneck:</span>
-                    <span className="font-mono text-[11px] text-accent truncate max-w-[130px]" title={bottleneckStage?.label ?? "None"}>
+                    <span className="font-medium">Bottleneck:</span>
+                    <span className="font-mono text-[11px] text-accent-fg truncate max-w-[130px]" title={bottleneckStage?.label ?? "None"}>
                       {bottleneckStage ? bottleneckStage.label : "None"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-ink">
-                    <span className="font-serif font-medium">Discipline:</span>
+                    <span className="font-medium">Discipline:</span>
                     <span className="font-mono font-semibold">
                       {data.discipline.subtaskVerificationRatePct}% verified
                     </span>
@@ -914,25 +932,20 @@ export default function AnalyticsPage() {
               {/* Copy Action Button */}
               <button
                 onClick={handleCopyDigest}
-                className={`w-full rounded-lg border px-4 py-2.5 text-xs font-semibold cursor-pointer transition-all flex items-center justify-center gap-2 shadow-xs ${
+                className={`flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-[13px] font-semibold transition ${
                   copied
-                    ? "border-done bg-done-soft text-done"
-                    : "border-accent bg-accent text-accent-ink hover:opacity-90"
+                    ? "bg-done-soft text-done ring-1 ring-done/40"
+                    : "bg-accent text-accent-ink hover:brightness-110 active:scale-[0.98]"
                 }`}
               >
                 {copied ? (
                   <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    <CheckIcon className="h-4 w-4" />
                     <span>Copied to Clipboard!</span>
                   </>
                 ) : (
                   <>
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-                    </svg>
+                    <CopyIcon className="h-4 w-4" />
                     <span>Copy Standup Digest</span>
                   </>
                 )}
@@ -943,6 +956,7 @@ export default function AnalyticsPage() {
       )}
 
       <CompletedCards />
-    </main>
+      </main>
+    </div>
   );
 }

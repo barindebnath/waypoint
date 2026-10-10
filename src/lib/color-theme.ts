@@ -1,14 +1,23 @@
 "use client";
 
-export type ColorThemePref = "paper" | "nord" | "forest" | "royal";
+export type ColorThemePref = "lime" | "paper" | "nord" | "royal";
 
 const KEY = "wp-color-theme";
+const DEFAULT: ColorThemePref = "lime";
 const listeners = new Set<() => void>();
 
+/**
+ * Turn a saved value into a palette that exists.
+ * "forest" was the default palette before the lime redesign, so it maps to "lime".
+ * An unknown or empty value gets the default.
+ */
+export function normalizeColorTheme(v: string | null | undefined): ColorThemePref {
+  return v === "lime" || v === "paper" || v === "nord" || v === "royal" ? v : DEFAULT;
+}
+
 export function getColorThemePref(): ColorThemePref {
-  if (typeof window === "undefined") return "forest";
-  const v = localStorage.getItem(KEY);
-  return v === "paper" || v === "nord" || v === "forest" || v === "royal" ? v : "forest";
+  if (typeof window === "undefined") return DEFAULT;
+  return normalizeColorTheme(localStorage.getItem(KEY));
 }
 
 export function applyColorTheme(pref: ColorThemePref) {

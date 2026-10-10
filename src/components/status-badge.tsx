@@ -1,4 +1,6 @@
 import React from "react";
+import { Chip } from "./chip";
+import { PlusIcon as PlusGlyph, PullRequestIcon, RefreshIcon as RefreshGlyph } from "./icons";
 
 export interface GithubPrBadgeProps {
   state: "open" | "closed" | "merged" | "draft" | string;
@@ -7,52 +9,26 @@ export interface GithubPrBadgeProps {
 }
 
 export function GitPullRequestIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-      <circle cx="18" cy="18" r="3" />
-      <circle cx="6" cy="6" r="3" />
-      <path d="M13 6h3a2 2 0 0 1 2 2v7" />
-      <line x1="6" y1="9" x2="6" y2="21" />
-    </svg>
-  );
+  return <PullRequestIcon className={className} />;
 }
 
 export function RefreshIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-    </svg>
-  );
+  return <RefreshGlyph className={className} />;
 }
 
 export function PlusIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-    </svg>
-  );
+  return <PlusGlyph className={className} />;
 }
 
+/** The state of a pull request, as a pastel pill. */
 export function GithubPrBadge({ state, mergeableState, reviewDecision }: GithubPrBadgeProps) {
-  if (state === "merged") {
-    return <span className="text-[11px] font-semibold text-purple-400">Merged</span>;
-  }
-  if (state === "draft") {
-    return <span className="text-[11px] font-medium text-ink-faint">Draft</span>;
-  }
-  if (mergeableState === "dirty") {
-    return <span className="text-[11px] font-semibold text-warn animate-pulse">Conflicts</span>;
-  }
-  if (reviewDecision === "approved") {
-    return <span className="text-[11px] font-semibold text-done">Approved</span>;
-  }
-  if (reviewDecision === "changes_requested") {
-    return <span className="text-[11px] font-semibold text-danger">Changes Requested</span>;
-  }
-  if (state === "closed") {
-    return <span className="text-[11px] font-semibold text-danger">Closed</span>;
-  }
-  return <span className="text-[11px] font-semibold text-done">Open</span>;
+  if (state === "merged") return <Chip tone="lilac">Merged</Chip>;
+  if (state === "draft") return <Chip tone="slate">Draft</Chip>;
+  if (mergeableState === "dirty") return <Chip tone="orange" className="animate-pulse">Conflicts</Chip>;
+  if (reviewDecision === "approved") return <Chip tone="mint">Approved</Chip>;
+  if (reviewDecision === "changes_requested") return <Chip tone="salmon">Changes Requested</Chip>;
+  if (state === "closed") return <Chip tone="red">Closed</Chip>;
+  return <Chip tone="aqua">Open</Chip>;
 }
 
 export interface JiraStatusBadgeProps {
@@ -60,16 +36,11 @@ export interface JiraStatusBadgeProps {
   statusCategory: "todo" | "inprogress" | "done" | string;
 }
 
+/** The Jira status of a card, as a pastel pill. The colour follows the Jira status category. */
 export function JiraStatusBadge({ statusName, statusCategory }: JiraStatusBadgeProps) {
   const lower = statusName.toLowerCase();
-  if (statusCategory === "done") {
-    return <span className="text-[11px] font-semibold text-done">{statusName}</span>;
-  }
-  if (lower.includes("review") || lower.includes("qa")) {
-    return <span className="text-[11px] font-semibold text-warn">{statusName}</span>;
-  }
-  if (statusCategory === "inprogress" || lower.includes("progress")) {
-    return <span className="text-[11px] font-semibold text-accent">{statusName}</span>;
-  }
-  return <span className="text-[11px] font-medium text-ink-faint">{statusName}</span>;
+  if (statusCategory === "done") return <Chip tone="mint">{statusName}</Chip>;
+  if (lower.includes("review") || lower.includes("qa")) return <Chip tone="orange">{statusName}</Chip>;
+  if (statusCategory === "inprogress" || lower.includes("progress")) return <Chip tone="sky">{statusName}</Chip>;
+  return <Chip tone="slate">{statusName}</Chip>;
 }

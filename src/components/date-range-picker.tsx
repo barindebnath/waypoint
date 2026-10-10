@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "./icons";
 
 export type DateRange = {
   from: string; // YYYY-MM-DD
@@ -144,10 +145,10 @@ export function DateRangePicker({
               key={p.label}
               type="button"
               onClick={() => handlePreset(p)}
-              className={`rounded-md px-2 py-0.5 text-[10.5px] font-medium transition-colors cursor-pointer ${
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 active
                   ? "bg-accent text-accent-ink font-semibold"
-                  : "border border-edge bg-surface-2 text-ink-muted hover:border-edge-strong hover:text-ink"
+                  : "bg-surface-2 text-ink-muted hover:bg-surface-3 hover:text-ink"
               }`}
             >
               {p.label}
@@ -157,16 +158,17 @@ export function DateRangePicker({
       </div>
 
       {/* Mini Calendar */}
-      <div className="rounded-lg border border-edge bg-surface-2/60 p-2 text-xs">
+      <div className="rounded-xl bg-surface-2/70 p-2.5 text-xs">
         {/* Month Navigation */}
         <div className="flex items-center justify-between mb-2 px-1">
           <button
             type="button"
             onClick={prevMonth}
-            className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-ink cursor-pointer transition-colors"
+            className="grid h-7 w-7 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
             title="Previous month"
+            aria-label="Previous month"
           >
-            ‹
+            <ChevronLeftIcon className="h-4 w-4" />
           </button>
           <span className="font-semibold text-[11.5px] text-ink">
             {MONTH_NAMES[viewMonth]} {viewYear}
@@ -174,10 +176,11 @@ export function DateRangePicker({
           <button
             type="button"
             onClick={nextMonth}
-            className="p-1 rounded hover:bg-surface-3 text-ink-muted hover:text-ink cursor-pointer transition-colors"
+            className="grid h-7 w-7 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-3 hover:text-ink"
             title="Next month"
+            aria-label="Next month"
           >
-            ›
+            <ChevronRightIcon className="h-4 w-4" />
           </button>
         </div>
 
@@ -195,7 +198,7 @@ export function DateRangePicker({
         {/* Days Grid */}
         <div className="grid grid-cols-7 gap-1 text-center font-mono text-[11px]">
           {Array.from({ length: startOffset }).map((_, i) => (
-            <span key={`empty-${i}`} className="h-6" />
+            <span key={`empty-${i}`} className="h-7" />
           ))}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const dayNum = i + 1;
@@ -212,13 +215,13 @@ export function DateRangePicker({
                 onClick={() => handleDateClick(dateStr)}
                 onMouseEnter={() => setHovered(dateStr)}
                 onMouseLeave={() => setHovered(null)}
-                className={`h-6 w-full rounded flex items-center justify-center cursor-pointer transition-all duration-100 ${
+                className={`flex h-7 w-full items-center justify-center rounded-lg transition-all duration-100 ${
                   isStart || isEnd
-                    ? "bg-accent !text-accent-ink font-bold shadow-xs"
+                    ? "bg-accent font-bold text-accent-ink"
                     : inR
-                      ? "bg-accent/15 text-accent font-medium"
+                      ? "bg-accent/15 font-medium text-accent-fg"
                       : isToday
-                        ? "border border-accent/40 font-bold text-accent hover:bg-surface-3"
+                        ? "font-bold text-accent-fg ring-1 ring-accent/40 hover:bg-surface-3"
                         : "text-ink hover:bg-surface-3"
                 }`}
               >
@@ -238,7 +241,7 @@ export function DateRangePicker({
               {end && end !== start ? ` → ${end}` : " (1 day)"}
             </span>
           ) : (
-            <span className="italic text-ink-faint">No range selected</span>
+            <span className="text-ink-faint">No range selected</span>
           )}
         </div>
 
@@ -247,7 +250,7 @@ export function DateRangePicker({
             <button
               type="button"
               onClick={onClear}
-              className="rounded-[6px] border border-edge px-2 py-1 text-[11px] font-medium text-ink-muted hover:text-danger hover:border-danger/40 cursor-pointer transition-colors"
+              className="rounded-full px-3 py-1.5 text-[11px] font-medium text-ink-muted ring-1 ring-edge transition-colors hover:bg-danger/10 hover:text-danger hover:ring-danger/40"
             >
               Clear
             </button>
@@ -260,7 +263,7 @@ export function DateRangePicker({
                 onApply({ from: start, to: end ?? start });
               }
             }}
-            className="rounded-[6px] bg-accent px-3 py-1 text-[11px] font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40 cursor-pointer transition-opacity"
+            className="rounded-full bg-accent px-4 py-1.5 text-[11px] font-semibold text-accent-ink transition hover:brightness-110 disabled:opacity-40"
           >
             Apply
           </button>

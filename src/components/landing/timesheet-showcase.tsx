@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BookIcon, CalendarIcon, SlidersIcon } from "@/components/icons";
 import { AutoTempoFeedback } from "@/components/timesheet-footer";
 import type { AutoTempoResult } from "@/lib/timesheet-shared";
 import { TimesheetBarPreview } from "./board-showcase";
@@ -37,6 +38,28 @@ function sampleResult(now: Date): AutoTempoResult {
   };
 }
 
+/** The three AutoTempo rules under the bar. Each one has a pastel icon tile, as the Board columns have. */
+const RULES = [
+  {
+    icon: SlidersIcon,
+    tile: "bg-chip-lilac",
+    title: "Account Rule Engine",
+    text: "Maps card origins to designated investment codes (Support vs Capex Feature).",
+  },
+  {
+    icon: BookIcon,
+    tile: "bg-chip-yellow",
+    title: "Enterprise Categories",
+    text: "Full support for official investment categories required for corporate capitalization.",
+  },
+  {
+    icon: CalendarIcon,
+    tile: "bg-chip-mint",
+    title: "Skip Days & Holidays",
+    text: "Automatically respects vacation periods and bank holidays without manual overrides.",
+  },
+];
+
 /**
  * The timesheet bar from the Board, with the real AutoTempo result card.
  * Fill shows a sample result. Nothing here calls the API.
@@ -46,10 +69,11 @@ export function TimesheetShowcase() {
   const [result, setResult] = useState<AutoTempoResult | null>(() => sampleResult(now));
 
   return (
-    <div className="w-full rounded-2xl border border-edge bg-surface p-5 sm:p-6 shadow-card space-y-4">
-      <div className="overflow-hidden rounded-xl border border-edge">
+    <div className="w-full space-y-3">
+      {/* The bar sits on the panel and the result card sits inside the bar, as in the app. */}
+      <div className="rounded-[22px] bg-surface">
         {result && (
-          <div className="bg-surface/95 px-3 pt-3">
+          <div className="px-3 pt-3 sm:px-5">
             <AutoTempoFeedback result={result} onDismiss={() => setResult(null)} />
           </div>
         )}
@@ -57,25 +81,16 @@ export function TimesheetShowcase() {
       </div>
 
       {/* AutoTempo Rules Preview */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-        <div className="rounded-xl border border-edge bg-surface-2 p-3">
-          <div className="font-serif font-semibold text-ink">Account Rule Engine</div>
-          <p className="text-[11px] text-ink-muted mt-0.5 leading-snug">
-            Maps card origins to designated investment codes (Support vs Capex Feature).
-          </p>
-        </div>
-        <div className="rounded-xl border border-edge bg-surface-2 p-3">
-          <div className="font-serif font-semibold text-ink">Enterprise Categories</div>
-          <p className="text-[11px] text-ink-muted mt-0.5 leading-snug">
-            Full support for official investment categories required for corporate capitalization.
-          </p>
-        </div>
-        <div className="rounded-xl border border-edge bg-surface-2 p-3">
-          <div className="font-serif font-semibold text-ink">Skip Days & Holidays</div>
-          <p className="text-[11px] text-ink-muted mt-0.5 leading-snug">
-            Automatically respects vacation periods and bank holidays without manual overrides.
-          </p>
-        </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {RULES.map((rule) => (
+          <div key={rule.title} className="rounded-2xl bg-surface p-4">
+            <span className={`grid h-9 w-9 place-items-center rounded-xl text-chip-ink ${rule.tile}`}>
+              <rule.icon className="h-[18px] w-[18px]" />
+            </span>
+            <div className="mt-3 text-[13px] font-semibold text-ink">{rule.title}</div>
+            <p className="mt-1 text-xs leading-relaxed text-ink-muted">{rule.text}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

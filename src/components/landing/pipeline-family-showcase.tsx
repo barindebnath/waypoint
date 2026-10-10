@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Chip, PIPELINE_STYLE } from "@/components/chip";
 import {
   ShieldCheckIcon,
   BugIcon,
@@ -12,8 +13,9 @@ type PipelineFamily = {
   key: "support_full" | "support_light" | "feature";
   name: string;
   badge: string;
-  badgeClass: string;
   icon: typeof BugIcon;
+  /** The pastel tile of the pipeline icon. It matches the pipeline pill of the Board. */
+  tile: string;
   origin: string;
   subType?: string;
   summary: string;
@@ -27,8 +29,8 @@ const PIPELINE_FAMILIES: PipelineFamily[] = [
     key: "support_full",
     name: "Support Full",
     badge: "Bug Flow",
-    badgeClass: "border-support/30 text-support bg-support/10",
     icon: BugIcon,
+    tile: "bg-chip-yellow",
     origin: "support",
     subType: "bug",
     summary: "For production bugs and escalations requiring full branch creation, PR review, staging verification, and canary deployment.",
@@ -46,8 +48,8 @@ const PIPELINE_FAMILIES: PipelineFamily[] = [
     key: "support_light",
     name: "Support Light",
     badge: "Fast Track",
-    badgeClass: "border-support-light/30 text-support-light bg-support-light/10",
     icon: WrenchIcon,
+    tile: "bg-chip-aqua",
     origin: "support",
     subType: "task",
     summary: "For operational support tasks like DB queries, data fixes, or config changes with no git branch, PR, or deploy lifecycle.",
@@ -63,8 +65,8 @@ const PIPELINE_FAMILIES: PipelineFamily[] = [
     key: "feature",
     name: "Product Feature",
     badge: "Feature Flow",
-    badgeClass: "border-product/30 text-product bg-product/10",
     icon: SparklesIcon,
+    tile: "bg-chip-lilac",
     origin: "product",
     summary: "For greenfield features, UX revamps, and technical platform enhancements from initial spec definition to general availability.",
     exampleRef: "OFF-3490",
@@ -85,82 +87,74 @@ export function PipelineFamilyShowcase() {
   const selected = PIPELINE_FAMILIES.find((p) => p.key === selectedKey)!;
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-3">
       {/* Selector Tabs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {PIPELINE_FAMILIES.map((p) => {
           const isSelected = p.key === selectedKey;
           const TabIcon = p.icon;
           return (
             <button
               key={p.key}
+              type="button"
+              aria-pressed={isSelected}
               onClick={() => setSelectedKey(p.key)}
-              className={`flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all cursor-pointer ${
-                isSelected
-                  ? "border-accent bg-surface shadow-card ring-1 ring-accent/20"
-                  : "border-edge bg-surface-2 hover:border-edge-strong hover:bg-surface"
+              className={`flex cursor-pointer items-center gap-3 rounded-2xl p-3.5 text-left transition-colors ${
+                isSelected ? "bg-surface ring-2 ring-accent" : "bg-bg ring-1 ring-edge hover:bg-surface"
               }`}
             >
-              <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${
-                isSelected ? "border-accent/30 bg-accent-soft text-accent" : "border-edge bg-surface text-ink-muted"
-              }`}>
-                <TabIcon className="h-4 w-4" />
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-chip-ink ${p.tile}`}>
+                <TabIcon className="h-5 w-5" />
               </span>
-              <div>
-                <div className={`text-xs font-semibold ${isSelected ? "text-ink" : "text-ink-muted"}`}>
+              <span className="min-w-0">
+                <span className={`block text-[13px] font-semibold ${isSelected ? "text-ink" : "text-ink-muted"}`}>
                   {p.name}
-                </div>
-                <div className="text-[11px] text-ink-faint font-mono mt-0.5">
+                </span>
+                <span className="mt-0.5 block truncate font-mono text-[11px] text-ink-faint">
                   origin: {p.origin}{p.subType ? ` · ${p.subType}` : ""}
-                </div>
-              </div>
+                </span>
+              </span>
             </button>
           );
         })}
       </div>
 
       {/* Detail Container */}
-      <div className="rounded-2xl border border-edge bg-surface p-5 sm:p-6 shadow-card space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-edge pb-4">
+      <div className="space-y-5 rounded-3xl bg-surface p-5 sm:p-6">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-serif text-base font-semibold text-ink">{selected.name} Pipeline</h3>
-              <span className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-semibold ${selected.badgeClass}`}>
-                {selected.badge}
-              </span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h3 className="font-serif text-lg font-semibold tracking-tight text-ink">{selected.name} Pipeline</h3>
+              <Chip tone={PIPELINE_STYLE[selected.key]?.tone ?? "slate"}>{selected.badge}</Chip>
             </div>
-            <p className="text-xs text-ink-muted mt-1 max-w-xl">{selected.summary}</p>
+            <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-ink-muted">{selected.summary}</p>
           </div>
 
           {/* Ref pill sample */}
-          <div className="flex items-center gap-1.5 font-mono text-xs self-start sm:self-auto">
-            <span className="rounded-full border border-edge bg-surface-2 px-2.5 py-1 text-ink font-semibold">
-              {selected.exampleRef}
-            </span>
+          <div className="flex flex-wrap items-center gap-1.5 self-start font-mono">
+            <Chip tone="slate" className="font-mono">{selected.exampleRef}</Chip>
             {selected.secondaryRefs.map((r) => (
-              <span key={r} className="rounded-full border border-edge bg-surface-2 px-2 py-1 text-ink-faint text-[10.5px]">
-                {r}
-              </span>
+              <Chip key={r} tone="ghost" className="font-mono">{r}</Chip>
             ))}
           </div>
         </div>
 
         {/* Milestone Sequence Flow */}
         <div>
-          <div className="font-mono text-[11px] uppercase tracking-wider text-ink-muted mb-3 font-semibold">
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Sequence Flow ({selected.milestones.length} Milestones)
           </div>
 
-          <div className="flex flex-col md:flex-row gap-2">
+          <div className="flex flex-col gap-2 md:flex-row">
             {selected.milestones.map((m, idx) => (
-              <div key={m.name} className="flex-1 flex flex-col justify-between rounded-xl border border-edge bg-surface-2 p-3">
+              <div key={m.name} className="flex flex-1 flex-col justify-between rounded-xl bg-surface-2 p-3.5">
                 <div>
-                  <div className="flex items-center justify-between text-[10.5px] font-mono text-ink-faint mb-1">
+                  <div className="mb-2 flex items-center justify-between font-mono text-[11px] text-ink-faint">
                     <span>Stage 0{idx + 1}</span>
                     <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                   </div>
-                  <div className="font-serif text-xs font-semibold text-ink">{m.name}</div>
-                  <div className="text-[11px] text-ink-muted mt-0.5">{m.desc}</div>
+                  <div className="text-[13px] font-semibold leading-snug text-ink">{m.name}</div>
+                  <div className="mt-1 text-[12px] leading-snug text-ink-muted">{m.desc}</div>
                 </div>
               </div>
             ))}
@@ -168,10 +162,10 @@ export function PipelineFamilyShowcase() {
         </div>
 
         {/* Security / Privacy Banner */}
-        <div className="flex items-start gap-3 rounded-xl border border-accent/20 bg-accent-soft p-3.5 text-xs text-ink">
-          <ShieldCheckIcon className="h-4 w-4 text-accent shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-2xl bg-accent-soft p-4 text-[13px] text-ink">
+          <ShieldCheckIcon className="mt-0.5 h-5 w-5 shrink-0 text-accent-fg" />
           <div className="leading-relaxed">
-            <strong>References Only:</strong> Waypoint holds only ticket pointers (<code>{selected.exampleRef}</code>). No card titles, no customer PII, and no credentials ever touch the database.
+            <strong>References Only:</strong> Waypoint holds only ticket pointers (<code className="rounded-md bg-surface/60 px-1.5 py-0.5 font-mono text-[12px]">{selected.exampleRef}</code>). No card titles, no customer PII, and no credentials ever touch the database.
           </div>
         </div>
       </div>

@@ -110,8 +110,8 @@ export const userSettings = pgTable("user_settings", {
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
   timezone: text("timezone").notNull().default("Asia/Kolkata"),
-  colorTheme: text("color_theme").notNull().default("forest"),
-  fontTheme: text("font_theme").notNull().default("mono"),
+  colorTheme: text("color_theme").notNull().default("lime"),
+  fontTheme: text("font_theme").notNull().default("sans"),
   showTimesheet: boolean("show_timesheet").notNull().default(true),
   /** e.g. https://yourorg.atlassian.net — Jira refs auto-link as {base}/browse/{ref} */
   jiraBaseUrl: text("jira_base_url"),
