@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { BoardCard, StaticPreviewProvider } from "@/components/board-card";
+import { BoardCard } from "@/components/board-card";
+import { StaticPreviewProvider } from "@/components/pr-block";
 import { PIPELINE_STYLE } from "@/components/chip";
 import {
   BoardIcon,

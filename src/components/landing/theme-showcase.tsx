@@ -2,7 +2,8 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { SparklesIcon } from "./icons";
-import { BoardCard, StaticPreviewProvider } from "@/components/board-card";
+import { BoardCard } from "@/components/board-card";
+import { StaticPreviewProvider } from "@/components/pr-block";
 import { Chip } from "@/components/chip";
 import { BoardIcon, MoonIcon, PlusIcon, SunIcon } from "@/components/icons";
 import { btnPrimary } from "@/components/ui";
