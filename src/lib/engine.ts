@@ -345,6 +345,21 @@ async function recomputeAfterCheck(
   const byKey = new Map(milestones.map((m) => [m.milestoneKey, m]));
   const firstIncomplete = def.milestones.find((m) => !byKey.get(m.key)?.complete);
   const isComplete = !firstIncomplete;
+
+  // The time in stage starts when the row enters a milestone. Stamp the new milestone now,
+  // so its updatedAt is the entry time. Ticks inside a milestone do not change it.
+  if (firstIncomplete && firstIncomplete.key !== row.currentMilestone) {
+    await tx
+      .update(schema.milestoneState)
+      .set({ updatedAt: new Date() })
+      .where(
+        and(
+          eq(schema.milestoneState.rowId, row.id),
+          eq(schema.milestoneState.milestoneKey, firstIncomplete.key),
+        ),
+      );
+  }
+
   await tx
     .update(schema.ticketRow)
     .set({
