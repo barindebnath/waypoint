@@ -7,7 +7,7 @@ import {
   type PipelineKey,
   defaultPipeline,
 } from "./pipelines";
-import type { ExternalRef } from "./db/schema";
+import type { ExternalRef, PrRef } from "./db/schema";
 
 /**
  * The domain engine — the ONE place progress logic lives (spec §5.4), used by
@@ -66,7 +66,8 @@ export function normalizeRef(ref: string): string {
   return trimmed.toUpperCase();
 }
 
-export function refKind(ref: string): ExternalRef["kind"] {
+/** Kind of a ref. A PR ref (`repo#123`) returns `github_pr`. It is stored in prRefs, not secondaryRefs. */
+export function refKind(ref: string): ExternalRef["kind"] | "github_pr" {
   if (ref.includes("#")) return "github_pr";
   if (/^[A-Z][A-Z0-9]*-\d+$/i.test(ref.trim())) return "jira";
   return "other";
@@ -103,6 +104,7 @@ export type RowView = {
   identityRef: string;
   identityUrl: string | null;
   secondaryRefs: ExternalRef[];
+  prRefs: PrRef[];
   currentMilestone: string;
   isComplete: boolean;
   hasLooseEnds: boolean;
@@ -171,6 +173,7 @@ async function buildViews(userId: string, rows: RowRecord[]): Promise<RowView[]>
       identityRef: row.identityRef,
       identityUrl: row.identityUrl,
       secondaryRefs: row.secondaryRefs,
+      prRefs: row.prRefs,
       currentMilestone: row.currentMilestone,
       isComplete: row.isComplete,
       hasLooseEnds,
@@ -194,7 +197,7 @@ export async function listRows(userId: string, limit?: number, offset?: number):
   return buildViews(userId, rows);
 }
 
-/** Find a row by its identity ref, or fall back to secondary refs. */
+/** Find a row by its identity ref, or fall back to its secondary refs and PR refs. */
 export async function findRowByRef(userId: string, ref: string): Promise<RowRecord | null> {
   const norm = normalizeRef(ref);
   const byIdentity = await db
@@ -206,7 +209,13 @@ export async function findRowByRef(userId: string, ref: string): Promise<RowReco
     .select()
     .from(schema.ticketRow)
     .where(eq(schema.ticketRow.userId, userId));
-  return all.find((r) => r.secondaryRefs.some((s) => normalizeRef(s.ref) === norm)) ?? null;
+  return (
+    all.find(
+      (r) =>
+        r.secondaryRefs.some((s) => normalizeRef(s.ref) === norm) ||
+        r.prRefs.some((p) => normalizeRef(p.ref) === norm),
+    ) ?? null
+  );
 }
 
 export async function getRowView(userId: string, ref: string): Promise<RowView | null> {
@@ -250,11 +259,16 @@ export async function createRow(userId: string, input: CreateRowInput): Promise<
   const identityRef = normalizeRef(input.identityRef);
   if (!identityRef) throw new EngineError("identityRef is required");
 
-  const secondaryRefs: ExternalRef[] = (input.secondaryRefs ?? []).map((r) => ({
+  // PR refs go to their own list. Other refs go to the secondary pills.
+  const allRefs = (input.secondaryRefs ?? []).map((r) => ({
     kind: refKind(r.ref),
     ref: normalizeRef(r.ref),
     ...(r.url ? { url: r.url } : {}),
   }));
+  const prRefs: PrRef[] = allRefs
+    .filter((r) => r.kind === "github_pr")
+    .map((r) => ({ ref: r.ref, ...(r.url ? { url: r.url } : {}) }));
+  const secondaryRefs = allRefs.filter((r): r is ExternalRef => r.kind !== "github_pr");
 
   const rowId = await db.transaction(async (tx) => {
     const existing = await tx
@@ -284,6 +298,7 @@ export async function createRow(userId: string, input: CreateRowInput): Promise<
         identityRef,
         identityUrl: input.identityUrl ?? null,
         secondaryRefs,
+        prRefs,
         currentMilestone: def.milestones[0].key,
         sortOrder: nextSortOrder,
       })
@@ -597,7 +612,10 @@ export async function regressToMilestone(
   return (await getRowView(userId, row.identityRef))!;
 }
 
-/** Add or remove a secondary ref (pill). Identity ref is immutable. */
+/**
+ * Add or remove a ref. A PR ref (`repo#123`) changes prRefs. Other refs change secondaryRefs.
+ * Identity ref is immutable.
+ */
 export async function updateSecondaryRefs(
   userId: string,
   ref: string,
@@ -607,20 +625,31 @@ export async function updateSecondaryRefs(
   const row = await findRowByRef(userId, ref);
   if (!row) throw new EngineError(`No row found for ${ref}`, 404);
   const norm = normalizeRef(target.ref);
-  let refs = row.secondaryRefs.filter((r) => normalizeRef(r.ref) !== norm);
-  if (action === "add") {
-    if (norm === row.identityRef) throw new EngineError("That ref is the row's identity card");
-    const kind = refKind(norm);
-    if (kind === "github_pr") {
-      // Enforce 1-to-1 PR mapping
-      refs = refs.filter((r) => r.kind !== "github_pr");
-    }
-    refs = [...refs, { kind, ref: norm, ...(target.url ? { url: target.url } : {}) }];
+  const kind = refKind(norm);
+  if (action === "add" && norm === row.identityRef) {
+    throw new EngineError("That ref is the row's identity card");
   }
-  await db
-    .update(schema.ticketRow)
-    .set({ secondaryRefs: refs, updatedAt: new Date() })
-    .where(eq(schema.ticketRow.id, row.id));
+
+  if (kind === "github_pr") {
+    // Each PR is its own entry. Adding one keeps the others.
+    let prRefs = row.prRefs.filter((p) => normalizeRef(p.ref) !== norm);
+    if (action === "add") {
+      prRefs = [...prRefs, { ref: norm, ...(target.url ? { url: target.url } : {}) }];
+    }
+    await db
+      .update(schema.ticketRow)
+      .set({ prRefs, updatedAt: new Date() })
+      .where(eq(schema.ticketRow.id, row.id));
+  } else {
+    let refs = row.secondaryRefs.filter((r) => normalizeRef(r.ref) !== norm);
+    if (action === "add") {
+      refs = [...refs, { kind, ref: norm, ...(target.url ? { url: target.url } : {}) }];
+    }
+    await db
+      .update(schema.ticketRow)
+      .set({ secondaryRefs: refs, updatedAt: new Date() })
+      .where(eq(schema.ticketRow.id, row.id));
+  }
   return (await getRowView(userId, row.identityRef))!;
 }
 

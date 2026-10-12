@@ -127,7 +127,7 @@ export function BoardCard({ row, preview = false }: { row: EnrichedRowView; prev
 /** Key, Jira status, title, issue type and linked PRs, as the card shows them. */
 function CardSummary({ row }: { row: EnrichedRowView }) {
   const { data: identity } = usePreview(row.identityRef);
-  const prs = row.secondaryRefs.filter((r) => r.kind === "github_pr");
+  const prs = row.prRefs;
   const style = PIPELINE_STYLE[row.pipelineKey];
 
   return (

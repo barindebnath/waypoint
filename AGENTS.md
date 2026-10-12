@@ -51,8 +51,10 @@ management are session-only — you cannot and must not do them.
   work, the OFF/PES/EN card for product work. One row per card; creating a
   duplicate returns `409`. Look rows up by any ref they carry (identity or
   secondary).
-- **Secondary refs** are PR links, dupe bugs, related tickets — anything you
+- **Secondary refs** are Jira cards, dupe bugs, related tickets — anything you
   want the row to be findable by.
+- **PR refs** are GitHub PRs (`owner/repo#123`). A row can have many. They are
+  kept in their own list, `prRefs`, not in `secondaryRefs`.
 - **`origin`** (`support` | `product`) decides the pipeline family. Support
   rows carry a **`subType`** (`bug` | `task`).
 - A row's pipeline is **immutable**. If a support task graduates into building
@@ -79,7 +81,7 @@ Fetch `/api/v1/pipelines` for live milestone/sub-task keys — never hardcode.
 | A dupe Bug is created in the team project | `POST /rows/ZT-1234/refs {action: "add", ref: "OFF-9999"}` + tick `triage.dupe_bug_created` |
 | A real world event happens (branch, commit, PR, deploy, comment…) | `POST /rows/{ref}/subtasks {milestone, subtask, checked: true}` |
 | Every sub-task in a milestone is done at once | `POST /rows/{ref}/subtasks {milestone, checked: true}` — omit `subtask` to atomically check all in one transaction |
-| You raise a PR | Also add it as a secondary ref: `POST /rows/{ref}/refs {action: "add", ref: "myrepo#123"}` |
+| You raise a PR | Add it as a PR ref: `POST /rows/{ref}/refs {action: "add", ref: "myrepo#123"}` |
 | A shipped fix is rejected / a phase must be redone | `POST /rows/{ref}/regress {milestone}` (destructive — user must ask; move the Jira card back yourself) |
 | User says they logged time in Tempo today | `POST /timesheet {day: "mon".."fri", checked: true}` (current week default; pass `weekId: "2026-W29"` for another week) |
 | All five days ticked and user confirms the Tempo week is submitted | `POST /timesheet/{weekId}/submit` |
@@ -95,13 +97,13 @@ All paths are prefixed with `/api/v1`.
 
 | Method | Path | Purpose | Body |
 | :-- | :-- | :-- | :-- |
-| GET | `/rows` | List rows (full milestone/sub-task state) | — |
-| POST | `/rows` | Create a row | `{identityRef, origin, subType?, pipelineKey?, secondaryRefs?, identityUrl?}` |
+| GET | `/rows` | List rows (full milestone/sub-task state, and cached Jira/PR titles in `previews`, keyed by ref) | — |
+| POST | `/rows` | Create a row. A `repo#123` entry in `secondaryRefs` becomes a PR ref. | `{identityRef, origin, subType?, pipelineKey?, secondaryRefs?, identityUrl?}` |
 | GET | `/rows/{ref}` | Fetch one row by any of its refs | — |
 | DELETE | `/rows/{ref}` | Delete a row (rare — prefer completing it) | — |
 | POST | `/rows/{ref}/subtasks` | Tick a sub-task, or bulk-check every sub-task in a milestone | `{milestone, subtask?, checked}` |
 | POST | `/rows/{ref}/regress` | Clear a milestone + everything after | `{milestone}` |
-| POST | `/rows/{ref}/refs` | Add or remove a secondary ref | `{action: "add"\|"remove", ref, url?}` |
+| POST | `/rows/{ref}/refs` | Add or remove a ref. A `repo#123` ref changes the PR list. Other refs change the secondary refs. | `{action: "add"\|"remove", ref, url?}` |
 | POST | `/rows/{ref}/complete` | Fast-complete a row (all remaining sub-tasks checked) | — |
 | POST | `/rows/{ref}/wontfix` | Close a row as won't-fix (complete, sub-tasks left unchecked) | — |
 | GET | `/pipelines` | Live pipeline definitions | — |
@@ -132,7 +134,8 @@ for a sub-task tick. Repeats return the stored response plus header
 
 **Ref formats.**
 - Identity refs: your project's card prefix (e.g. `ZT-1234`, `OFF-5678`, `EN-2062`).
-- Secondary refs: same shape, plus repo-style `owner/repo#123` for PRs.
+- Secondary refs: Jira keys (`ZT-1234`) or other refs.
+- PR refs: repo-style `owner/repo#123`. A row returns them in `prRefs`.
 
 **Errors.** `{error: string}` with conventional status codes:
 

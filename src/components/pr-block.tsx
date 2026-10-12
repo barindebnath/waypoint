@@ -1,9 +1,9 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
-import type { EnrichedRef } from "@/lib/links";
+import type { EnrichedPr, EnrichedRowView } from "@/lib/links";
 import { Chip } from "./chip";
 import { ArrowUpRightIcon, PullRequestIcon } from "./icons";
 import { GithubPrBadge } from "./status-badge";
@@ -33,8 +33,22 @@ export function StaticPreviewProvider({
   return <StaticPreviewContext.Provider value={resolve}>{children}</StaticPreviewContext.Provider>;
 }
 
+/**
+ * The preview that the last rows response carried for a ref, or undefined.
+ * The server fills it from the sync cache, so the card has its title on the first render after a reload.
+ */
+export function cachedPreview(qc: QueryClient, ref: string): PreviewData | undefined {
+  const data = qc.getQueryData<{ rows: EnrichedRowView[] }>(["rows"]);
+  for (const row of data?.rows ?? []) {
+    const hit = row.previews?.[ref];
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
 /** Same query key as the RefPill hover card, so both use one cached request. */
 export function usePreview(ref: string): { data: PreviewData | undefined } {
+  const qc = useQueryClient();
   const resolve = useContext(StaticPreviewContext);
   const query = useQuery({
     queryKey: ["preview", ref],
@@ -42,12 +56,14 @@ export function usePreview(ref: string): { data: PreviewData | undefined } {
     staleTime: PREVIEW_STALE_MS,
     retry: false,
     enabled: !resolve,
+    // Start from the cached preview. A reload then shows the title at once, with no flicker.
+    initialData: () => cachedPreview(qc, ref),
   });
   return resolve ? { data: resolve(ref) ?? undefined } : query;
 }
 
 /** One linked PR: repo#number, line changes, title, review state, unresolved threads and a link to GitHub. */
-export function PrBlock({ pr }: { pr: EnrichedRef }) {
+export function PrBlock({ pr }: { pr: EnrichedPr }) {
   const { data } = usePreview(pr.ref);
   const preview = data?.pr;
   const label = preview ? `${preview.repo}#${preview.number}` : pr.ref;

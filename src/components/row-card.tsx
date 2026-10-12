@@ -210,8 +210,8 @@ export function RowProgress({ row }: { row: EnrichedRowView }) {
 }
 
 /**
- * The linked work: the GitHub PR, and the other refs. The link forms open in place.
- * One row has at most one PR, so a new PR replaces the old one.
+ * The linked work: the GitHub PRs, and the other refs. The link forms open in place.
+ * One row can have many PRs. Each PR has its own Remove button.
  */
 export function RowLinks({
   row,
@@ -238,8 +238,8 @@ export function RowLinks({
 
   const prInputRef = useRef<HTMLInputElement>(null);
 
-  const prRef = row.secondaryRefs.find((r) => r.kind === "github_pr");
-  const otherRefs = row.secondaryRefs.filter((r) => r.kind !== "github_pr");
+  const prs = row.prRefs;
+  const otherRefs = row.secondaryRefs;
 
   const handleLinkPr = async (inputStr: string) => {
     setPrError(null);
@@ -248,15 +248,11 @@ export function RowLinks({
       setPrError("Invalid format. Use repo#123 or https://github.com/owner/repo/pull/123");
       return;
     }
-    // Enforce 1-to-1 PR mapping
-    const existingPr = row.secondaryRefs.find((r) => r.kind === "github_pr");
-    if (existingPr) {
-      if (existingPr.ref === parsed.fullRef) {
-        setShowPrInput(false);
-        setPrRefValue("");
-        return;
-      }
-      await api.updateRefs(row.identityRef, "remove", { ref: existingPr.ref });
+    // A PR the row already has needs no change. Close the form.
+    if (prs.some((p) => p.ref === parsed.fullRef)) {
+      setShowPrInput(false);
+      setPrRefValue("");
+      return;
     }
     await refsMut.mutateAsync({ action: "add", ref: parsed.fullRef });
     setShowPrInput(false);
@@ -275,11 +271,28 @@ export function RowLinks({
 
   return (
     <section className="flex flex-col gap-6">
-      {/* The GitHub PR, with its actions under the block */}
+      {/* The GitHub PRs, each with its own Remove button */}
       <div>
-        <SectionTitle>GitHub PR</SectionTitle>
-        {prRef ? (
-          <PrBlock pr={prRef} />
+        <SectionTitle>GitHub PRs</SectionTitle>
+        {prs.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {prs.map((pr) => (
+              <div key={pr.ref} className="flex flex-col gap-1.5">
+                <PrBlock pr={pr} />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => refsMut.mutate({ action: "remove", ref: pr.ref })}
+                    disabled={isRemoving(pr.ref)}
+                    className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-xs font-medium text-ink-faint ring-1 ring-edge transition-colors hover:bg-danger/10 hover:text-danger hover:ring-danger/50 disabled:opacity-50"
+                  >
+                    <DeferredSpinner isPending={isRemoving(pr.ref)} className="h-3 w-3 text-current" />
+                    Remove PR
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           !showPrInput && <p className="text-[12.5px] text-ink-muted">No PR linked yet.</p>
         )}
@@ -292,28 +305,17 @@ export function RowLinks({
               className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-2 px-4 text-xs font-semibold text-ink-muted ring-1 ring-edge transition-colors hover:bg-surface-3 hover:text-ink"
             >
               <GitPullRequestIcon className="h-3.5 w-3.5 text-accent-fg" />
-              {prRef ? "Replace PR" : "Link GitHub PR"}
+              Link GitHub PR
             </button>
-            {prRef && (
-              <button
-                type="button"
-                onClick={() => refsMut.mutate({ action: "remove", ref: prRef.ref })}
-                disabled={isRemoving(prRef.ref)}
-                className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-xs font-medium text-ink-faint ring-1 ring-edge transition-colors hover:bg-danger/10 hover:text-danger hover:ring-danger/50 disabled:opacity-50"
-              >
-                <DeferredSpinner isPending={isRemoving(prRef.ref)} className="h-3 w-3 text-current" />
-                Remove PR
-              </button>
-            )}
           </div>
         )}
 
-        {/* The PR form, shown in place when the user links or replaces a PR */}
+        {/* The PR form, shown in place when the user links a PR */}
         {showPrInput && (
           <div className="rounded-card bg-surface-2 p-3.5 ring-1 ring-edge text-xs">
             <div className="mb-3 flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">
-                <GitPullRequestIcon className="h-4 w-4 text-accent-fg" /> {prRef ? "Replace PR" : "Link GitHub PR"}
+                <GitPullRequestIcon className="h-4 w-4 text-accent-fg" /> Link GitHub PR
               </span>
               <button
                 type="button"
@@ -349,7 +351,7 @@ export function RowLinks({
                 className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-accent px-4 font-semibold text-accent-ink transition hover:brightness-110 disabled:opacity-50"
               >
                 <DeferredSpinner isPending={refsMut.isPending} className="h-3 w-3 text-current" />
-                {prRef ? "Replace PR" : "Link PR"}
+                Link PR
               </button>
             </form>
             {prError && <p role="alert" className="mt-2 text-[11.5px] text-danger">{prError}</p>}

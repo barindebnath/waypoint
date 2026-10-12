@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/client-api";
 import { useDeferredLoading } from "@/lib/use-deferred-loading";
 import { CloseIcon } from "./icons";
+import { cachedPreview } from "./pr-block";
 import { Spinner } from "./spinner";
 
 export function RefPill({
@@ -28,12 +29,15 @@ export function RefPill({
   const showRemovingLoader = useDeferredLoading(isRemoving);
 
   // Ephemeral in-memory fetch on hover — never stored in DB
+  const qc = useQueryClient();
   const { data: preview, isLoading: isLoadingPreview } = useQuery({
     queryKey: ["preview", refText],
     queryFn: () => api.previewRef(refText),
     enabled: isHovered && Boolean(refText),
     staleTime: 10 * 60 * 1000,
     retry: false,
+    // Start from the cached preview, as the card does.
+    initialData: () => cachedPreview(qc, refText),
   });
 
   const bgToneClass =

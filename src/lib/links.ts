@@ -1,4 +1,4 @@
-import type { ExternalRef } from "./db/schema";
+import type { ExternalRef, PreviewPayload, PrRef } from "./db/schema";
 import type { RowView } from "./engine";
 import { parseGithubOrg } from "./github";
 import { db, schema } from "./db";
@@ -27,7 +27,7 @@ export type JiraStatusView = {
  */
 export function resolveRefUrl(
   ref: string,
-  kind: ExternalRef["kind"],
+  kind: ExternalRef["kind"] | "github_pr",
   explicitUrl: string | null | undefined,
   settings: LinkSettings,
 ): string | null {
@@ -53,13 +53,21 @@ export function resolveRefUrl(
 
 export type EnrichedRef = ExternalRef & {
   resolvedUrl: string | null;
+};
+
+/** A linked PR, with its link and its cached PR status. */
+export type EnrichedPr = PrRef & {
+  resolvedUrl: string | null;
   prStatus?: PrStatusView;
 };
 
-export type EnrichedRowView = Omit<RowView, "secondaryRefs"> & {
+export type EnrichedRowView = Omit<RowView, "secondaryRefs" | "prRefs"> & {
   identityResolvedUrl: string | null;
   jiraStatus?: JiraStatusView;
   secondaryRefs: EnrichedRef[];
+  prRefs: EnrichedPr[];
+  /** Cached Jira and PR previews, keyed by ref. Filled by the last sync. */
+  previews?: Record<string, PreviewPayload>;
 };
 
 export function enrichRowView(view: RowView, settings: LinkSettings): EnrichedRowView {
@@ -70,6 +78,10 @@ export function enrichRowView(view: RowView, settings: LinkSettings): EnrichedRo
     secondaryRefs: view.secondaryRefs.map((r) => ({
       ...r,
       resolvedUrl: resolveRefUrl(r.ref, r.kind, r.url, settings),
+    })),
+    prRefs: view.prRefs.map((p) => ({
+      ...p,
+      resolvedUrl: resolveRefUrl(p.ref, "github_pr", p.url, settings),
     })),
   };
 }
@@ -85,21 +97,37 @@ export async function enrichRowsWithCaches(
   const prCaches = await db.query.prStatusCache.findMany({
     where: eq(schema.prStatusCache.userId, userId),
   });
+  const previewCaches = await db.query.previewCache.findMany({
+    where: eq(schema.previewCache.userId, userId),
+  });
 
   const jiraMap = new Map(jiraCaches.map((c) => [c.cardRef, { statusName: c.statusName, statusCategory: c.statusCategory }]));
   const prMap = new Map(prCaches.map((c) => [c.prRef, { state: c.state, mergeableState: c.mergeableState, reviewDecision: c.reviewDecision }]));
+  const previewMap = new Map(previewCaches.map((c) => [c.ref, c.payload]));
 
   return rows.map((r) => {
     const identityKind = r.identityRef.includes("#") ? "github_pr" : "jira";
     const jiraStatus = jiraMap.get(r.identityRef) ?? null;
+    // Only the refs on this row, so the response does not carry the whole cache.
+    const refsOfRow = [r.identityRef, ...r.secondaryRefs.map((s) => s.ref), ...r.prRefs.map((p) => p.ref)];
+    const previews: Record<string, PreviewPayload> = {};
+    for (const ref of refsOfRow) {
+      const payload = previewMap.get(ref);
+      if (payload) previews[ref] = payload;
+    }
     return {
       ...r,
       identityResolvedUrl: resolveRefUrl(r.identityRef, identityKind, r.identityUrl, settings),
       jiraStatus,
+      previews,
       secondaryRefs: r.secondaryRefs.map((sec) => ({
         ...sec,
         resolvedUrl: resolveRefUrl(sec.ref, sec.kind, sec.url, settings),
-        prStatus: sec.kind === "github_pr" ? (prMap.get(sec.ref) ?? null) : undefined,
+      })),
+      prRefs: r.prRefs.map((pr) => ({
+        ...pr,
+        resolvedUrl: resolveRefUrl(pr.ref, "github_pr", pr.url, settings),
+        prStatus: prMap.get(pr.ref) ?? null,
       })),
     };
   });

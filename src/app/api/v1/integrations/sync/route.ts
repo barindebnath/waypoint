@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/api-auth";
 import { handle } from "@/lib/api-helpers";
 import { db, schema } from "@/lib/db";
-import { listRows, setSubtask } from "@/lib/engine";
+import { listRows, refKind, setSubtask } from "@/lib/engine";
+import { refreshPreviewCache } from "@/lib/preview-cache";
 import { fetchGithubPrStatus, parseGithubOrg, parsePrRef } from "@/lib/github";
 import { fetchJiraIssueStatus } from "@/lib/jira";
 import { syncFilledTempoDaysToTimesheet } from "@/lib/autotempo";
@@ -96,9 +97,8 @@ export async function POST() {
           }
         }
 
-        // 2. Sync GitHub PR ref
-        const prRefObj = row.secondaryRefs.find((r) => r.kind === "github_pr");
-        if (prRefObj) {
+        // 2. Sync every GitHub PR on the row
+        for (const prRefObj of row.prRefs) {
           const parsed = parsePrRef(prRefObj.ref, defaultOrg);
           if (!parsed) {
             messages.push(
@@ -179,6 +179,16 @@ export async function POST() {
               // Ignore single row GitHub sync failure
             }
           }
+        }
+
+        // 2b. Save the title and diff size of each Jira and PR ref, so the board shows them on reload
+        const previewRefs = [
+          row.identityRef,
+          ...row.secondaryRefs.map((r) => r.ref),
+          ...row.prRefs.map((p) => p.ref),
+        ].filter((ref, i, all) => all.indexOf(ref) === i && refKind(ref) !== "other");
+        for (const ref of previewRefs) {
+          await refreshPreviewCache(userId, settings, ref);
         }
       })
     );

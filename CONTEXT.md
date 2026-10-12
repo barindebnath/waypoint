@@ -44,7 +44,11 @@ The one mandatory, per-user-unique card ref that names a row — the ZT card for
 _Avoid_: primary ref, title
 
 **Secondary pill**:
-Any additional card/PR ref on a row (the dupe PES/OFF card, PRs, a pivot back-reference). Optional; may repeat across rows.
+Any additional Jira or other card ref on a row (the dupe PES/OFF card, a pivot back-reference). Optional; may repeat across rows.
+
+**PR ref**:
+A GitHub PR linked to a row, written `owner/repo#123`. A row can carry many. Kept apart from secondary pills.
+_Avoid_: secondary ref for PRs
 
 **Link template**:
 A per-user URL pattern (Jira base URL, GitHub org) that turns a bare reference into a clickable link. Optional; an explicit URL on a ref overrides it.

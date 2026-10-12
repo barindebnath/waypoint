@@ -10,6 +10,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import type { GithubPrPreview } from "../github";
 
 /* ------------------------------------------------------------------ */
 /* Better Auth tables (user, session, account, verification, apikey)  */
@@ -165,8 +166,40 @@ export const jiraStatusCache = pgTable(
   (t) => [index("jira_cache_user_idx").on(t.userId)]
 );
 
+/** A Jira or PR preview, in the same shape the preview endpoint returns. */
+export type PreviewPayload = {
+  ref: string;
+  title: string | null;
+  issueType?: string | null;
+  pr?: GithubPrPreview | null;
+};
+
+/**
+ * The last good preview for each ref of a user. Each sync fills it, so the
+ * board shows titles and diff sizes at once on reload, not after a live call.
+ */
+export const previewCache = pgTable(
+  "preview_cache",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    ref: text("ref").notNull(),
+    payload: jsonb("payload").$type<PreviewPayload>().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.ref] })]
+);
+
+/** A Jira card or other ref, shown as a secondary pill. */
 export type ExternalRef = {
-  kind: "jira" | "github_pr" | "other";
+  kind: "jira" | "other";
+  ref: string;
+  url?: string;
+};
+
+/** A GitHub PR linked to a row. A row can have many. */
+export type PrRef = {
   ref: string;
   url?: string;
 };
@@ -186,8 +219,10 @@ export const ticketRow = pgTable(
     }).notNull(),
     /** The row's identity: ZT card for support rows, OFF/PES card for product rows. Normalized uppercase. */
     identityRef: text("identity_ref").notNull(),
-    /** Secondary pills: dupe project card, PRs, pivot back-references. May repeat across rows. */
+    /** Secondary pills: dupe project card, Jira refs, pivot back-references. May repeat across rows. */
     secondaryRefs: jsonb("secondary_refs").$type<ExternalRef[]>().notNull().default([]),
+    /** GitHub PRs linked to the row. A row can have many. */
+    prRefs: jsonb("pr_refs").$type<PrRef[]>().notNull().default([]),
     /** Explicit URL override for the identity ref (link templates usually cover it). */
     identityUrl: text("identity_url"),
     currentMilestone: text("current_milestone").notNull(),

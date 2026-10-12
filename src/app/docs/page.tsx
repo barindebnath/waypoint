@@ -358,7 +358,7 @@ export default async function DocsPage() {
                   ["origin*", '"support" | "product"', "Decides the pipeline family."],
                   ["subType", '"bug" | "task"', "Support rows only. Defaults to bug."],
                   ["pipelineKey", "string", "Override the default (task → support_light, bug → support_full, product → feature)."],
-                  ["secondaryRefs", "{ref, url?}[]", "Optional starting pills."],
+                  ["secondaryRefs", "{ref, url?}[]", "Optional starting pills. A repo#123 entry becomes a PR ref."],
                   ["identityUrl", "string", "Explicit link override; usually unnecessary with link templates."],
                 ]}
               />

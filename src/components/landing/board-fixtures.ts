@@ -52,10 +52,10 @@ function buildRow(s: Sample, now: number): EnrichedRowView {
     identityUrl: null,
     identityResolvedUrl: null,
     jiraStatus: jira ? { statusName: jira.statusName, statusCategory: jira.statusCategory } : undefined,
-    secondaryRefs: s.pr
+    secondaryRefs: [],
+    prRefs: s.pr
       ? [
           {
-            kind: "github_pr",
             ref: s.pr,
             resolvedUrl: null,
             prStatus: prDemo
