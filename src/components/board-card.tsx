@@ -67,7 +67,7 @@ export function BoardCard({ row, preview = false }: { row: EnrichedRowView; prev
       onClick={onCardClick}
       onKeyDown={onCardKeyDown}
       className={`rounded-card bg-card p-3.5 shadow-card ring-1 ring-edge/70 transition-[transform,box-shadow,opacity] ${
-        preview ? "" : "cursor-pointer hover:-translate-y-0.5 hover:ring-edge-strong"
+        preview ? "" : "cursor-pointer"
       } ${row.isComplete ? "opacity-70" : ""}`}
     >
       <CardSummary row={row} />
