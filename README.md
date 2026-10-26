@@ -46,7 +46,7 @@ You do real work in Jira, GitHub, and Teams through your own connections — and
 | **Row** | One unit of work. One row = one card, moving left-to-right through a pipeline. |
 | **Card ref** | The identity of a row — e.g. `ZT-1234` (support), `OFF-5678` (product). Refs only, never card contents. |
 | **Secondary refs** | Extra pointers on a row: PR links (`myrepo#42`), dupe bugs, related tickets. Lookup works by any ref the row carries. |
-| **Milestone** | A phase in the pipeline (e.g. Development, Staging, QA). Completes when all its sub-tasks are checked; the bar auto-advances. |
+| **Milestone** | A phase in the pipeline (e.g. Development, QA & Review). Completes when all its sub-tasks are checked; the bar auto-advances. |
 | **Sub-task** | A checkbox inside a milestone. The UI, the API or an AI agent can tick any sub-task. |
 | **Timesheet** | A weekly Tempo attestation strip. Ticking a day means "Tempo logging for that day is done." |
 
@@ -59,19 +59,19 @@ Fetch live definitions from [`/api/v1/pipelines`](https://waypoint-bd.vercel.app
 ```mermaid
 flowchart LR
   subgraph SF[support_full]
-    T1[Triage & Setup] --> D1[Development] --> S1[Staging] --> Q1[QA & Review] --> P1[Production & Close-out]
+    T1[Triage & Setup] --> D1[Development] --> Q1[QA & Review] --> P1[Production & Close-out]
   end
   subgraph SL[support_light]
     T2[Triage & Setup] --> R2[Resolution] --> C2[Close-out]
   end
   subgraph FE[feature]
-    D3[Definition] --> D4[Development] --> S3[Staging] --> Q3[QA & Review] --> P3[Production & Close]
+    D3[Definition] --> D4[Development] --> Q3[QA & Review] --> P3[Production & Close]
   end
 ```
 
 | Pipeline | For | `origin` | `subType` |
 | :-- | :-- | :-- | :-- |
-| **`support_full`** | Support bugs — fix ships through the full dev → staging → prod flow | `support` | `bug` |
+| **`support_full`** | Support bugs — fix ships through the full dev → QA → prod flow | `support` | `bug` |
 | **`support_light`** | Support tasks (DB queries, data fixes) — no branch / PR / deploy | `support` | `task` |
 | **`feature`** | Product work — greenfield features and enhancements | `product` | (n/a) |
 
@@ -115,7 +115,7 @@ POST /api/v1/rows
 ```
 
 **Progress through milestones:**
-As you or your AI does real work (raises a PR, deploys to staging, etc.) — tick the matching sub-task immediately.
+As you or your AI does real work (raises a PR, tests on staging, etc.) — tick the matching sub-task immediately.
 
 ```
 POST /api/v1/rows/ZT-1234/subtasks
@@ -141,7 +141,7 @@ POST /api/v1/rows/ZT-1234/refs
 
 ```
 POST /api/v1/rows/ZT-1234/regress
-  {milestone: "staging"}     # clears staging + everything after
+  {milestone: "qa_review"}   # clears QA & Review + everything after
 ```
 
 **Log time in Tempo:**

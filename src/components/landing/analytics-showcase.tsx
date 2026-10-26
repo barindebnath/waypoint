@@ -30,8 +30,7 @@ const METRICS_DATA: Record<
     stages: [
       { name: "Triage", time: "0.3d", percent: 15, color: "bg-chip-sky" },
       { name: "Development", time: "1.1d", percent: 50, color: "bg-chip-lilac" },
-      { name: "Staging", time: "0.4d", percent: 18, color: "bg-chip-yellow" },
-      { name: "QA & Review", time: "0.3d", percent: 17, color: "bg-chip-orange" },
+      { name: "QA & Review", time: "0.7d", percent: 35, color: "bg-chip-orange" },
     ],
   },
   bugs: {
@@ -43,8 +42,7 @@ const METRICS_DATA: Record<
     stages: [
       { name: "Triage", time: "0.2d", percent: 12, color: "bg-chip-sky" },
       { name: "Development", time: "0.8d", percent: 50, color: "bg-chip-lilac" },
-      { name: "Staging", time: "0.4d", percent: 25, color: "bg-chip-yellow" },
-      { name: "QA & Review", time: "0.2d", percent: 13, color: "bg-chip-orange" },
+      { name: "QA & Review", time: "0.6d", percent: 38, color: "bg-chip-orange" },
     ],
   },
   features: {
@@ -56,8 +54,7 @@ const METRICS_DATA: Record<
     stages: [
       { name: "Definition", time: "0.5d", percent: 16, color: "bg-chip-sky" },
       { name: "Development", time: "1.6d", percent: 50, color: "bg-chip-lilac" },
-      { name: "Staging", time: "0.6d", percent: 19, color: "bg-chip-yellow" },
-      { name: "QA & Review", time: "0.5d", percent: 15, color: "bg-chip-orange" },
+      { name: "QA & Review", time: "1.1d", percent: 34, color: "bg-chip-orange" },
     ],
   },
 };

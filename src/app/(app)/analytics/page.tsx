@@ -42,7 +42,6 @@ const STAGE_PALETTE = [
 const MILESTONE_LABELS: Record<string, string> = {
   triage: "Triage & Setup",
   development: "Development",
-  staging: "Staging",
   qa_review: "QA & Review",
   prod_close: "Production & Close",
   resolution: "Resolution",

@@ -27,7 +27,7 @@ const SAMPLES: Sample[] = [
   { ref: "OFF-13702", demoKey: "DEMO-13702", pipelineKey: "feature", subType: null, milestone: "definition", done: 2, stageHours: 20 },
   { ref: "OFF-13698", demoKey: "DEMO-13698", pipelineKey: "feature", subType: null, pr: "hub2-api#574", milestone: "development", done: 5, stageHours: 50 },
   { ref: "ZT-2041", demoKey: "DEMO-2041", pipelineKey: "support_full", subType: "bug", pr: "billing#88", milestone: "development", done: 4, stageHours: 98 },
-  { ref: "OFF-13655", demoKey: "DEMO-13655", pipelineKey: "feature", subType: null, pr: "hooks#212", milestone: "staging", done: 1, stageHours: 75 },
+  { ref: "OFF-13655", demoKey: "DEMO-13655", pipelineKey: "feature", subType: null, pr: "hooks#212", milestone: "qa_review", done: 1, stageHours: 75 },
   { ref: "ZT-2057", demoKey: "DEMO-2057", pipelineKey: "support_full", subType: "bug", pr: "auth#301", milestone: "qa_review", done: 0, stageHours: 26 },
   { ref: "OFF-13610", demoKey: "DEMO-13610", pipelineKey: "feature", subType: null, pr: "admin-ui#940", milestone: "prod_close", done: 1, stageHours: 122 },
 ];

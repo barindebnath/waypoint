@@ -400,7 +400,7 @@ export default async function DocsPage() {
               />
             </Ep>
             <Code>
-              {`# Tick a single sub-task\nPOST /api/v1/rows/ZT-4821/subtasks\nAuthorization: Bearer wp_XXXXXXXXXXXX\nIdempotency-Key: pr-panipuri-87\n\n{ "milestone": "development", "subtask": "pr_raised", "checked": true }\n\n# 200 — last sub-task → milestone completes, bar advances\n{ "row": { "identityRef": "ZT-4821", "currentMilestone": "staging", ... } }\n\n\n# Bulk-check all sub-tasks in a milestone (omit "subtask")\nPOST /api/v1/rows/ZT-4821/subtasks\n\n{ "milestone": "development", "checked": true }\n\n# 200 — all sub-tasks + the milestone complete atomically`}
+              {`# Tick a single sub-task\nPOST /api/v1/rows/ZT-4821/subtasks\nAuthorization: Bearer wp_XXXXXXXXXXXX\nIdempotency-Key: pr-panipuri-87\n\n{ "milestone": "development", "subtask": "pr_raised", "checked": true }\n\n# 200 — last sub-task → milestone completes, bar advances\n{ "row": { "identityRef": "ZT-4821", "currentMilestone": "qa_review", ... } }\n\n\n# Bulk-check all sub-tasks in a milestone (omit "subtask")\nPOST /api/v1/rows/ZT-4821/subtasks\n\n{ "milestone": "development", "checked": true }\n\n# 200 — all sub-tasks + the milestone complete atomically`}
             </Code>
             <Ep v="POST" path="/api/v1/rows/{ref}/regress">
               <p>The one way work moves backwards. <C>{`{"milestone": "development"}`}</C>{" "}

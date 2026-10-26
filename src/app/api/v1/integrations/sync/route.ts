@@ -79,8 +79,6 @@ export async function POST() {
                   }
                 } else if (normalizedStatus.includes("code review")) {
                   await setSubtask(userId, row.identityRef, "development", "card_code_review", true).catch(() => {});
-                } else if (normalizedStatus.includes("ready for qa")) {
-                  await setSubtask(userId, row.identityRef, "staging", "card_ready_for_qa", true).catch(() => {});
                 } else if (normalizedStatus.includes("done")) {
                   if (row.pipelineKey === "feature") {
                     await setSubtask(userId, row.identityRef, "prod_close", "card_done", true).catch(() => {});

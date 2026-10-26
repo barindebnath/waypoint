@@ -60,9 +60,8 @@ Five milestones, each with a sub-task checklist. Per the ZT workflow decision, t
 | :-- | :-- | :-- |
 | A | **Triage & Setup** | ZT-xxx picked up · classified as Bug · dupe Bug created in team project + linked to ZT (AI) · investment category added |
 | B | **Development** | fix implemented · tested locally · branch created · code committed · PR raised |
-| C | **Staging** | deployed to staging · staging post in Teams · card to Ready for QA |
-| D | **QA & Review** (parallel) | tested on staging · PR reviewed & approved |
-| E | **Production & Close-out** | merged to main · deployed to prod · release announcement in Eng Releases · tested on prod · comment on project card (dev/QA language) + moved to Done · comment on ZT (support language) · ZT closed / handed to L2 to close |
+| C | **QA & Review** (parallel) | tested on staging · PR reviewed & approved |
+| D | **Production & Close-out** | merged to main · deployed to prod · release announcement in Eng Releases · tested on prod · comment on project card (dev/QA language) + moved to Done · comment on ZT (support language) · ZT closed / handed to L2 to close |
 
 ### 5.2a Support-light pipeline (`ZT-xxx` only — sub-type Task default)
 
@@ -82,9 +81,8 @@ Pipeline choice defaults from sub-type (Bug → full, Task → light) but is ove
 | :-- | :-- | :-- |
 | A | **Definition** | investment category added · dev/QA estimates added in Jira fields (AI) · acceptance criteria present · moved to In Progress |
 | B | **Development** | worked on card · tested locally · branch created · code committed · PR raised · card to Code Review |
-| C | **Staging** | deployed to staging · staging post in Teams · card to Ready for QA |
-| D | **QA & Review** (parallel) | tested on staging (In QA) · PR reviewed & approved |
-| E | **Production & Close** | merged to main · deployed to prod · release announcement in Eng Releases · card moved to Done |
+| C | **QA & Review** (parallel) | tested on staging (In QA) · PR reviewed & approved |
+| D | **Production & Close** | merged to main · deployed to prod · release announcement in Eng Releases · card moved to Done |
 
 ### 5.4 Completion, auto-advance, and sub-task rules
 
@@ -97,7 +95,7 @@ Pipeline choice defaults from sub-type (Bug → full, Task → light) but is ove
 
 The one case where work goes backwards. When the support reporter rejects the fix:
 - The user **unchecks a milestone**, which regresses the bar to that milestone.
-- **Confirmed rule:** unchecking milestone X clears **all sub-tasks and completion flags of X and every milestone after it** (required by auto-advance: a re-opened milestone with all sub-tasks still checked would instantly complete again). Milestones before X stay done. The target is the user's choice — a rejected fix typically means unchecking Development (B); a bounced CR means unchecking Staging (C) only.
+- **Confirmed rule:** unchecking milestone X clears **all sub-tasks and completion flags of X and every milestone after it** (required by auto-advance: a re-opened milestone with all sub-tasks still checked would instantly complete again). Milestones before X stay done. The target is the user's choice — a rejected fix typically means unchecking Development (B); a bounced CR means unchecking QA & Review (C) only.
 - The linked project card status is moved back to in-progress **by you/the AI in Jira**, not by this tracker.
 
 ### 5.6 "Complete but loose ends" visibility
@@ -247,6 +245,12 @@ Because the API acts only on the user's own data with the user's own token, the 
 
 **Changed 2026-10-09:**
 - The `humanUsual` flag is removed. No sub-task is "usually done by you". The UI, the API or an AI agent can tick any sub-task. When the UI or the API ticks a sub-task, the engine also ticks all earlier sub-tasks in the same milestone.
+
+**Changed 2026-10-21:**
+- The **Staging** milestone is removed from the Support (full) and Feature pipelines. Its sub-tasks (deploy to staging, staging post in Teams, card to Ready for QA) are dropped. The QA sub-task "Test on staging" stays in QA & Review.
+- The Board has no Staging column. Support-light is unchanged.
+- Migration `0012_remove_staging_milestone` moves rows at Staging to QA & Review. It deletes the Staging milestone and sub-task state, and removes the milestone from the stored pipeline definitions.
+- The Jira sync no longer ticks "Ready for QA" for the Staging milestone.
 
 **Changed 2026-10-10:**
 - The v1 dashboard (the list of rows) is removed. The Board is the only work view, and `/dashboard` redirects to `/board`. These v1 features are removed with it: drag to reorder (and `POST /rows/reorder`), the date-range inspect mode, the advance suggestion banner, and the filter and sort controls. The `sort_order` column stays, and new rows still get the next value. Completed rows are on the Analytics page.

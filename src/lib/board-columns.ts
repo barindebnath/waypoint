@@ -2,12 +2,11 @@ import type { EnrichedRowView } from "./client-api";
 
 /**
  * The Board columns. Pipelines differ, so a column groups milestone keys by meaning, not by index.
- * Support-light skips Staging and QA: its Close-out lands in column 5.
+ * Support-light skips QA: its Close-out lands in column 4.
  */
 export const COLUMNS: { title: string; keys: string[] }[] = [
   { title: "Triage / Definition", keys: ["triage", "definition"] },
   { title: "Development", keys: ["development", "resolution"] },
-  { title: "Staging", keys: ["staging"] },
   { title: "QA & Review", keys: ["qa_review"] },
   { title: "Production & Close-out", keys: ["prod_close", "closeout"] },
 ];

@@ -68,9 +68,9 @@ Fetch `/api/v1/pipelines` for live milestone/sub-task keys — never hardcode.
 
 | Pipeline | Milestones | Default for | Notes |
 | :-- | :-- | :-- | :-- |
-| `support_full` | Triage & Setup → Development → Staging → QA & Review → Production & Close-out | `origin: support, subType: bug` | Fix ships through the full dev → prod flow |
+| `support_full` | Triage & Setup → Development → QA & Review → Production & Close-out | `origin: support, subType: bug` | Fix ships through the full dev → prod flow |
 | `support_light` | Triage & Setup → Resolution → Close-out | `origin: support, subType: task` | DB-query / data-fix work with no branch/PR/deploy |
-| `feature` | Definition → Development → Staging → QA & Review → Production & Close | `origin: product` | Greenfield + enhancement work |
+| `feature` | Definition → Development → QA & Review → Production & Close | `origin: product` | Greenfield + enhancement work |
 
 ## When to act
 

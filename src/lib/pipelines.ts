@@ -54,15 +54,6 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
         ],
       },
       {
-        key: "staging",
-        label: "Staging",
-        subtasks: [
-          { key: "deployed_staging", label: "Deploy to staging" },
-          { key: "staging_post_teams", label: "Post staging in Teams" },
-          { key: "card_ready_for_qa", label: "Move card to Ready for QA" },
-        ],
-      },
-      {
         key: "qa_review",
         label: "QA & Review",
         subtasks: [
@@ -144,15 +135,6 @@ export const PIPELINES: Record<PipelineKey, PipelineDef> = {
           { key: "code_committed", label: "Commit code" },
           { key: "pr_raised", label: "Raise PR" },
           { key: "card_code_review", label: "Move card to Code Review" },
-        ],
-      },
-      {
-        key: "staging",
-        label: "Staging",
-        subtasks: [
-          { key: "deployed_staging", label: "Deploy to staging" },
-          { key: "staging_post_teams", label: "Post staging in Teams" },
-          { key: "card_ready_for_qa", label: "Move card to Ready for QA" },
         ],
       },
       {

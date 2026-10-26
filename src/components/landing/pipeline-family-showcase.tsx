@@ -33,13 +33,12 @@ const PIPELINE_FAMILIES: PipelineFamily[] = [
     tile: "bg-chip-yellow",
     origin: "support",
     subType: "bug",
-    summary: "For production bugs and escalations requiring full branch creation, PR review, staging verification, and canary deployment.",
+    summary: "For production bugs and escalations requiring full branch creation, PR review, QA verification, and canary deployment.",
     exampleRef: "ZT-4821",
     secondaryRefs: ["PES-1032", "api-repo#89"],
     milestones: [
       { name: "Triage & Setup", desc: "Root cause & repro test" },
       { name: "Development", desc: "Fix code & raise PR" },
-      { name: "Staging", desc: "Staging deploy & test" },
       { name: "QA & Review", desc: "Peer approval & sign-off" },
       { name: "Production & Close-out", desc: "Canary rollout & close" },
     ],
@@ -74,7 +73,6 @@ const PIPELINE_FAMILIES: PipelineFamily[] = [
     milestones: [
       { name: "Definition", desc: "Technical spec & kickoff" },
       { name: "Development", desc: "Feature branch & tests" },
-      { name: "Staging", desc: "Preview staging test" },
       { name: "QA & Review", desc: "Design & QA sign-off" },
       { name: "Production & Close", desc: "Feature flag rollout" },
     ],
