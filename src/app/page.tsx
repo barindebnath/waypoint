@@ -297,9 +297,9 @@ export default async function LandingPage() {
           icon={<BarChart3Icon />}
           eyebrow="Flow Analytics"
           title="Velocity, Cycle Times & Loose Ends Radar."
-          intro="Track throughput and milestone cycle times from intake to canary release. Identify staging bottlenecks and catch neglected PRs before they delay your sprint."
+          intro="Track throughput and milestone cycle times from intake to canary release. Identify QA bottlenecks and catch neglected PRs before they delay your sprint."
           points={[
-            <><strong className="font-semibold text-ink">Cycle-Time Bottlenecks:</strong> Breakdown of days spent in Triage vs Dev vs Staging vs QA.</>,
+            <><strong className="font-semibold text-ink">Cycle-Time Bottlenecks:</strong> Breakdown of days spent in Triage vs Dev vs QA.</>,
             <><strong className="font-semibold text-ink">Loose Ends Radar:</strong> Flags cards whose final milestone is done but contain unchecked sub-tasks.</>,
           ]}
           showcase={<AnalyticsShowcase />}

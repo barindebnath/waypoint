@@ -30,8 +30,8 @@ const ROWS: DemoRow[] = [
   { identityRef: "DEMO-13698", origin: "product", secondaryRefs: [{ ref: "demo-hub2-api#574" }], tick: { milestone: "development", subtask: "pr_raised" }, stageHours: 50, ageHours: 140 },
   { identityRef: "DEMO-2041", origin: "support", subType: "bug", secondaryRefs: [{ ref: "demo-billing#88" }], tick: { milestone: "development", subtask: "code_committed" }, stageHours: 98, ageHours: 160 },
   { identityRef: "DEMO-2063", origin: "support", subType: "task", tick: { milestone: "resolution", subtask: "run_against_db" }, stageHours: 6, ageHours: 30 },
-  { identityRef: "DEMO-13655", origin: "product", secondaryRefs: [{ ref: "demo-hooks#212" }], tick: { milestone: "staging", subtask: "deployed_staging" }, stageHours: 75, ageHours: 260 },
-  { identityRef: "DEMO-2057", origin: "support", subType: "bug", secondaryRefs: [{ ref: "demo-auth#301" }], tick: { milestone: "staging", subtask: "card_ready_for_qa" }, stageHours: 26, ageHours: 120 },
+  { identityRef: "DEMO-13655", origin: "product", secondaryRefs: [{ ref: "demo-hooks#212" }], tick: { milestone: "development", subtask: "card_code_review" }, stageHours: 75, ageHours: 260 },
+  { identityRef: "DEMO-2057", origin: "support", subType: "bug", secondaryRefs: [{ ref: "demo-auth#301" }], tick: { milestone: "development", subtask: "pr_raised" }, stageHours: 26, ageHours: 120 },
   { identityRef: "DEMO-13610", origin: "product", secondaryRefs: [{ ref: "demo-admin-ui#940" }], tick: { milestone: "prod_close", subtask: "merged_main" }, stageHours: 122, ageHours: 400 },
   { identityRef: "DEMO-2012", origin: "support", subType: "bug", secondaryRefs: [{ ref: "demo-notify#57" }], complete: true, stageHours: 30, ageHours: 300 },
 ];

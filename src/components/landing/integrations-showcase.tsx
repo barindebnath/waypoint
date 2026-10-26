@@ -38,7 +38,7 @@ const INITIAL_SYNC_ITEMS: SyncItem[] = [
     prRef: "web-client#142",
     prState: "approved",
     prChecks: "passing",
-    activeMilestone: "Staging (1/2)",
+    activeMilestone: "QA & Review (1/2)",
     lastSynced: "Just now",
   },
   {

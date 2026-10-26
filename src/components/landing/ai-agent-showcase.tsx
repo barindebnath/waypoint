@@ -34,16 +34,16 @@ AI Agent:
   → Reads instructions from /llms.txt
   → POST /api/v1/rows/ZT-4821/refs {"action": "add", "ref": "web-client#142"}
   → POST /api/v1/rows/ZT-4821/subtasks {"milestone": "development", "subtask": "pr_raised", "checked": true}
-  → POST /api/v1/rows/ZT-4821/subtasks {"milestone": "staging", "subtask": "staging_deploy", "checked": true}
-  ✓ Milestone "Development" complete. Auto-advanced to "Staging".`;
+  → POST /api/v1/rows/ZT-4821/subtasks {"milestone": "qa_review", "subtask": "tested_staging", "checked": true}
+  ✓ Milestone "Development" complete. Auto-advanced to "QA & Review".`;
 
   const API_RAW = `curl -X POST "https://waypoint.dev/api/v1/rows/ZT-4821/subtasks" \\
   -H "Authorization: Bearer wp_live_8f3a9..." \\
   -H "Idempotency-Key: ZT-4821-staging-verify-20260821" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "milestone": "staging",
-    "subtask": "staging_verify",
+    "milestone": "qa_review",
+    "subtask": "tested_staging",
     "checked": true
   }'`;
 
@@ -128,12 +128,12 @@ AI Agent:
                 </div>
                 <div>
                   <span className="font-semibold text-product">POST</span> /api/v1/rows/ZT-4821/subtasks{" "}
-                  <span className="text-ink-faint">&#123;&quot;milestone&quot;: &quot;staging&quot;, &quot;subtask&quot;: &quot;staging_deploy&quot;, &quot;checked&quot;: true&#125;</span>
+                  <span className="text-ink-faint">&#123;&quot;milestone&quot;: &quot;qa_review&quot;, &quot;subtask&quot;: &quot;tested_staging&quot;, &quot;checked&quot;: true&#125;</span>
                 </div>
               </div>
               <div className="flex items-start gap-2 pt-2 text-xs font-medium text-done">
                 <CheckCircleIcon className="mt-px h-4 w-4 shrink-0" />
-                <span>Milestone &quot;Development&quot; complete. Auto-advanced to &quot;Staging&quot;.</span>
+                <span>Milestone &quot;Development&quot; complete. Auto-advanced to &quot;QA & Review&quot;.</span>
               </div>
             </div>
           </div>
@@ -158,10 +158,10 @@ AI Agent:
               -d <span className="text-support">&#39;&#123;</span>
             </div>
             <div className="pl-8 text-ink">
-              <span className="text-accent-fg">&quot;milestone&quot;</span>: <span className="text-done">&quot;staging&quot;</span>,
+              <span className="text-accent-fg">&quot;milestone&quot;</span>: <span className="text-done">&quot;qa_review&quot;</span>,
             </div>
             <div className="pl-8 text-ink">
-              <span className="text-accent-fg">&quot;subtask&quot;</span>: <span className="text-done">&quot;staging_verify&quot;</span>,
+              <span className="text-accent-fg">&quot;subtask&quot;</span>: <span className="text-done">&quot;tested_staging&quot;</span>,
             </div>
             <div className="pl-8 text-ink">
               <span className="text-accent-fg">&quot;checked&quot;</span>: <span className="font-semibold text-product">true</span>
