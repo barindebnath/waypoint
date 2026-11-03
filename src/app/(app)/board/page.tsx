@@ -139,13 +139,14 @@ export default function BoardPage() {
       </PageHeader>
 
       <main className="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3 sm:px-4 sm:pb-4">
-        <div className="min-h-0 flex-1 snap-x snap-proximity scroll-px-3 overflow-x-auto rounded-lane bg-lane p-3">
-          <div className="grid h-full grid-flow-col auto-cols-[minmax(216px,1fr)] gap-3">
+        {/* One scroller for both axes. The column headers stay at the top. */}
+        <div className="min-h-0 flex-1 snap-x snap-proximity scroll-px-3 overflow-auto rounded-lane bg-lane p-3">
+          <div className="grid grid-flow-col auto-cols-[minmax(216px,1fr)] gap-3">
             {columns.map((col, i) => {
               const style = LANE_STYLE[i] ?? LANE_STYLE[0];
               return (
-                <section key={col.title} aria-label={col.title} className="flex min-h-0 snap-start flex-col">
-                  <header className="mb-3 flex min-h-9 items-center gap-2 px-1">
+                <section key={col.title} aria-label={col.title} className="flex snap-start flex-col">
+                  <header className="sticky -top-3 z-10 -mt-3 flex min-h-[3.75rem] items-center gap-2 bg-lane px-1 pb-3 pt-3">
                     <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-[10px] text-chip-ink ${style.tile}`}>
                       <style.icon className="h-4 w-4" />
                     </span>
@@ -154,7 +155,7 @@ export default function BoardPage() {
                       {isLoading ? "–" : col.rows.length}
                     </span>
                   </header>
-                  <div className="-mr-1.5 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-1 pr-1.5">
+                  <div className="flex flex-1 flex-col gap-3">
                     {isLoading ? (
                       <>
                         <div className="h-32 animate-pulse rounded-card bg-card/60" />
