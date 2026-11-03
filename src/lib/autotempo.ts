@@ -195,8 +195,14 @@ async function resolveJiraIssueInfoForRef(
   return null;
 }
 
+interface MsTokens {
+  accessToken: string;
+  /** Microsoft returns a new refresh token with each refresh when the `offline_access` scope is granted */
+  refreshToken?: string;
+}
+
 /** Fetch Microsoft OAuth access token using refresh token */
-async function getMsAccessToken(clientId: string, clientSecret: string | undefined, refreshToken: string): Promise<string> {
+async function getMsAccessToken(clientId: string, clientSecret: string | undefined, refreshToken: string): Promise<MsTokens> {
   const body = new URLSearchParams();
   body.append("refresh_token", refreshToken);
   body.append("client_id", clientId);
@@ -211,6 +217,20 @@ async function getMsAccessToken(clientId: string, clientSecret: string | undefin
 
   if (!res.ok) {
     const errText = await res.text();
+    // invalid_grant means the refresh token expired (90 days without use) or was revoked.
+    // The user can fix it, so send a clear message. Use 400, because the client treats 401 as "logged out".
+    let errorCode: unknown;
+    try {
+      errorCode = (JSON.parse(errText) as { error?: unknown } | null)?.error;
+    } catch {
+      // The body is not JSON, so treat it as an unknown failure below.
+    }
+    if (errorCode === "invalid_grant") {
+      throw new EngineError(
+        "Microsoft refresh token expired or was revoked. Get a new refresh token and save it in Settings.",
+        400,
+      );
+    }
     throw new Error(`Microsoft OAuth token refresh failed (HTTP ${res.status}): ${errText}`);
   }
 
@@ -218,7 +238,29 @@ async function getMsAccessToken(clientId: string, clientSecret: string | undefin
   if (!data.access_token) {
     throw new Error("Microsoft OAuth response missing access_token");
   }
-  return data.access_token as string;
+  return {
+    accessToken: data.access_token as string,
+    refreshToken: typeof data.refresh_token === "string" && data.refresh_token ? data.refresh_token : undefined,
+  };
+}
+
+/**
+ * Save the refresh token that Microsoft returned, so the 90-day inactivity window restarts.
+ * The update matches the old token. A token that the user saved in Settings during the run stays in place.
+ * Returns false when the database write fails. The run continues, because the access token is still valid.
+ */
+async function saveRotatedMsRefreshToken(userId: string, oldToken: string, newToken: string): Promise<boolean> {
+  try {
+    await db
+      .update(schema.userSettings)
+      .set({ msRefreshToken: newToken, updatedAt: new Date() })
+      .where(and(eq(schema.userSettings.userId, userId), eq(schema.userSettings.msRefreshToken, oldToken)));
+    return true;
+  } catch (err) {
+    // Log the message only. Never log a token.
+    console.error(`Could not save the new Microsoft refresh token for user ${userId}:`, err instanceof Error ? err.message : err);
+    return false;
+  }
 }
 
 /** Fetch user email from Microsoft Graph API */
@@ -670,7 +712,20 @@ export async function runAutoTempo(userId: string, targetDates?: string[]): Prom
   messages.push(procMsg);
 
   // Fetch MS Graph access token & user info
-  const msAccessToken = await getMsAccessToken(msClientId, msClientSecret || undefined, msRefreshToken);
+  const msTokens = await getMsAccessToken(msClientId, msClientSecret || undefined, msRefreshToken);
+  const msAccessToken = msTokens.accessToken;
+
+  // Save the new refresh token at once, before any later step can fail.
+  // Only a token from this user's settings row is replaced. A token from MS_REFRESH_TOKEN is shared, so it stays as it is.
+  if (settings.msRefreshToken && msTokens.refreshToken && msTokens.refreshToken !== settings.msRefreshToken) {
+    const saved = await saveRotatedMsRefreshToken(userId, settings.msRefreshToken, msTokens.refreshToken);
+    if (!saved) {
+      const saveWarnMsg = "Warning: Could not save the new Microsoft refresh token. The old token stays in use.";
+      diagnostics.push(saveWarnMsg);
+      messages.push(saveWarnMsg);
+    }
+  }
+
   const userEmail = await getMsUserEmail(msAccessToken);
 
   // Clean existing Tempo worklogs for target dates
