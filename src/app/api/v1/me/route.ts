@@ -39,6 +39,8 @@ export async function GET() {
       autoTempoSkipDays: user.autoTempoSkipDays,
       autoTempoRules: user.autoTempoRules,
       autoTempoScheduled: user.autoTempoScheduled,
+      tempoReviewerId: user.tempoReviewerId,
+      tempoSubmitScheduled: user.tempoSubmitScheduled,
       // Presence flags only — the secret values stay on the server.
       hasJiraApiToken: !!user.jiraApiToken,
       hasGithubPat: !!user.githubPat,
@@ -102,6 +104,8 @@ const patchSchema = z.object({
   autoTempoSkipDays: z.array(z.string()).nullable().optional(),
   autoTempoRules: z.array(z.record(z.string(), z.unknown())).nullable().optional(),
   autoTempoScheduled: z.boolean().optional(),
+  tempoReviewerId: z.string().max(255).nullable().optional(),
+  tempoSubmitScheduled: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request) {

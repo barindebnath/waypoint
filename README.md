@@ -241,6 +241,22 @@ To start a run manually, use **Actions → Weekly AutoTempo → Run workflow**, 
 curl -H "Authorization: Bearer $CRON_SECRET" https://<your-url>/api/cron/autotempo
 ```
 
+### Weekly Tempo submit (GitHub Actions)
+
+`.github/workflows/tempo-submit.yml` calls `GET /api/cron/tempo-submit` every Monday at 03:30 UTC (09:00 IST). The route submits last week's Tempo timesheet (Sunday to Saturday) for each user who opted in. It calls `POST https://api.tempo.io/4/timesheet-approvals/user/{accountId}/submit`.
+
+1. The workflow uses the same `CRON_SECRET` secret and `WAYPOINT_URL` variable as the Weekly AutoTempo workflow. No new secrets are needed.
+2. Each user saves the **Tempo API Token** and **Jira Account ID** in **Settings**. The route uses these values, and no GitHub secret holds them.
+3. Each user turns on **Submit my Tempo timesheet every Monday** in **Settings**. A user can add a **Reviewer Account ID**. If it is empty, Tempo uses its default reviewer.
+
+If the approval periods in Tempo are not weekly, or a week does not start on Sunday, the dates do not match a period and Tempo returns an error. If a week is already submitted, Tempo can also return an error. The job then fails, and the Vercel function logs show the HTTP status.
+
+To start a run manually, use **Actions → Weekly Tempo submit → Run workflow**, or:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<your-url>/api/cron/tempo-submit
+```
+
 ### Better Auth production configuration
 
 Add the Better Auth dashboard's API key as `BETTER_AUTH_API_KEY` in **Vercel → Project Settings → Environment Variables** for the Production environment, then redeploy. The server-side `dash()` plugin uses this key to authenticate the dashboard connection; do not use a `NEXT_PUBLIC_` variable or commit the key to the repository.

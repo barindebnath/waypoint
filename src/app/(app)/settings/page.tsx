@@ -378,6 +378,8 @@ function SettingsForm({
     autoTempoSkipDays: unknown;
     autoTempoRules: unknown;
     autoTempoScheduled: boolean;
+    tempoReviewerId: string | null;
+    tempoSubmitScheduled: boolean;
     hasJiraApiToken: boolean;
     hasGithubPat: boolean;
     hasTempoApiToken: boolean;
@@ -424,6 +426,8 @@ function SettingsForm({
   });
 
   const [autoTempoScheduled, setAutoTempoScheduled] = useState(me.autoTempoScheduled);
+  const [tempoReviewerId, setTempoReviewerId] = useState(me.tempoReviewerId ?? "");
+  const [tempoSubmitScheduled, setTempoSubmitScheduled] = useState(me.tempoSubmitScheduled);
 
   const [ruleSearch, setRuleSearch] = useState("");
   const [showSystemRules, setShowSystemRules] = useState(false);
@@ -481,6 +485,8 @@ function SettingsForm({
         autoTempoSkipDays: skipDays,
         autoTempoRules: formattedRules,
         autoTempoScheduled,
+        tempoReviewerId: tempoReviewerId.trim() || null,
+        tempoSubmitScheduled,
       });
     },
     onSuccess: () => {
@@ -689,6 +695,34 @@ function SettingsForm({
                   </span>
                 </span>
               </label>
+
+              {/* Weekly Tempo submit opt-in */}
+              <div className="flex flex-col gap-3 rounded-xl bg-surface-2 p-4">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={tempoSubmitScheduled}
+                    onChange={(e) => setTempoSubmitScheduled(e.target.checked)}
+                    className="wp-check mt-0.5"
+                  />
+                  <span className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-ink">Submit my Tempo timesheet every Monday</span>
+                    <span className="text-[11px] text-ink-muted">
+                      The server submits last week (Sunday to Saturday) in Tempo each Monday at about 09:00 IST (03:30 UTC). It uses the Tempo API token and Jira Account ID above.
+                    </span>
+                  </span>
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-xs text-ink-muted">Reviewer Account ID (Optional)</span>
+                  <input
+                    type="text"
+                    value={tempoReviewerId}
+                    onChange={(e) => setTempoReviewerId(e.target.value)}
+                    placeholder="Leave empty to use the Tempo default reviewer"
+                    className={`${inputCls} font-mono text-xs`}
+                  />
+                </label>
+              </div>
 
               {/* Company Common Rules Banner & Personal Overrides */}
               <div className="flex flex-col gap-3">

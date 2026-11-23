@@ -133,6 +133,10 @@ export const userSettings = pgTable("user_settings", {
   autoTempoRules: jsonb("auto_tempo_rules"),
   /** Opt-in: the Friday cron (/api/cron/autotempo) runs AutoTempo for this user */
   autoTempoScheduled: boolean("auto_tempo_scheduled").notNull().default(false),
+  /** Jira account ID of the person who reviews the submitted Tempo timesheet (optional) */
+  tempoReviewerId: text("tempo_reviewer_id"),
+  /** Opt-in: the Monday cron (/api/cron/tempo-submit) submits last week's Tempo timesheet for this user */
+  tempoSubmitScheduled: boolean("tempo_submit_scheduled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
