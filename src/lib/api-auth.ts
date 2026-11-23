@@ -26,6 +26,8 @@ export type AuthedUser = {
   autoTempoSkipDays: unknown;
   autoTempoRules: unknown;
   autoTempoScheduled: boolean;
+  tempoReviewerId: string | null;
+  tempoSubmitScheduled: boolean;
 };
 
 export class ApiError extends Error {
@@ -102,6 +104,8 @@ export async function requireUser(opts: { write?: boolean } = {}): Promise<Authe
     autoTempoSkipDays: settings.autoTempoSkipDays,
     autoTempoRules: settings.autoTempoRules,
     autoTempoScheduled: settings.autoTempoScheduled,
+    tempoReviewerId: settings.tempoReviewerId,
+    tempoSubmitScheduled: settings.tempoSubmitScheduled,
   };
 }
 

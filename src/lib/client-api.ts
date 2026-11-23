@@ -205,6 +205,8 @@ export const api = {
       autoTempoSkipDays: unknown;
       autoTempoRules: unknown;
       autoTempoScheduled: boolean;
+      tempoReviewerId: string | null;
+      tempoSubmitScheduled: boolean;
       // Secrets are write-only: the server reports only whether each is set.
       hasJiraApiToken: boolean;
       hasGithubPat: boolean;
@@ -233,6 +235,8 @@ export const api = {
     autoTempoSkipDays?: string[] | null;
     autoTempoRules?: Record<string, unknown>[] | null;
     autoTempoScheduled?: boolean;
+    tempoReviewerId?: string | null;
+    tempoSubmitScheduled?: boolean;
   }) => request<{ ok: true }>("/api/v1/me", { method: "PATCH", body: JSON.stringify(patch) }),
   syncIntegrations: () =>
     request<{ success: true; syncedJiraCount: number; syncedGithubCount: number; messages?: string[] }>(

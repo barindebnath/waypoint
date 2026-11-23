@@ -1,25 +1,12 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { runAutoTempo } from "@/lib/autotempo";
+import { isAuthorizedCronCall } from "@/lib/cron-auth";
 import { EngineError } from "@/lib/engine";
 
 /** One run calls Tempo, Jira and Microsoft Graph for each user, one call after another. */
 export const maxDuration = 300;
-
-/**
- * Compare the bearer token with CRON_SECRET in constant time.
- * Both values are hashed first, so the buffers always have the same length.
- */
-function isAuthorizedCronCall(authHeader: string | null): boolean {
-  const secret = process.env.CRON_SECRET;
-  // Fail closed: if the secret is not configured, no caller is authorized.
-  if (!secret || !authHeader) return false;
-  const expected = createHash("sha256").update(`Bearer ${secret}`).digest();
-  const actual = createHash("sha256").update(authHeader).digest();
-  return timingSafeEqual(expected, actual);
-}
 
 interface UserRunSummary {
   userId: string;
