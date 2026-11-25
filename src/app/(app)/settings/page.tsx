@@ -718,7 +718,7 @@ function SettingsForm({
                     type="text"
                     value={tempoReviewerId}
                     onChange={(e) => setTempoReviewerId(e.target.value)}
-                    placeholder="Leave empty to use the Tempo default reviewer"
+                    placeholder="Leave empty to use the reviewer that Tempo lists for you"
                     className={`${inputCls} font-mono text-xs`}
                   />
                 </label>

@@ -247,7 +247,7 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://<your-url>/api/cron/autotem
 
 1. The workflow uses the same `CRON_SECRET` secret and `WAYPOINT_URL` variable as the Weekly AutoTempo workflow. No new secrets are needed.
 2. Each user saves the **Tempo API Token** and **Jira Account ID** in **Settings**. The route uses these values, and no GitHub secret holds them.
-3. Each user turns on **Submit my Tempo timesheet every Monday** in **Settings**. A user can add a **Reviewer Account ID**. If it is empty, Tempo uses its default reviewer.
+3. Each user turns on **Submit my Tempo timesheet every Monday** in **Settings**. A user can add a **Reviewer Account ID**. If it is empty, the route reads the reviewers from Tempo (`GET /4/timesheet-approvals/user/{accountId}/reviewers`) and uses the first one. If Tempo lists none, the route sends no reviewer.
 
 If the approval periods in Tempo are not weekly, or a week does not start on Sunday, the dates do not match a period and Tempo returns an error. If a week is already submitted, Tempo can also return an error. The job then fails, and the Vercel function logs show the HTTP status.
 
@@ -256,6 +256,8 @@ To start a run manually, use **Actions → Weekly Tempo submit → Run workflow*
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" https://<your-url>/api/cron/tempo-submit
 ```
+
+To check the week and the reviewer without a submit, add `?dryRun=1` to the URL. The answer shows `reviewer` (`settings`, `tempo` or `none`) and `reviewerCount` for each user.
 
 ### Better Auth production configuration
 

@@ -14,6 +14,8 @@ interface UserRunSummary {
   from?: string;
   to?: string;
   status?: string | null;
+  reviewer?: string;
+  reviewerCount?: number;
   error?: string;
 }
 
@@ -21,11 +23,14 @@ interface UserRunSummary {
  * Weekly Tempo submit, called by GitHub Actions (see .github/workflows/tempo-submit.yml).
  * The caller sends `Authorization: Bearer $CRON_SECRET`; every other caller gets 401.
  * Only users who opt in (userSettings.tempoSubmitScheduled) are processed.
+ * With `?dryRun=1`, the route finds the week and the reviewer for each user but submits nothing.
  */
 export async function GET(req: Request) {
   if (!isAuthorizedCronCall(req.headers.get("authorization"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const dryRun = new URL(req.url).searchParams.get("dryRun") === "1";
 
   const optedIn = await db
     .select({ userId: schema.userSettings.userId })
@@ -36,7 +41,7 @@ export async function GET(req: Request) {
   const results: UserRunSummary[] = [];
   for (const { userId } of optedIn) {
     try {
-      const result = await submitLastWeekToTempo(userId);
+      const result = await submitLastWeekToTempo(userId, dryRun);
       results.push({ userId, ok: true, ...result });
     } catch (err) {
       // EngineError messages are written for users (for example a missing token).
