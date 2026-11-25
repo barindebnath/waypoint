@@ -8,8 +8,35 @@ const TEMPO_BASE_URL = "https://api.tempo.io/4";
 export interface TempoSubmitResult {
   from: string;
   to: string;
-  /** Approval status key that Tempo returns after the submit, for example "IN_REVIEW" */
+  /** Approval status key that Tempo returns after the submit, for example "IN_REVIEW", or "DRY_RUN" */
   status: string | null;
+  /** Where the reviewer came from: the user's Settings, the Tempo reviewers list, or nowhere (Tempo default) */
+  reviewer: "settings" | "tempo" | "none";
+  /** Number of reviewers that Tempo listed, when the list was read */
+  reviewerCount?: number;
+}
+
+/**
+ * Read the reviewers that Tempo lists for the user (GET /4/timesheet-approvals/user/{accountId}/reviewers).
+ * The API reference does not mark a primary reviewer, so the caller takes the first entry.
+ * A failed read is not fatal: the submit then goes without a reviewer.
+ */
+async function fetchTempoReviewer(
+  tempoToken: string,
+  jiraAccountId: string,
+): Promise<{ reviewerId?: string; count: number }> {
+  const res = await fetch(`${TEMPO_BASE_URL}/timesheet-approvals/user/${encodeURIComponent(jiraAccountId)}/reviewers`, {
+    headers: { Authorization: `Bearer ${tempoToken}`, Accept: "application/json" },
+  });
+  if (!res.ok) {
+    console.error(`Tempo reviewers read failed (HTTP ${res.status}): ${await res.text()}`);
+    return { count: 0 };
+  }
+  const data = (await res.json().catch(() => null)) as { results?: Array<{ accountId?: unknown }> } | null;
+  const ids = (data?.results ?? [])
+    .map((r) => r?.accountId)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+  return { reviewerId: ids[0], count: ids.length };
 }
 
 /**
@@ -26,8 +53,10 @@ export function previousTempoWeek(now: DateTime): { from: string; to: string } {
 /**
  * Submit the Tempo timesheet for the last full week, with the credentials the user saved in Settings.
  * Tempo reference: POST /4/timesheet-approvals/user/{accountId}/submit (https://apidocs.tempo.io/v4/).
+ * The reviewer is the one saved in Settings. If none is saved, it is the first reviewer that Tempo lists.
+ * With `dryRun`, the function finds the week and the reviewer but does not submit.
  */
-export async function submitLastWeekToTempo(userId: string): Promise<TempoSubmitResult> {
+export async function submitLastWeekToTempo(userId: string, dryRun = false): Promise<TempoSubmitResult> {
   const [settings] = await db
     .select()
     .from(schema.userSettings)
@@ -45,8 +74,22 @@ export async function submitLastWeekToTempo(userId: string): Promise<TempoSubmit
 
   // An empty reviewer is left out, and Tempo then uses its own default.
   const body: { comment: string; reviewerAccountId?: string } = { comment: "" };
-  const reviewer = settings.tempoReviewerId?.trim();
-  if (reviewer) body.reviewerAccountId = reviewer;
+  let reviewer: TempoSubmitResult["reviewer"] = "none";
+  let reviewerCount: number | undefined;
+  const savedReviewer = settings.tempoReviewerId?.trim();
+  if (savedReviewer) {
+    body.reviewerAccountId = savedReviewer;
+    reviewer = "settings";
+  } else {
+    const listed = await fetchTempoReviewer(tempoToken, jiraAccountId);
+    reviewerCount = listed.count;
+    if (listed.reviewerId) {
+      body.reviewerAccountId = listed.reviewerId;
+      reviewer = "tempo";
+    }
+  }
+
+  if (dryRun) return { from, to, status: "DRY_RUN", reviewer, reviewerCount };
 
   const url = `${TEMPO_BASE_URL}/timesheet-approvals/user/${encodeURIComponent(jiraAccountId)}/submit?from=${from}&to=${to}`;
   const res = await fetch(url, {
@@ -68,5 +111,5 @@ export async function submitLastWeekToTempo(userId: string): Promise<TempoSubmit
 
   const data = (await res.json().catch(() => null)) as { status?: { key?: unknown } } | null;
   const status = typeof data?.status?.key === "string" ? data.status.key : null;
-  return { from, to, status };
+  return { from, to, status, reviewer, reviewerCount };
 }
