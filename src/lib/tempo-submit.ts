@@ -40,19 +40,20 @@ async function fetchTempoReviewer(
 }
 
 /**
- * The latest Tempo week that has ended, or that ends today. Tempo weeks run Sunday to Saturday.
- * Luxon weekdays run 1 (Monday) to 7 (Sunday), Saturday is 6. The week ends on the most recent
- * Saturday, today included. On Saturday 2026-11-28 this returns 2026-11-22 to 2026-11-28.
- * On Sunday 2026-11-29 or Monday 2026-11-30 it returns the same week, so a late or a manual run
- * does not submit a week that is still open.
+ * The latest Tempo week whose Friday has come. Tempo weeks run Sunday to Saturday.
+ * Luxon weekdays run 1 (Monday) to 7 (Sunday), Friday is 5. The week is the one that holds the
+ * most recent Friday, today included. On Friday 2026-11-27 this returns 2026-11-22 to 2026-11-28.
+ * The same week comes back until the next Friday, so a late or a manual run on Saturday to
+ * Thursday does not submit a week whose last working day has not come.
  */
 export function latestTempoWeek(now: DateTime): { from: string; to: string } {
-  const to = now.startOf("day").minus({ days: (now.weekday - 6 + 7) % 7 });
-  return { from: to.minus({ days: 6 }).toFormat("yyyy-MM-dd"), to: to.toFormat("yyyy-MM-dd") };
+  const friday = now.startOf("day").minus({ days: (now.weekday - 5 + 7) % 7 });
+  const from = friday.minus({ days: 5 });
+  return { from: from.toFormat("yyyy-MM-dd"), to: from.plus({ days: 6 }).toFormat("yyyy-MM-dd") };
 }
 
 /**
- * Submit the Tempo timesheet for the latest week that has ended (see `latestTempoWeek`), with the credentials the user saved in Settings.
+ * Submit the Tempo timesheet for the current week once its Friday has come (see `latestTempoWeek`), with the credentials the user saved in Settings.
  * Tempo reference: POST /4/timesheet-approvals/user/{accountId}/submit (https://apidocs.tempo.io/v4/).
  * The reviewer is the one saved in Settings. If none is saved, it is the first reviewer that Tempo lists.
  * With `dryRun`, the function finds the week and the reviewer but does not submit.
