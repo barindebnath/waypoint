@@ -20,7 +20,7 @@ interface UserRunSummary {
 }
 
 /**
- * Weekly Tempo submit, called by GitHub Actions (see .github/workflows/tempo-submit.yml).
+ * Weekly Tempo submit, called by GitHub Actions (the submit job in .github/workflows/autotempo.yml, which starts after the AutoTempo job).
  * The caller sends `Authorization: Bearer $CRON_SECRET`; every other caller gets 401.
  * Only users who opt in (userSettings.tempoSubmitScheduled) are processed.
  * With `?dryRun=1`, the route finds the week and the reviewer for each user but submits nothing.

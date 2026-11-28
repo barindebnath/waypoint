@@ -40,18 +40,20 @@ async function fetchTempoReviewer(
 }
 
 /**
- * The last full Tempo week before `now`. Tempo weeks run Sunday to Saturday.
- * Luxon weekdays run 1 (Monday) to 7 (Sunday), so `weekday % 7` is the number of
- * days since the last Sunday. On Monday 2026-11-23 this returns 2026-11-15 to 2026-11-21.
+ * The latest Tempo week whose Friday has come. Tempo weeks run Sunday to Saturday.
+ * Luxon weekdays run 1 (Monday) to 7 (Sunday), Friday is 5. The week is the one that holds the
+ * most recent Friday, today included. On Friday 2026-11-27 this returns 2026-11-22 to 2026-11-28.
+ * The same week comes back until the next Friday, so a late or a manual run on Saturday to
+ * Thursday does not submit a week whose last working day has not come.
  */
-export function previousTempoWeek(now: DateTime): { from: string; to: string } {
-  const thisSunday = now.startOf("day").minus({ days: now.weekday % 7 });
-  const from = thisSunday.minus({ days: 7 });
+export function latestTempoWeek(now: DateTime): { from: string; to: string } {
+  const friday = now.startOf("day").minus({ days: (now.weekday - 5 + 7) % 7 });
+  const from = friday.minus({ days: 5 });
   return { from: from.toFormat("yyyy-MM-dd"), to: from.plus({ days: 6 }).toFormat("yyyy-MM-dd") };
 }
 
 /**
- * Submit the Tempo timesheet for the last full week, with the credentials the user saved in Settings.
+ * Submit the Tempo timesheet for the current week once its Friday has come (see `latestTempoWeek`), with the credentials the user saved in Settings.
  * Tempo reference: POST /4/timesheet-approvals/user/{accountId}/submit (https://apidocs.tempo.io/v4/).
  * The reviewer is the one saved in Settings. If none is saved, it is the first reviewer that Tempo lists.
  * With `dryRun`, the function finds the week and the reviewer but does not submit.
@@ -70,7 +72,7 @@ export async function submitLastWeekToTempo(userId: string, dryRun = false): Pro
   if (!tempoToken) throw new EngineError("Tempo API Token is missing. Please configure it in Settings.", 400);
   if (!jiraAccountId) throw new EngineError("Jira Account ID is missing. Please configure it in Settings.", 400);
 
-  const { from, to } = previousTempoWeek(DateTime.now().setZone(settings.timezone));
+  const { from, to } = latestTempoWeek(DateTime.now().setZone(settings.timezone));
 
   // An empty reviewer is left out, and Tempo then uses its own default.
   const body: { comment: string; reviewerAccountId?: string } = { comment: "" };

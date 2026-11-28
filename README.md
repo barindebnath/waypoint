@@ -243,15 +243,19 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://<your-url>/api/cron/autotem
 
 ### Weekly Tempo submit (GitHub Actions)
 
-`.github/workflows/tempo-submit.yml` calls `GET /api/cron/tempo-submit` every Monday at 03:30 UTC (09:00 IST). The route submits last week's Tempo timesheet (Sunday to Saturday) for each user who opted in. It calls `POST https://api.tempo.io/4/timesheet-approvals/user/{accountId}/submit`.
+The `submit` job in `.github/workflows/autotempo.yml` calls `GET /api/cron/tempo-submit`. It starts only after the AutoTempo job succeeds, on the same Friday at 12:30 UTC (18:00 IST). The route submits the Tempo timesheet for the current week (Sunday to Saturday) for each user who opted in. It calls `POST https://api.tempo.io/4/timesheet-approvals/user/{accountId}/submit`.
 
-1. The workflow uses the same `CRON_SECRET` secret and `WAYPOINT_URL` variable as the Weekly AutoTempo workflow. No new secrets are needed.
+1. The job uses the same `CRON_SECRET` secret and `WAYPOINT_URL` variable as the AutoTempo job. No new secrets are needed.
 2. Each user saves the **Tempo API Token** and **Jira Account ID** in **Settings**. The route uses these values, and no GitHub secret holds them.
-3. Each user turns on **Submit my Tempo timesheet every Monday** in **Settings**. A user can add a **Reviewer Account ID**. If it is empty, the route reads the reviewers from Tempo (`GET /4/timesheet-approvals/user/{accountId}/reviewers`) and uses the first one. If Tempo lists none, the route sends no reviewer.
+3. Each user turns on **Submit my Tempo timesheet every Friday** in **Settings**. A user can add a **Reviewer Account ID**. If it is empty, the route reads the reviewers from Tempo (`GET /4/timesheet-approvals/user/{accountId}/reviewers`) and uses the first one. If Tempo lists none, the route sends no reviewer.
 
-If the approval periods in Tempo are not weekly, or a week does not start on Sunday, the dates do not match a period and Tempo returns an error. If a week is already submitted, Tempo can also return an error. The job then fails, and the Vercel function logs show the HTTP status.
+If the AutoTempo job fails for any user, the `submit` job does not run for anyone. So a week with a failed fill is never submitted.
 
-To start a run manually, use **Actions → Weekly Tempo submit → Run workflow**, or:
+The week is the one that holds the most recent Friday. A call to the route on Saturday to Thursday returns the same week, so no call submits a week whose Friday has not come.
+
+Hours that you log after the Friday run are not in the submitted week. If Tempo returns an error for the week (for example, because it is already submitted), the job fails, and the Vercel function logs show the HTTP status.
+
+To start a run manually, use **Actions → Weekly AutoTempo → Run workflow**. This runs both jobs. To start only the submit, use:
 
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" https://<your-url>/api/cron/tempo-submit
