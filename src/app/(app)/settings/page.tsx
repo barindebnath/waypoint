@@ -706,9 +706,9 @@ function SettingsForm({
                     className="wp-check mt-0.5"
                   />
                   <span className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-ink">Submit my Tempo timesheet every Monday</span>
+                    <span className="text-xs font-semibold text-ink">Submit my Tempo timesheet every Saturday</span>
                     <span className="text-[11px] text-ink-muted">
-                      The server submits last week (Sunday to Saturday) in Tempo each Monday at about 09:00 IST (03:30 UTC). It uses the Tempo API token and Jira Account ID above.
+                      The server submits the week from Sunday to Saturday in Tempo on its last day, Saturday, at about 09:00 IST (03:30 UTC). It uses the Tempo API token and Jira Account ID above.
                     </span>
                   </span>
                 </label>

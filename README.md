@@ -243,11 +243,11 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://<your-url>/api/cron/autotem
 
 ### Weekly Tempo submit (GitHub Actions)
 
-`.github/workflows/tempo-submit.yml` calls `GET /api/cron/tempo-submit` every Monday at 03:30 UTC (09:00 IST). The route submits last week's Tempo timesheet (Sunday to Saturday) for each user who opted in. It calls `POST https://api.tempo.io/4/timesheet-approvals/user/{accountId}/submit`.
+`.github/workflows/tempo-submit.yml` calls `GET /api/cron/tempo-submit` every Saturday at 03:30 UTC (09:00 IST). The route submits the Tempo timesheet for the week that ends that day (Sunday to Saturday) for each user who opted in. If someone calls the route on another day, it submits the latest week that has ended, never a week that is still open. It calls `POST https://api.tempo.io/4/timesheet-approvals/user/{accountId}/submit`.
 
 1. The workflow uses the same `CRON_SECRET` secret and `WAYPOINT_URL` variable as the Weekly AutoTempo workflow. No new secrets are needed.
 2. Each user saves the **Tempo API Token** and **Jira Account ID** in **Settings**. The route uses these values, and no GitHub secret holds them.
-3. Each user turns on **Submit my Tempo timesheet every Monday** in **Settings**. A user can add a **Reviewer Account ID**. If it is empty, the route reads the reviewers from Tempo (`GET /4/timesheet-approvals/user/{accountId}/reviewers`) and uses the first one. If Tempo lists none, the route sends no reviewer.
+3. Each user turns on **Submit my Tempo timesheet every Saturday** in **Settings**. A user can add a **Reviewer Account ID**. If it is empty, the route reads the reviewers from Tempo (`GET /4/timesheet-approvals/user/{accountId}/reviewers`) and uses the first one. If Tempo lists none, the route sends no reviewer.
 
 If the approval periods in Tempo are not weekly, or a week does not start on Sunday, the dates do not match a period and Tempo returns an error. If a week is already submitted, Tempo can also return an error. The job then fails, and the Vercel function logs show the HTTP status.
 

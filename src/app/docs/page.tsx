@@ -475,7 +475,7 @@ export default async function DocsPage() {
                   ["autoTempoSkipDays", "string[] | null", "Days to skip during auto-tempo (e.g. public holidays)."],
                   ["autoTempoRules", "object[] | null", "Per-project auto-tempo rule overrides."],
                   ["autoTempoScheduled", "boolean", "Opt in to the weekly auto-tempo run every Friday at 12:30 UTC."],
-                  ["tempoSubmitScheduled", "boolean", "Opt in to the weekly Tempo timesheet submit every Monday at 03:30 UTC."],
+                  ["tempoSubmitScheduled", "boolean", "Opt in to the weekly Tempo timesheet submit every Saturday at 03:30 UTC."],
                   ["tempoReviewerId", "string | null", "Jira account ID of the Tempo timesheet reviewer (optional). If empty, the first reviewer from Tempo is used."],
                 ]}
               />
